@@ -1,0 +1,67 @@
+# Prototype parts (2 keys + 1 knob), cheapest-first
+
+Goal: as cheap to prototype as possible, with no parts that get thrown away.
+Two orders: **AliExpress** (all the loose parts) and **JLCPCB** (the knob
+module, assembled). Prices are rough estimates from 2026-10-16; check
+listings before ordering. The AliExpress links below are searches. Pick a
+listing with good ratings and a clear pinout photo.
+
+## Order 1 — AliExpress (~$40–55)
+
+| Qty | Part | ~Price | Search |
+|---|---|---|---|
+| 1 | ESP32-S3 dev board, **N16R8 or N8R8** (must have the "R8" = 8 MB PSRAM), two USB-C ports | $6–9 | [esp32-s3 n16r8 devkit](https://www.aliexpress.us/w/wholesale-esp32-s3-n16r8-devkitc.html) |
+| 1 | 2.0" 240×320 IPS SPI display, **ST7789** | $4–6 | [2.0 inch st7789 240x320](https://www.aliexpress.us/w/wholesale-2.0-inch-st7789-240x320-spi.html) |
+| 1 (2-pack) | **Mitoot 2204 260KV gimbal motor**, ~28 × 13 mm, 3.4 mm hollow shaft | $15–25 | [listing](https://www.aliexpress.us/item/2251832766811717.html) |
+| 1 pack | Diametric (side-magnetized) magnets, 6 × 2.5 mm, for the MT6701 | $3–6 | [diametric magnet 6x2.5mm](https://www.aliexpress.us/w/wholesale-diametric-magnet-6x2.5mm.html) |
+| 1 mix | Micro switches: a few mouse switches (Kailh GM 8.0 / Omron D2FC / Huano) + a 6 mm tactile assortment | $3–8 | [mouse micro switch set](https://www.aliexpress.us/w/wholesale-mouse-micro-switch-set.html) |
+| 1 | Breadboard + jumper wire kit, machined female header strip | $4–6 | [breadboard jumper kit](https://www.aliexpress.us/w/wholesale-breadboard-jumper-wire-kit.html) |
+| 1 | Digital calipers (to measure the motor bolt pattern) | $8–15 | [digital caliper](https://www.aliexpress.us/w/wholesale-digital-caliper.html) |
+
+Notes
+- Generic displays and ESP32 clones differ in pin order. Wire from the
+  listing's pinout, not a tutorial.
+- Seller specs for the 2204 disagree on KV and mounting pattern (M3 thread
+  vs 12×12 / 16×16 mm M2/M3). **Measure it when it arrives.**
+- Skip the breadboard/calipers if you already have them.
+
+## Order 2 — JLCPCB knob module (~$20–30, after the motor arrives)
+
+Rev 0 PCB, about 30 × 30 mm. It's the final knob module (5 copies in the
+full build), so it isn't throwaway:
+- **MT6701** magnetic angle sensor, centered under the motor shaft.
+- **TMC6300** brushless driver (2–11 V, runs from USB 5 V). It's a tiny QFN
+  chip, so **JLC assembles it**; it can't be hand-soldered.
+- Screw holes matching the measured motor, so the board itself keeps the
+  magnet centered over the sensor (no printed jig needed).
+- Header to the ESP32-S3: 5 V, 3V3, GND, 6× PWM, sensor SSI (CS/CLK/DO).
+
+Cost: 5 bare boards + assembly on 2 of them (setup fee + LCSC parts +
+"extended part" fees). Roughly $20–30 with economy shipping. Confirm both
+chips are in LCSC stock when ordering.
+
+Why not an $18 SparkFun TMC6300 breakout instead: it costs about the same as
+assembly and gets thrown away later. The trade-off is risk: if the first
+driver circuit has a mistake, that's a second ~$20 board and ~2 weeks. Use
+the breakout as the fallback if Rev 0 has problems:
+[SparkFun ROB-21867](https://www.sparkfun.com/sparkfun-brushless-motor-driver-3-phase-tmc6300.html).
+
+## Order 3 — caps (later, at stage 4)
+
+Add to a later JLC order so it ships together:
+- **JLC3DP clear resin (SLA)** prints for caps, frame and guides.
+  [JLC3DP clear printing guide](https://jlc3dp.com/fr/blog/clear-3d-printing-guide)
+- Alternative: laser-cut 3 mm / 5 mm cast acrylic (SendCutSend, Ponoko, or a
+  local makerspace).
+
+## Rough total
+AliExpress ~$40–55 + JLC knob module ~$20–30 ≈ **$60–85** for a working
+2-key + 1-knob prototype in the final configuration.
+
+## Sequence
+1. Order 1 now.
+2. While it ships: firmware/host skeleton, knob module schematic.
+3. Motor arrives → measure bolt pattern → finish knob PCB layout → Order 2.
+4. While the PCB is being made: screen + switches + USB working on the
+   breadboard (stages 1–2).
+5. Knob module arrives → stage 3 (clicky/smooth/stops).
