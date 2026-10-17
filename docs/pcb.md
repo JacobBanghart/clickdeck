@@ -9,7 +9,7 @@
 
 ## Boards in the full build
 
-The ESP32-S3 + 7" display is a bought board (Waveshare ESP32-S3-LCD-7), so
+The ESP32-S3 + 7" display is a bought board (Waveshare ESP32-S3-LCD-7B), so
 it isn't designed here. It handles USB and draws the screen. Everything
 else is on three boards:
 
@@ -41,8 +41,10 @@ else is on three boards:
 - **Sensor:** MT6701 in SSI mode (mode pin strapped on the board).
 - **Motor mount:** holes fit more than one motor (2204 patterns plus a
   fallback motor), since specific motors go out of stock.
-- **Flashing:** RP2350B RUN and boot-select (or SWD) pins wired to the
-  ESP32-S3 so the main board can update it over USB.
+- **Link and flashing:** UART to the display board's UART connector
+  (GPIO43/44); RP2350B RUN to its sensor connector (likely GPIO6). Firmware
+  updates go over that UART via a small bootloader on the RP2350B. Add
+  USB test pads plus a BOOTSEL button as the recovery path.
 - **Power:** read the USB-C current advertisement (CC lines) or get it
   from the display board, so firmware can set the motor current budget.
 - Pin budget (approx.): 15 PWM, 2 sensor bus + 5 chip selects, 5 press

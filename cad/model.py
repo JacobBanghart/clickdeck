@@ -92,7 +92,7 @@ def make_stack(floor_t: float, plate_t: float) -> Stack:
     knob_pcb_top = knob_pcb_bot + P.PCB_T
     motor_bot = knob_pcb_top + P.MT6701[2] + P.SENSOR_GAP + P.MAGNET_H
     motor_top = motor_bot + P.MOTOR_H
-    adapter_h = P.ADAPTER_H if P.KNOB_STYLE == "keebio_adapter" else 0.0
+    adapter_h = P.ADAPTER_H if P.KNOB_STYLE == "shaft_adapter" else 0.0
     plate_bot = motor_top + adapter_h + P.MOTOR_TO_PLATE
     plate_top = plate_bot + plate_t
     flange_top = plate_bot - P.CAP_TO_PLATE
@@ -195,13 +195,13 @@ def plate_sketch(outline: tuple[float, float, float, float], radius: float,
 
 
 def knob_hole_d() -> float:
-    if P.KNOB_STYLE == "keebio_adapter":
+    if P.KNOB_STYLE == "shaft_adapter":
         return P.PLATE_SHAFT_HOLE_D
     return P.KNOB_STEM_D + 1.0
 
 
 def tapered_knob() -> Part:
-    """Keebio-style knob body, bottom at z=0: tapered, wider at the top."""
+    """Knob body, bottom at z=0: tapered, wider at the top."""
     knob = Cone(P.KNOB_BOT_D / 2, P.KNOB_TOP_D / 2, P.KNOB_H, align=MIN)
     knob = fillet(knob.edges().group_by(Axis.Z)[-1], 0.8)
     return knob - Pos(0, P.KNOB_TOP_D / 2 - 2.5, P.KNOB_H - 0.5) * Cylinder(0.8, 2, align=MIN)
@@ -210,7 +210,7 @@ def tapered_knob() -> Part:
 def knob_parts(st: Stack, x: float, y: float, n: int) -> list[Item]:
     """What sits on top of the motor bell, for the chosen KNOB_STYLE."""
     knob_z = st.plate_top + P.KNOB_GAP
-    if P.KNOB_STYLE == "keebio_adapter":
+    if P.KNOB_STYLE == "shaft_adapter":
         shaft_top = knob_z + P.KNOB_BORE_DEPTH
         disc = Cylinder(P.ADAPTER_D / 2, P.ADAPTER_H, align=MIN)
         shaft = Pos(0, 0, P.ADAPTER_H) * Cylinder(
@@ -220,7 +220,7 @@ def knob_parts(st: Stack, x: float, y: float, n: int) -> list[Item]:
         adapter = Pos(x, y, st.motor_top) * (disc + shaft - flat)
         knob = tapered_knob() - Cylinder(P.KNOB_BORE_D / 2, P.KNOB_BORE_DEPTH, align=MIN)
         return [Item(adapter, f"knob{n}_shaft_adapter", C_STANDOFF, 3),
-                Item(Pos(x, y, knob_z) * knob, f"knob{n}_keebio_knob", C_KNOB, 6)]
+                Item(Pos(x, y, knob_z) * knob, f"knob{n}_d_shaft_knob", C_KNOB, 6)]
     # Integrated: stem from the bell top up through the plate, knob body on top
     stem = Cylinder(P.KNOB_STEM_D / 2, knob_z - st.motor_top + 0.5, align=MIN)
     knob = Pos(0, 0, knob_z - st.motor_top) * tapered_knob() + stem

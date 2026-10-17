@@ -15,7 +15,7 @@ Two orders: **JLC** (all three PCBs in one panel, assembly, 3D prints) and
 
 | Item | ~Cost |
 |---|---|
-| ESP32-S3 + 7" 800×480 display board (Waveshare ESP32-S3-LCD-7, non-touch; $32–37 from Waveshare) | $32–37 |
+| ESP32-S3 + 7" 1024×600 display board (Waveshare ESP32-S3-LCD-7B, non-touch, SKU 31727; $33.99 from Waveshare) | ~$34 |
 | 5× 2204 gimbal motors | $40–60 |
 | 5× diametric magnets | ~$5 |
 | Knob board, JLC-assembled (RP2350B, 5× MT6701, 5× motor drivers, 5× press switches) | $35–55 |

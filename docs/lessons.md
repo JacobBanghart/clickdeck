@@ -140,8 +140,9 @@ Sources and licenses:
 18. **Waveshare RGB boards may not dim.** Stream32 found the 4.3" board's
     backlight is on/off only (through an I/O expander), and the 4" Rev 3
     needed a hardware mod to power on automatically.
-    → Check backlight dimming and power-on behavior of the 7" board before
-    buying it in quantity; plan a PWM backlight mod if needed.
+    → Checked (2026-10-17): the original ESP32-S3-LCD-7's backlight is
+    on/off only (CH422G pin EXIO2). The **ESP32-S3-LCD-7B** supports
+    brightness adjustment at the same price, so clickdeck uses the 7B.
 19. **Blank the screen when idle** (Stream32 defaults to 10 minutes, and
     blanks when the computer locks) to avoid burn-in.
 

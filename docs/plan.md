@@ -26,11 +26,11 @@
  PC: OpenDeck + clickdeck device plugin (or the Python library directly)
    │  single USB cable
    ▼
- ESP32-S3 + 7" display board (bought: Waveshare ESP32-S3-LCD-7)
+ ESP32-S3 + 7" display board (bought: Waveshare ESP32-S3-LCD-7B, 1024×600)
    ├── USB HID interface    → key presses, knob turns/presses, touch
    ├── USB CDC/bulk channel → images and commands from the PC (~1 MB/s)
    ├── drives the LCD       → all key images + knob display areas
-   └── UART ──► knob board: RP2350B
+   └── UART (board's UART connector) ──► knob board: RP2350B
                  ├── 5 knobs: MT6701 sensor + motor driver + press switch each
                  ├── 21-key matrix (frame PCB, switches only)
                  └── I²C ──► touch band (under the top plate)
@@ -69,11 +69,20 @@ in the case stop the cap from tilting.
 Knobs sit just past the panel edge; each knob's "display" is an area of
 the same panel.
 
-Full build target: 7" 800×480 RGB panel. Layout (from the CAD model):
-**7×3 = 21 keys at 22 mm pitch** (~93×93 px per key, about Stream Deck XL
-density) plus a ~20 mm strip below the keys for the 5 knob displays.
+Full build target: Waveshare **ESP32-S3-LCD-7B** (non-touch, SKU 31727,
+$33.99), 7" 1024×600 RGB panel with **adjustable backlight**. Chosen over
+the original ESP32-S3-LCD-7 (800×480): same price and pinout, but the
+original's backlight is on/off only (CH422G expander pin) without a wire
+mod. Layout (from the CAD model): **7×3 = 21 keys at 22 mm pitch** (~146×146
+px per key) plus a ~20 mm strip below the keys for the 5 knob displays.
 (5×4 at 30 mm doesn't fit: the panel's active area is only ~86 mm tall.)
-Likely an ESP32-S3 + 7" panel board (Waveshare/Sunton style).
+
+Free pins on the board (from Waveshare's pin tables): the display, touch
+I²C, USB, SD card and RS485 use most GPIOs. Left for us: the **UART
+connector (GPIO43/44)**, used for the knob-board link, and the **sensor
+connector** (likely GPIO6), used to reset the knob board. 1024×600 is more
+work for the ESP32-S3 than 800×480; fine for mostly static key images, but
+test full-screen redraw speed early.
 
 Switches: **Omron B3U-1000P** (3.0 × 2.5 mm SMD tactile). The strip
 between keys is 3.6 mm, so 13 mm mouse switches don't fit.

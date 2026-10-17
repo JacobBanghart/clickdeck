@@ -30,7 +30,7 @@ PCB_T = 1.6
 FRAME_PCB_MARGIN = 3.0    # frame PCB extends this far past the panel active area
 GLASS_GAP = 0.2           # frame PCB / cap bottoms sit this far above the glass
 
-# --- 7" 800x480 panel, AT070TN9x-class (EST) ----------------------------
+# --- 7" panel on the Waveshare ESP32-S3-LCD-7B (1024x600), outline (EST) ---
 PANEL_W, PANEL_H, PANEL_T = 164.9, 100.0, 5.7
 AA_W, AA_H = 154.21, 85.92
 PANEL_BORDER_BOTTOM = 4.0  # border on the knob side; FPC side faces the back
@@ -60,14 +60,15 @@ KNOB_PRESS_GAP = 0.05                   # press switch actuator to case floor
 KNOB_BOARD_EDGE = 3.0                   # solid border outside the slots
 KNOB_BOARD_BACK = 18.0                  # solid strip behind the tongues (RP2040, connector)
 RP2040 = (7.0, 7.0, 0.9)
-# Knob shape copies the Keebio aluminum encoder knob: tapered, wider at the
-# top. (EST) Keebio doesn't publish dimensions; measure yours and update.
+# Knob: tapered, wider at the top (similar in size to common aluminum
+# encoder knobs). Printed (or CNC'd) as part of the build, so builders don't
+# need to buy knobs.
 #
 # KNOB_STYLE:
-#   "integrated"     one printed/CNC part per knob that bolts straight onto
-#                    the motor bell (no adapter). Default.
-#   "keebio_adapter" reuse real Keebio knobs on a 6 mm D-shaft adapter that
-#                    bolts onto the motor bell (one adapter per knob).
+#   "integrated"    one printed/CNC part per knob that bolts straight onto
+#                   the motor bell (no adapter). Default.
+#   "shaft_adapter" use any standard 6 mm D-shaft encoder knob on a small
+#                   adapter that bolts onto the motor bell.
 KNOB_STYLE = "integrated"
 KNOB_TOP_D = 19.0
 KNOB_BOT_D = 16.0
@@ -76,11 +77,11 @@ KNOB_BORE_D = 6.0                       # standard 6 mm D-shaft (EC11)
 KNOB_BORE_DEPTH = 10.0
 KNOB_GAP = 1.0                          # knob bottom to top plate
 KNOB_STEM_D = 14.0                      # integrated: stem through the top plate to the bell
-# Shaft adapter (keebio_adapter style only): screws onto the motor bell, gives the knob a 6 mm D-shaft
+# Shaft adapter (shaft_adapter style only): screws onto the motor bell, gives the knob a 6 mm D-shaft
 ADAPTER_D = 14.0
 ADAPTER_H = 1.5
 SHAFT_FLAT = 4.5                        # D-shaft: 6 mm round with a flat at 4.5 mm
-PLATE_SHAFT_HOLE_D = 8.0                # top plate hole, keebio_adapter style
+PLATE_SHAFT_HOLE_D = 8.0                # top plate hole, shaft_adapter style
 KNOB_WIN = (26.0, 15.0)                 # knob display area per knob (max size)
 # Touch band: a thin capacitive sensor PCB glued under the top plate, right
 # below the knob displays. Tap or swipe on the plate surface (like the + XL
