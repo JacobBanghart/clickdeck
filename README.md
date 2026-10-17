@@ -18,22 +18,20 @@ What this adds:
   firmware. No vendor app or account.
 
 What the + XL does better: it's polished and ready today, has a huge plugin
-library, 36 keys plus a touch strip, and costs about the same or less (see
-below). Build this for the knobs and the switch feel; if those don't matter,
+library, 36 keys plus a touch strip, and costs about the same (see below). Build this for the knobs and the switch feel; if those don't matter,
 buy the + XL.
 
 ## Cost (rough estimates)
 
 | | ~Cost |
 |---|---|
-| Prototype (2 keys + 1 knob) | $90–145 |
-| Full device (21 keys + 5 knobs) | $260–470 |
-| One PCB redo | $30–60 |
-| **All-in** | **$380–675** |
+| **Build one from this repo** | **$260–470** |
+| Per unit, 5 people ordering together | $200–370 |
 | Stream Deck + XL, for comparison | ~$350 |
 
-Breakdown: [docs/cost.md](docs/cost.md). The prototype tests the two things
-that matter (knob feel, switch feel) before you spend the rest.
+Building one covers parts, PCBs (JLC's 5-board minimum included), prints and
+shipping. Most of the range is the case ($50–120) and shipping. Breakdown:
+[docs/cost.md](docs/cost.md).
 
 ## Design
 
