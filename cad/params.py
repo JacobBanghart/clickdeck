@@ -78,7 +78,7 @@ MOTOR_TO_PLATE = 0.3
 
 # --- Case -----------------------------------------------------------------
 # The case is a slab on a separate wedge stand, like the Stream Deck + XL.
-TILT_DEG = 25.0           # slab angle toward the user
+TILT_DEG = 42.0           # slab angle toward the user (40–45° range chosen)
 STAND_INSET = 8.0         # stand is this much narrower than the slab on each side
 STAND_FRONT_SETBACK = 6.0  # stand starts this far behind the slab's front edge
 WALL = 2.5

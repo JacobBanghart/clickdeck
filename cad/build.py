@@ -105,7 +105,7 @@ def main():
         import render
 
         jobs = [
-            ("full_iso.png", full, dict(az=-58, el=24)),
+            ("full_iso.png", full, dict(az=-62, el=20)),
             ("full_exploded.png", full, dict(az=-62, el=22,
                                              offsets=exploded_offsets(full, info["normal"]),
                                              size=(1500, 1300))),
