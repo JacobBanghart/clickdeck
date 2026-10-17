@@ -6,6 +6,7 @@ Every assembly is a list of `Item`s; `explode` is how many EXPLODE steps a
 part moves up in the exploded views.
 """
 
+import math
 from dataclasses import dataclass
 
 from build123d import (
@@ -15,10 +16,14 @@ from build123d import (
     BuildPart,
     BuildSketch,
     Color,
+    Cone,
     Cylinder,
     Locations,
     Mode,
     Part,
+    Plane,
+    Polygon,
+    Rot,
     Pos,
     Rectangle,
     RectangleRounded,
@@ -87,7 +92,8 @@ def make_stack(floor_t: float, plate_t: float) -> Stack:
     knob_pcb_top = knob_pcb_bot + P.PCB_T
     motor_bot = knob_pcb_top + P.MT6701[2] + P.SENSOR_GAP + P.MAGNET_H
     motor_top = motor_bot + P.MOTOR_H
-    plate_bot = motor_top + P.MOTOR_TO_PLATE
+    adapter_h = P.ADAPTER_H if P.KNOB_STYLE == "keebio_adapter" else 0.0
+    plate_bot = motor_top + adapter_h + P.MOTOR_TO_PLATE
     plate_top = plate_bot + plate_t
     flange_top = plate_bot - P.CAP_TO_PLATE
     flange_bot = flange_top - P.FLANGE_T
@@ -181,11 +187,44 @@ def plate_sketch(outline: tuple[float, float, float, float], radius: float,
         with Locations(*win_xy):
             RectangleRounded(*win_size, 1.0, mode=Mode.SUBTRACT)
         with Locations(*knob_xy):
-            Circle(P.KNOB_HOLE_D / 2, mode=Mode.SUBTRACT)
+            Circle(knob_hole_d() / 2, mode=Mode.SUBTRACT)
         if holes_xy:
             with Locations(*holes_xy):
                 Circle(hole_d / 2, mode=Mode.SUBTRACT)
     return sk.sketch
+
+
+def knob_hole_d() -> float:
+    if P.KNOB_STYLE == "keebio_adapter":
+        return P.PLATE_SHAFT_HOLE_D
+    return P.KNOB_STEM_D + 1.0
+
+
+def tapered_knob() -> Part:
+    """Keebio-style knob body, bottom at z=0: tapered, wider at the top."""
+    knob = Cone(P.KNOB_BOT_D / 2, P.KNOB_TOP_D / 2, P.KNOB_H, align=MIN)
+    knob = fillet(knob.edges().group_by(Axis.Z)[-1], 0.8)
+    return knob - Pos(0, P.KNOB_TOP_D / 2 - 2.5, P.KNOB_H - 0.5) * Cylinder(0.8, 2, align=MIN)
+
+
+def knob_parts(st: Stack, x: float, y: float, n: int) -> list[Item]:
+    """What sits on top of the motor bell, for the chosen KNOB_STYLE."""
+    knob_z = st.plate_top + P.KNOB_GAP
+    if P.KNOB_STYLE == "keebio_adapter":
+        shaft_top = knob_z + P.KNOB_BORE_DEPTH
+        disc = Cylinder(P.ADAPTER_D / 2, P.ADAPTER_H, align=MIN)
+        shaft = Pos(0, 0, P.ADAPTER_H) * Cylinder(
+            P.KNOB_BORE_D / 2, shaft_top - st.motor_top - P.ADAPTER_H, align=MIN)
+        flat = Pos(P.SHAFT_FLAT - P.KNOB_BORE_D / 2 + 5, 0, P.ADAPTER_H + 4) * Box(
+            10, 10, 50, align=MIN)
+        adapter = Pos(x, y, st.motor_top) * (disc + shaft - flat)
+        knob = tapered_knob() - Cylinder(P.KNOB_BORE_D / 2, P.KNOB_BORE_DEPTH, align=MIN)
+        return [Item(adapter, f"knob{n}_shaft_adapter", C_STANDOFF, 3),
+                Item(Pos(x, y, knob_z) * knob, f"knob{n}_keebio_knob", C_KNOB, 6)]
+    # Integrated: stem from the bell top up through the plate, knob body on top
+    stem = Cylinder(P.KNOB_STEM_D / 2, knob_z - st.motor_top + 0.5, align=MIN)
+    knob = Pos(0, 0, knob_z - st.motor_top) * tapered_knob() + stem
+    return [Item(Pos(x, y, st.motor_top) * knob, f"knob{n}_knob", C_KNOB, 6)]
 
 
 def knob_module(st: Stack, x: float, y: float, n: int) -> list[Item]:
@@ -204,12 +243,7 @@ def knob_module(st: Stack, x: float, y: float, n: int) -> list[Item]:
     bell = Cylinder(P.MOTOR_D / 2, P.MOTOR_H - P.MOTOR_BASE_H + 0.5, align=MIN)
     bell = bell - Cylinder(P.SHAFT_BORE / 2, 50, align=MIN)
     bell = Pos(x, y, st.motor_bot + P.MOTOR_BASE_H - 0.5) * bell
-    stem_h = st.plate_top - st.motor_top
-    knob = Cylinder(P.KNOB_CAP_D / 2, stem_h + P.KNOB_CAP_H, align=MIN)
-    knob = fillet(knob.edges().group_by(Axis.Z)[-1], 1.5)
-    dimple = Pos(0, P.KNOB_CAP_D / 2 - 3.5, stem_h + P.KNOB_CAP_H - 0.6) * Cylinder(
-        1.0, 2, align=MIN)
-    knob = Pos(x, y, st.motor_top) * (knob - dimple)
+    knob_items = knob_parts(st, x, y, n)
     bosses = [
         Pos(x + sx * 11, y + sy * 11, st.floor_top) * Cylinder(
             2.0, P.KNOB_PCB_LIFT, align=MIN)
@@ -223,8 +257,7 @@ def knob_module(st: Stack, x: float, y: float, n: int) -> list[Item]:
         Item(driver, f"knob{n}_tmc6300", C_CHIP, 0),
         Item(magnet, f"knob{n}_magnet", C_MAGNET, 1),
         Item(base + bell, f"knob{n}_motor_2204", C_MOTOR, 2),
-        Item(knob, f"knob{n}_cap", C_KNOB, 5),
-    ]
+    ] + knob_items
 
 
 def screen(st: Stack, glass_w: float, glass_h: float, glass_t: float,
@@ -293,7 +326,8 @@ def full_layout() -> Layout:
     return Layout(keys, wins, win, knobs, warns)
 
 
-def full_device() -> tuple[list[Item], Layout, dict]:
+def full_device(tilt: bool = True) -> tuple[list[Item], Layout, dict]:
+    """Full device. With tilt=True the slab is angled toward the user on a stand."""
     st = make_stack(P.FLOOR, P.TOP_PLATE_T)
     L = full_layout()
     items: list[Item] = []
@@ -369,9 +403,44 @@ def full_device() -> tuple[list[Item], Layout, dict]:
 
     info = {
         "outer_mm": (round(ox1 - ox0, 1), round(oy1 - oy0, 1), round(st.plate_top, 1)),
-        "stack": st, "frame_sketch": fsk, "plate_sketch": psk,
+        "stack": st, "frame_sketch": fsk, "plate_sketch": psk, "normal": (0.0, 0.0, 1.0),
     }
+    if tilt:
+        items, info2 = tilt_on_stand(items, outer, st)
+        info.update(info2)
     return items, L, info
+
+
+def tilt_on_stand(items: list[Item], outer, st: Stack) -> tuple[list[Item], dict]:
+    """Rotate the slab back about its front-bottom edge and add a wedge stand."""
+    ox0, ox1, oy0, oy1 = outer
+    th = math.radians(P.TILT_DEG)
+    T = Pos(0, oy0, 0) * Rot(X=P.TILT_DEG) * Pos(0, -oy0, 0)
+    out = [Item(T * it.part, it.label, it.color, it.explode) for it in items]
+
+    depth = oy1 - oy0
+    s0 = P.STAND_FRONT_SETBACK
+    pts = [
+        (oy0 + s0 * math.cos(th), s0 * math.sin(th)),
+        (oy0 + depth * math.cos(th), depth * math.sin(th)),
+        (oy0 + depth * math.cos(th), 0.0),
+        (oy0 + s0 * math.cos(th), 0.0),
+    ]
+    width = (ox1 - ox0) - 2 * P.STAND_INSET
+    stand = extrude(Plane.YZ * Polygon(*pts, align=None), amount=width)
+    sb = stand.bounding_box()
+    stand = Pos(-(sb.min.X + sb.max.X) / 2, 0, 0) * stand
+    stand = fillet(stand.edges().filter_by(Axis.X), 1.5)
+    out.insert(0, Item(stand, "stand", C_CASE, -1))
+
+    top_z = depth * math.sin(th) + st.plate_top * math.cos(th)
+    info = {
+        "normal": (0.0, -math.sin(th), math.cos(th)),
+        "tilted_mm": (round(ox1 - ox0, 1),
+                      round(depth * math.cos(th) + st.plate_top * math.sin(th), 1),
+                      round(top_z, 1)),
+    }
+    return out, info
 
 
 def prototype() -> tuple[list[Item], Layout, dict]:

@@ -24,7 +24,8 @@ the motor diameter.
 | `*_frame_pcb_outline.dxf` | Board outline with key windows. KiCad: File → Import → Graphics, layer Edge.Cuts |
 | `proto_*_plate_3mm_acrylic.dxf` | Laser-cut plates for the prototype (SendCutSend/Ponoko) |
 | `full_top_plate.dxf` | Top plate outline for the full device |
-| `key_cap_clear_resin.stl`, `knob_cap.stl` | 3D-print files (JLC3DP) |
+| `key_cap_clear_resin.stl`, `knob.stl` | 3D-print files (JLC3DP) |
+| `full_side.png`, `full_face.png` | Side profile and straight-on view of the angled device |
 | `*.png` | Quick previews from a small CPU renderer (`render.py`) |
 
 ## Files

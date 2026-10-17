@@ -46,7 +46,7 @@ def _edges(item: Item):
 
 
 def render(items: list[Item], path: str, az: float = -60, el: float = 32,
-           size: tuple[int, int] = (1500, 1000), offsets: dict[str, float] | None = None,
+           size: tuple[int, int] = (1500, 1000), offsets: dict[str, tuple] | None = None,
            tol: float = 0.15, ss: int = 2, margin: float = 0.06) -> None:
     W, H = size[0] * ss, size[1] * ss
     right, up, fwd, to_cam = _camera(az, el)
@@ -57,7 +57,7 @@ def render(items: list[Item], path: str, az: float = -60, el: float = 32,
     for it in items:
         v, t = _mesh(it, tol)
         if offsets and it.label in offsets:
-            v = v + np.array([0, 0, offsets[it.label]])
+            v = v + np.array(offsets[it.label])
         meshes.append((it, v, t))
 
     allv = np.vstack([m[1] for m in meshes])
@@ -129,11 +129,11 @@ def render(items: list[Item], path: str, az: float = -60, el: float = 32,
 
     # Feature edges
     for it, _, _ in meshes:
-        dz = offsets.get(it.label, 0.0) if offsets else 0.0
+        dz = np.array(offsets.get(it.label, (0, 0, 0))) if offsets else np.zeros(3)
         clear = tuple(it.color)[3] < 0.99
         col = np.array([0.25, 0.45, 0.60]) if clear else EDGE
         for seg in _edges(it):
-            seg = seg + np.array([0, 0, dz])
+            seg = seg + dz
             px, py, pz = project(seg)
             for i in range(len(seg) - 1):
                 steps = int(max(abs(px[i + 1] - px[i]), abs(py[i + 1] - py[i]))) + 1

@@ -52,13 +52,35 @@ MT6701 = (4.9, 3.9, 1.5)                # SOIC-8 body
 TMC6300 = (3.0, 3.0, 0.9)               # QFN-20
 KNOB_PCB = (30.0, 30.0)
 KNOB_PCB_LIFT = 1.0                     # bosses under the knob module
-KNOB_CAP_D = 24.0
-KNOB_CAP_H = 12.0                       # height above the top plate
-KNOB_HOLE_D = 25.0
+# Knob shape copies the Keebio aluminum encoder knob: tapered, wider at the
+# top. (EST) Keebio doesn't publish dimensions; measure yours and update.
+#
+# KNOB_STYLE:
+#   "integrated"     one printed/CNC part per knob that bolts straight onto
+#                    the motor bell (no adapter). Default.
+#   "keebio_adapter" reuse real Keebio knobs on a 6 mm D-shaft adapter that
+#                    bolts onto the motor bell (one adapter per knob).
+KNOB_STYLE = "integrated"
+KNOB_TOP_D = 19.0
+KNOB_BOT_D = 16.0
+KNOB_H = 15.0
+KNOB_BORE_D = 6.0                       # standard 6 mm D-shaft (EC11)
+KNOB_BORE_DEPTH = 10.0
+KNOB_GAP = 1.0                          # knob bottom to top plate
+KNOB_STEM_D = 14.0                      # integrated: stem through the top plate to the bell
+# Shaft adapter (keebio_adapter style only): screws onto the motor bell, gives the knob a 6 mm D-shaft
+ADAPTER_D = 14.0
+ADAPTER_H = 1.5
+SHAFT_FLAT = 4.5                        # D-shaft: 6 mm round with a flat at 4.5 mm
+PLATE_SHAFT_HOLE_D = 8.0                # top plate hole, keebio_adapter style
 KNOB_WIN = (26.0, 15.0)                 # knob display window (max size)
 MOTOR_TO_PLATE = 0.3
 
 # --- Case -----------------------------------------------------------------
+# The case is a slab on a separate wedge stand, like the Stream Deck + XL.
+TILT_DEG = 25.0           # slab angle toward the user
+STAND_INSET = 8.0         # stand is this much narrower than the slab on each side
+STAND_FRONT_SETBACK = 6.0  # stand starts this far behind the slab's front edge
 WALL = 2.5
 FLOOR = 2.0
 TOP_PLATE_T = 2.0
