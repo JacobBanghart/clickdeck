@@ -457,6 +457,12 @@ def full_device(tilt: bool = True) -> tuple[list[Item], Layout, dict]:
     usb_y = dy1 - P.USB_FROM_PCB_BACK
     usb_z = dpcb_bot - 1.6                      # USB-C receptacle is 3.2 mm tall
     lowest = dpcb_bot - P.DISPLAY_PARTS_H
+    conn_bot = dpcb_bot - P.DISPLAY_CONNECTOR_H
+    # The connector row hangs lowest; give it a pocket in the floor if needed
+    pocket = math.ceil(max(0.0, (P.FLOOR + 1.0) - conn_bot) * 2) / 2   # 1 mm clearance, 0.5 mm steps
+    if pocket > P.FLOOR - 0.6:
+        L.warnings.append(f"display board connectors need a {pocket:.1f} mm floor pocket; "
+                          f"floor is only {P.FLOOR} mm")
     if lowest < P.FLOOR + 0.5:
         L.warnings.append(f"display board parts reach {lowest:.1f} mm, below the floor + 0.5 mm")
 
@@ -465,6 +471,11 @@ def full_device(tilt: bool = True) -> tuple[list[Item], Layout, dict]:
         ix1 - ix0, iy1 - iy0, max(P.CORNER_R - P.WALL, 0.5))
     tray = extrude(outer_sk, amount=st.plate_bot)
     tray -= Pos(0, 0, P.FLOOR) * extrude(inner_sk, amount=st.plate_bot)
+    hy_x, hy_y, hy_len = dx0 + P.DISPLAY_PCB[0] - 6, dy1 - 40, 44.0
+    if pocket > 0:
+        tray -= Pos(hy_x - P.FLOOR_POCKET_MARGIN, hy_y, P.FLOOR - pocket) * Box(
+            6 + 2 * P.FLOOR_POCKET_MARGIN, hy_len + 2 * P.FLOOR_POCKET_MARGIN, pocket + 1,
+            align=(Align.MIN, Align.CENTER, Align.MIN))
     # Tunnel through the left wall so a USB-C plug reaches the board's port
     tray -= Pos(ox0 + P.WALL / 2, usb_y, usb_z) * Box(P.WALL * 3, *P.USB_TUNNEL)
     items.append(Item(tray, "case_tray", C_CASE, 0))
@@ -474,13 +485,13 @@ def full_device(tilt: bool = True) -> tuple[list[Item], Layout, dict]:
     module = Pos(dx0 + P.DISPLAY_PCB[0] - 22, dy1 - 1, dpcb_bot - 3.1) * Box(
         18, 25.5, 3.1, align=(Align.MIN, Align.MAX, Align.MIN))
     usb = Pos(dx0 - 1.0, usb_y, usb_z) * Box(7.5, 9.0, 3.2, align=(Align.MIN, Align.CENTER, Align.CENTER))
-    hy = Pos(dx0 + P.DISPLAY_PCB[0] - 6, dy1 - 45, dpcb_bot - P.DISPLAY_PARTS_H) * Box(
-        6, 40, P.DISPLAY_PARTS_H, align=(Align.MIN, Align.CENTER, Align.MIN))
+    hy = Pos(hy_x, hy_y, conn_bot) * Box(
+        6, hy_len, P.DISPLAY_CONNECTOR_H, align=(Align.MIN, Align.CENTER, Align.MIN))
     items += [Item(dpcb, "display_board_pcb", C_PCB, 1),
               Item(module, "display_board_esp32s3", C_MOTOR, 1),
               Item(usb, "display_board_usb_c", C_MOTOR, 1),
               Item(hy, "display_board_connectors", C_SWITCH, 1)]
-    for i, (sx, sy) in enumerate([(0, 0), (1, 0), (0, 1), (1, 1)]):
+    for i, (sx, sy) in enumerate([(0, 0), (1, 0), (0, 1), (1, 1)] if P.DISPLAY_STANDOFF_H > 0 else []):
         bx = dx0 + 6 + sx * (P.DISPLAY_PCB[0] - 12)
         by = dy1 - 6 - sy * (P.DISPLAY_PCB[1] - 12)
         items.append(Item(standoff(bx, by, dpcb_top, panel_z0, 4.0), f"display_standoff{i}",
@@ -532,7 +543,8 @@ def full_device(tilt: bool = True) -> tuple[list[Item], Layout, dict]:
         "outer_mm": (round(ox1 - ox0, 1), round(oy1 - oy0, 1), round(st.plate_top, 1)),
         "stack": st, "frame_sketch": fsk, "plate_sketch": psk, "normal": (0.0, 0.0, 1.0),
         "display_gap": (dy1 - P.DISPLAY_PCB[1]) - kb.max.Y,
-        "display_floor_gap": lowest - P.FLOOR,
+        "display_floor_gap": min(lowest, conn_bot + pocket) - P.FLOOR,
+        "floor_pocket": pocket,
         "knob_board_sketch": ksk, "touch_bar_h": tb_h,
     }
     if tilt:

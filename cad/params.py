@@ -36,19 +36,22 @@ GLASS_GAP = 0.2           # frame PCB / cap bottoms sit this far above the glass
 # the knobs, so Waveshare's ESP32 board sits at the back, clear of our knob
 # board. "Left" is as seen from the front.
 PANEL_W, PANEL_H = 165.72, 97.6          # metal back frame (the glass is 164 x 97)
-PANEL_T = 5.7                            # glass + backlight + frame (EST, not published)
+PANEL_T = 6.2                            # glass front to frame back (Waveshare STEP model)
 AA_W, AA_H = 153.84, 85.632              # active area
 PANEL_BORDER_FRONT = 9.5                 # frame edge to active area, knob side (EST from drawing)
 PANEL_BORDER_LEFT = 3.1                  # (EST from drawing); right border is the remainder
 PANEL_M3_DX = 126.2                      # 4x M3 mounting tabs on the back frame
 PANEL_M3_FROM_FRONT = 18.31
 PANEL_M3_FROM_BACK = 13.64
-# Waveshare's ESP32-S3 board, on M2.5 standoffs behind the panel, parts facing down
-DISPLAY_PCB = (105.0, 72.0)              # (EST from photo)
+# Waveshare's ESP32-S3 board, screwed flat onto the panel's back frame, parts
+# facing down. Depths measured from Waveshare's STEP model (2026-10-17).
+DISPLAY_PCB = (106.02, 73.02)
 DISPLAY_PCB_LEFT = 27.2                  # frame left edge to the board's left edge (EST)
 DISPLAY_PCB_BACK = 0.5                   # frame back edge to the board's back edge (EST)
-DISPLAY_STANDOFF_H = 3.0                 # frame to board (EST, measure)
-DISPLAY_PARTS_H = 5.0                    # tallest part under the board, HY2.0 connectors (EST)
+DISPLAY_STANDOFF_H = 0.0                 # board sits directly on the frame (STEP)
+DISPLAY_PARTS_H = 5.0                    # deepest general part under the board: USB-C (STEP)
+DISPLAY_CONNECTOR_H = 8.3                # the row of six HY2.0 connectors on one edge (STEP)
+FLOOR_POCKET_MARGIN = 1.0                # floor pocket under the connectors, if they need one
 USB_FROM_PCB_BACK = 35.6                 # native USB-C port center, on the board's left edge (EST)
 USB_TUNNEL = (12.5, 7.5)                 # hole through the left wall for a USB-C plug (w x h)
 

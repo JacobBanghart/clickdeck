@@ -35,9 +35,9 @@ buy the + XL.
 
 | | ~Cost |
 |---|---|
-| **Build one, with your own 3D printer** | **$205–340** |
-| Build one, case ordered from JLC3DP | $235–420 |
-| Per unit, 5 people ordering together | $160–330 |
+| **Build one, with your own 3D printer** | **$275–415** |
+| Build one, case ordered from JLC3DP | $305–490 |
+| Per unit, 5 people ordering together | $185–355 |
 | Stream Deck + XL, for comparison | ~$350 |
 
 Covers parts, PCBs (JLC's 5-board minimum included), prints and shipping, in

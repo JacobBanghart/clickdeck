@@ -116,7 +116,9 @@ def main():
         ]
         if "display_gap" in inf:
             lines.append(f"- Display board: {inf['display_gap']:.1f} mm behind the knob board, "
-                         f"{inf['display_floor_gap']:.1f} mm above the floor (both EST)")
+                         f"{inf['display_floor_gap']:.1f} mm above the floor"
+                         + (f" (connector row sits in a {inf['floor_pocket']:.1f} mm floor pocket)"
+                            if inf['floor_pocket'] > 0 else "") + " (Waveshare STEP depths)")
         if P.TOUCH_BAR and inf.get("touch_bar_h", 0) >= P.TOUCH_BAR_MIN_H:
             plate_t = P.TOP_PLATE_T if name == "Full device" else P.PROTO_PLATE_T
             lines.append(f"- Touch band: {inf['touch_bar_h']:.1f} mm tall under the knob "
