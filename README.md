@@ -21,3 +21,9 @@ Prototype (2 keys + 1 knob, laser-cut acrylic):
 
 Status (2026-10-16): planning and CAD. Next step is reviewing the models,
 then ordering the prototype parts.
+
+## License
+
+- Software (Python, scripts, firmware, host code): [MIT](LICENSE)
+- Hardware designs (CAD models and exports in `cad/`, PCB designs, and the
+  design docs in `docs/`): [CERN-OHL-P-2.0](LICENSE-HARDWARE)
