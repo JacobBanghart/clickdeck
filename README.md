@@ -58,6 +58,23 @@ presses a switch underneath; motors lifted to show the tongues:
 Status (2026-10-16): planning and CAD. Next step is reviewing the models,
 then ordering the prototype parts.
 
+## Related projects
+
+Nothing else we found combines clicky keys, per-key images and haptic knobs.
+These cover parts of it:
+
+| Project | Keys | Per-key images | Knobs | What clickdeck takes from it |
+|---|---|---|---|---|
+| [Open Deck (joshr120)](https://github.com/joshr120/open-deck), MIT. Not the OpenDeck app | ✓ 4 keys, real switches | ✓ one 1.8" screen under acrylic caps | ✗ | Same key idea at small scale. Cap recipe: 4.5 mm acrylic, or laser-cut 1.5 + 3 mm layers glued with UV glue |
+| [eezbotfun 8-key macropad](https://github.com/eezbotfun/8-key-macropad), case files CC BY-NC | ✓ mechanical | ✗ one 3.5" screen | ✗ | ESP32-S3 + HID reference |
+| [Super Make Something DIY Stream Deck](https://make.co/contestants/diy-stream-deck/) | ✓ | ✓ LCD buttons | plain encoders | Reference for LCD keys |
+| [SmartKnob](https://github.com/scottbez1/smartknob) | ✗ | ✗ | ✓ haptic, one knob with a round screen | Haptic firmware: detents, end stops, click profiles |
+| Elgato Stream Deck Module 6/15/32 | rubber pads | ✓ | ✗ | Commercial LCD-key component, for comparison |
+| [HAW Hamburg thesis (2026)](https://reposit.haw-hamburg.de/bitstream/20.500.12738/19952/1/BA_Entwicklung_eines_haptischen_Controllers.pdf) | Stream Deck module | ✓ | potentiometers | Similar goal, no haptics |
+
+Software it builds on: [OpenDeck](https://github.com/nekename/OpenDeck) (runs
+Stream Deck plugins), [SimpleFOC](https://simplefoc.com) (motor control).
+
 ## License
 
 - Software (Python, scripts, firmware, host code): [MIT](LICENSE)
