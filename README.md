@@ -71,6 +71,7 @@ presses a switch underneath; motors lifted to show the tongues:
 
 ![Knob board](cad/out/knob_board_detail.png)
 
+- [docs/assembly.md](docs/assembly.md): assembly and service guide, with pictures and an animation (generated from the CAD)
 - [docs/plan.md](docs/plan.md): goals, architecture, and the staged build plan
 - [docs/parts.md](docs/parts.md): prototype parts list with links
 - [docs/cost.md](docs/cost.md): cost breakdown

@@ -57,11 +57,27 @@ xvfb-run -a -s "-screen 0 1920x1080x24" \
 Writes `freecad_three_quarter.png`, `freecad_front.png`, `freecad_side.png`.
 To open the model interactively: `~/Applications/freecad/squashfs-root/AppRun cad/out/clickdeck_full.step`.
 
+## Assembly and service
+
+`cad/assembly.py` defines the assembly steps and checks that the design can
+actually be built and serviced: no overlapping parts, every screw reachable
+with a straight screwdriver at its step, the top plate, display and knob
+board lift out in order, and a paperclip reaches the display board's
+BOOT/RESET through the back wall. It also renders the step pictures, the
+animation and [docs/assembly.md](../docs/assembly.md).
+
+```sh
+.venv/bin/python cad/assembly.py --check     # checks only (~30 s)
+.venv/bin/python cad/assembly.py             # + pictures and the guide (~2 min)
+.venv/bin/python cad/assembly.py --animate   # + the animation (~15 min)
+```
+
 ## Checks
 
 GitHub Actions ([`.github/workflows/cad.yml`](../.github/workflows/cad.yml))
 rebuilds the models on every change to `cad/` with the pinned toolchain in
 `requirements.txt`, and fails if:
 - any fit check warns (`--strict`), or a case part doesn't fit the print bed
+- any assembly check fails (`assembly.py --check`)
 - `out/summary.md` doesn't match the committed one (outputs weren't rebuilt
   and committed after a parameter change)
