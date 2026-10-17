@@ -18,6 +18,7 @@ listing with good ratings and a clear pinout photo.
 | optional | Mouse micro switches (Kailh GM 8.0 / Omron D2FC) to compare feel on the desk. They don't fit the key layout | $3–6 | [mouse micro switch set](https://www.aliexpress.us/w/wholesale-mouse-micro-switch-set.html) |
 | 1 pack | 6 mm through-hole tactile switches, for the breadboard stage (B3U is surface-mount and won't plug into a breadboard) | $1–3 | [6x6 tactile switch](https://www.aliexpress.us/w/wholesale-6x6-tactile-switch.html) |
 | 1 | Breadboard + jumper wire kit, machined female header strip | $4–6 | [breadboard jumper kit](https://www.aliexpress.us/w/wholesale-breadboard-jumper-wire-kit.html) |
+| 1 | MPR121 capacitive touch breakout (12 electrodes, I²C) + a roll of copper tape, to test the touch band: tape electrodes under the acrylic top plate | $3–6 | [mpr121 module](https://www.aliexpress.us/w/wholesale-mpr121-module.html), [copper foil tape](https://www.aliexpress.us/w/wholesale-copper-foil-tape.html) |
 | 1 | Digital calipers (to measure the motor bolt pattern) | $8–15 | [digital caliper](https://www.aliexpress.us/w/wholesale-digital-caliper.html) |
 
 Notes
@@ -29,14 +30,21 @@ Notes
 
 ## Order 2 — JLCPCB knob module (~$20–30, after the motor arrives)
 
-Rev 0 PCB, about 30 × 30 mm. It's the final knob module (5 copies in the
-full build), so it isn't throwaway:
+Rev 0 PCB, one knob's section of the full knob board (same tongue design),
+so it isn't throwaway: it proves the design that gets repeated 5×.
+Outline from CAD: `cad/out/proto_knob_module_outline.dxf`.
 - **MT6701** magnetic angle sensor, centered under the motor shaft.
 - **TMC6300** brushless driver (2–11 V, runs from USB 5 V). It's a tiny QFN
   chip, so **JLC assembles it**; it can't be hand-soldered.
+- **Inverter** (e.g. 74LVC1G04 ×3) so the driver runs from 3 PWM signals,
+  as in the full build. Solder jumpers to bypass it and use 6 PWM instead,
+  in case the TMC6300 needs separate low-side control.
+- **Press to click:** the motor sits on a tongue (U-shaped slot, hinged at
+  the back) with a **B3U** switch under its front tip.
 - Screw holes matching the measured motor, so the board itself keeps the
   magnet centered over the sensor (no printed jig needed).
-- Header to the ESP32-S3: 5 V, 3V3, GND, 6× PWM, sensor SSI (CS/CLK/DO).
+- Header to the ESP32-S3: 5 V, 3V3, GND, 3–6 PWM, sensor SSI (CS/CLK/DO),
+  press switch.
 
 Cost: 5 bare boards + assembly on 2 of them (setup fee + LCSC parts +
 "extended part" fees). Roughly $20–30 with economy shipping. Confirm both

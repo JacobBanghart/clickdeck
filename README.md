@@ -25,13 +25,14 @@ buy the + XL.
 
 | | ~Cost |
 |---|---|
-| **Build one from this repo** | **$260–470** |
-| Per unit, 5 people ordering together | $200–370 |
+| **Build one, with your own 3D printer** | **$205–340** |
+| Build one, case ordered from JLC3DP | $235–420 |
+| Per unit, 5 people ordering together | $160–330 |
 | Stream Deck + XL, for comparison | ~$350 |
 
-Building one covers parts, PCBs (JLC's 5-board minimum included), prints and
-shipping. Most of the range is the case ($50–120) and shipping. Breakdown:
-[docs/cost.md](docs/cost.md).
+Covers parts, PCBs (JLC's 5-board minimum included), prints and shipping, in
+two orders: JLC (all PCBs in one panel, plus prints) and AliExpress/Waveshare.
+Breakdown: [docs/cost.md](docs/cost.md).
 
 ## Design
 
@@ -42,6 +43,11 @@ shipping. Most of the range is the case ($50–120) and shipping. Breakdown:
 Prototype (2 keys + 1 knob, laser-cut acrylic):
 
 ![Prototype](cad/out/proto_exploded.png)
+
+Knob board (one PCB, five knobs). Each knob sits on a hinged tongue that
+presses a switch underneath; motors lifted to show the tongues:
+
+![Knob board](cad/out/knob_board_detail.png)
 
 - [docs/plan.md](docs/plan.md): goals, architecture, and the staged build plan
 - [docs/parts.md](docs/parts.md): prototype parts list with links

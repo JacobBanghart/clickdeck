@@ -88,7 +88,7 @@ class Stack:
 
 
 def make_stack(floor_t: float, plate_t: float) -> Stack:
-    knob_pcb_bot = floor_t + P.KNOB_PCB_LIFT
+    knob_pcb_bot = floor_t + P.SW_H + P.KNOB_PRESS_GAP  # press switch hangs below
     knob_pcb_top = knob_pcb_bot + P.PCB_T
     motor_bot = knob_pcb_top + P.MT6701[2] + P.SENSOR_GAP + P.MAGNET_H
     motor_top = motor_bot + P.MOTOR_H
@@ -227,15 +227,15 @@ def knob_parts(st: Stack, x: float, y: float, n: int) -> list[Item]:
     return [Item(Pos(x, y, st.motor_top) * knob, f"knob{n}_knob", C_KNOB, 6)]
 
 
-def knob_module(st: Stack, x: float, y: float, n: int) -> list[Item]:
-    """Knob PCB + MT6701 + TMC6300 + magnet + 2204 motor + knob cap."""
-    pcb = Pos(x, y, st.knob_pcb_bot) * Box(*P.KNOB_PCB, P.PCB_T, align=MIN)
-    with BuildPart() as holes:
-        with Locations(*[(x + sx * 11, y + sy * 11) for sx in (-1, 1) for sy in (-1, 1)]):
-            Cylinder(1.1, 20, align=MIN)
-    pcb = pcb - Pos(0, 0, st.knob_pcb_bot - 5) * holes.part
+def knob_stack(st: Stack, x: float, y: float, n: int) -> list[Item]:
+    """Per-knob parts: MT6701, TMC6300, press switch, magnet, 2204 motor, knob."""
     sensor = Pos(x, y, st.knob_pcb_top) * Box(*P.MT6701, align=MIN)
     driver = Pos(x + 9, y - 9, st.knob_pcb_top) * Box(*P.TMC6300, align=MIN)
+    # Press switch on the underside of the tongue's front tip, stem down
+    py = y - P.TONGUE / 2 + P.SW_W / 2 + 1.0
+    body = Pos(x, py, st.knob_pcb_bot - (P.SW_H - 0.35)) * Box(P.SW_L, P.SW_W, P.SW_H - 0.35,
+                                                              align=MIN)
+    stem = Pos(x, py, st.knob_pcb_bot - P.SW_H) * Cylinder(0.6, 0.35, align=MIN)
     magnet = Pos(x, y, st.motor_bot - P.MAGNET_H) * Cylinder(
         P.MAGNET_D / 2, P.MAGNET_H, align=MIN)
     base = Pos(x, y, st.motor_bot) * Cylinder(
@@ -243,21 +243,66 @@ def knob_module(st: Stack, x: float, y: float, n: int) -> list[Item]:
     bell = Cylinder(P.MOTOR_D / 2, P.MOTOR_H - P.MOTOR_BASE_H + 0.5, align=MIN)
     bell = bell - Cylinder(P.SHAFT_BORE / 2, 50, align=MIN)
     bell = Pos(x, y, st.motor_bot + P.MOTOR_BASE_H - 0.5) * bell
-    knob_items = knob_parts(st, x, y, n)
-    bosses = [
-        Pos(x + sx * 11, y + sy * 11, st.floor_top) * Cylinder(
-            2.0, P.KNOB_PCB_LIFT, align=MIN)
-        for sx in (-1, 1) for sy in (-1, 1)
-    ]
-    boss = bosses[0] + bosses[1] + bosses[2] + bosses[3]
     return [
-        Item(boss, f"knob{n}_bosses", C_STANDOFF, 0),
-        Item(pcb, f"knob{n}_pcb", C_PCB, 0),
         Item(sensor, f"knob{n}_mt6701", C_CHIP, 0),
         Item(driver, f"knob{n}_tmc6300", C_CHIP, 0),
+        Item(body + stem, f"knob{n}_press_switch", C_SWITCH, 0),
         Item(magnet, f"knob{n}_magnet", C_MAGNET, 1),
         Item(base + bell, f"knob{n}_motor_2204", C_MOTOR, 2),
-    ] + knob_items
+    ] + knob_parts(st, x, y, n)
+
+
+def tongue_slots(x: float, y: float) -> list[tuple[float, float, float, float]]:
+    """Slot rectangles (cx, cy, w, h) that free a tongue around (x, y), hinged at the back."""
+    t, sl, hw = P.TONGUE, P.TONGUE_SLOT, P.TONGUE_HINGE_W
+    outer = t / 2 + sl
+    side_w = (outer - hw / 2)
+    return [
+        (x - t / 2 - sl / 2, y, sl, t + 2 * sl),           # left
+        (x + t / 2 + sl / 2, y, sl, t + 2 * sl),           # right
+        (x, y - t / 2 - sl / 2, t + 2 * sl, sl),           # front
+        (x - hw / 2 - side_w / 2, y + t / 2 + sl / 2, side_w, sl),  # back, left of hinge
+        (x + hw / 2 + side_w / 2, y + t / 2 + sl / 2, side_w, sl),  # back, right of hinge
+    ]
+
+
+def knob_board(st: Stack, knob_xy: list, label: str, with_mcu: bool,
+               avoid_xy: list = ()) -> tuple[list[Item], Sketch]:
+    """One PCB carrying every knob. Returns parts and the 2D outline (for KiCad)."""
+    xs = [x for x, _ in knob_xy]
+    ky = knob_xy[0][1]
+    reach = P.TONGUE / 2 + P.TONGUE_SLOT + P.KNOB_BOARD_EDGE
+    x0, x1 = min(xs) - reach, max(xs) + reach
+    y0, y1 = ky - reach, ky + P.TONGUE / 2 + P.TONGUE_SLOT + P.KNOB_BOARD_BACK
+    slots = [r for x, y in knob_xy for r in tongue_slots(x, y)]
+    bosses = [(x0 + 3, y1 - 3), (x1 - 3, y1 - 3), (x0 + 3, y0 + 3), (x1 - 3, y0 + 3)]
+    bosses += [((a + b) / 2, y1 - 3) for a, b in zip(xs, xs[1:])]
+    with BuildSketch() as sk:
+        with Locations(((x0 + x1) / 2, (y0 + y1) / 2)):
+            RectangleRounded(x1 - x0, y1 - y0, 2.0)
+        for cx, cy, w, h in slots:
+            with Locations((cx, cy)):
+                Rectangle(w, h, mode=Mode.SUBTRACT)
+        with Locations(*bosses):
+            Circle(1.1, mode=Mode.SUBTRACT)
+        holes = [(x, y) for x, y in avoid_xy if x0 - 3 < x < x1 + 3 and y0 - 3 < y < y1 + 3]
+        if holes:
+            with Locations(*holes):
+                Circle(3.25, mode=Mode.SUBTRACT)
+    board = Pos(0, 0, st.knob_pcb_bot) * extrude(sk.sketch, amount=P.PCB_T)
+    boss = None
+    for bx, by in bosses:
+        b = Pos(bx, by, st.floor_top) * Cylinder(2.0, st.knob_pcb_bot - st.floor_top, align=MIN)
+        boss = b if boss is None else boss + b
+    items = [Item(boss, f"{label}_bosses", C_STANDOFF, 0),
+             Item(board, f"{label}_pcb", C_PCB, 0)]
+    if with_mcu:
+        mcu = Pos(xs[len(xs) // 2], y1 - P.KNOB_BOARD_BACK / 2, st.knob_pcb_top) * Box(
+            *P.RP2040, align=MIN)
+        items.append(Item(mcu, f"{label}_rp2040", C_CHIP, 0))
+    for n, (x, y) in enumerate(knob_xy):
+        items += knob_stack(st, x, y, n)
+    return items, sk.sketch
 
 
 def screen(st: Stack, glass_w: float, glass_h: float, glass_t: float,
@@ -298,10 +343,24 @@ def key_grid(cols: int, rows: int, pitch: float, top_y: float) -> list[tuple[flo
 @dataclass
 class Layout:
     key_xy: list
-    win_xy: list
+    win_xy: list          # knob display regions (drawn on the screen)
     win_size: tuple
     knob_xy: list
     warnings: list
+    cut_xy: list = None   # openings in the frame PCB and top plate
+    cut_size: tuple = None
+
+
+def touch_bar_floor(win_y: float, win_h: float) -> float:
+    """Lowest y the motors may reach so the touch band gets TOUCH_BAR_H."""
+    if not P.TOUCH_BAR:
+        return float("inf")
+    return win_y - win_h / 2 - 2 * P.TOUCH_BAR_MARGIN - P.TOUCH_BAR_H
+
+
+def strip_cut(win_xy, win_size, span: float):
+    """Openings in the frame PCB and top plate for the knob displays: one window each."""
+    return win_xy, win_size
 
 
 def full_layout() -> Layout:
@@ -314,7 +373,7 @@ def full_layout() -> Layout:
     win_y = (strip_top + strip_bot) / 2
     wins = [((k - (P.KNOBS - 1) / 2) * knob_pitch, win_y) for k in range(P.KNOBS)]
     panel_bot = -P.AA_H / 2 - P.PANEL_BORDER_BOTTOM
-    knob_y = panel_bot - P.INNER_CLEAR - P.MOTOR_D / 2
+    knob_y = min(panel_bot - P.INNER_CLEAR, touch_bar_floor(win_y, win[1])) - P.MOTOR_D / 2
     knobs = [(x, knob_y) for x, _ in wins]
     warns = check_key_fit(P.KEY_PITCH)
     if strip_h < 10:
@@ -323,7 +382,37 @@ def full_layout() -> Layout:
         warns.append(f"knob pitch {knob_pitch:.1f} mm < motor diameter + 1 mm")
     if P.KEY_COLS * P.KEY_PITCH > P.AA_W + 0.5:
         warns.append("key grid is wider than the display active area")
-    return Layout(keys, wins, win, knobs, warns)
+    cut_xy, cut_size = strip_cut(wins, win, P.KNOBS * knob_pitch - 4)
+    return Layout(keys, wins, win, knobs, warns, cut_xy, cut_size)
+
+
+def top_plate(psk: Sketch, st: Stack, t: float, L: Layout) -> Part:
+    return Pos(0, 0, st.plate_bot) * extrude(psk, amount=t)
+
+
+def knob_windows(st: Stack, L: Layout, t: float = P.TOP_PLATE_T) -> list[Item]:
+    """Clear covers over the knob displays, flush with the top plate."""
+    return [Item(Pos(x, y, st.plate_bot) * Box(L.cut_size[0] - 0.2, L.cut_size[1] - 0.2, t,
+                                                 align=MIN),
+                 f"knob_window_{i}", C_CAP, 4) for i, (x, y) in enumerate(L.cut_xy)]
+
+
+def touch_bar(st: Stack, L: Layout, x_span: float, motor_edge_y: float) -> tuple[list[Item], float]:
+    """Capacitive touch band under the top plate, between the windows and the motors.
+
+    Returns the parts and the band height (0 if it doesn't fit).
+    """
+    if not P.TOUCH_BAR:
+        return [], 0.0
+    top = L.cut_xy[0][1] - L.cut_size[1] / 2 - P.TOUCH_BAR_MARGIN
+    bot = motor_edge_y + P.TOUCH_BAR_MARGIN
+    h = top - bot
+    if h < P.TOUCH_BAR_MIN_H:
+        L.warnings.append(f"touch band is only {h:.1f} mm tall (min {P.TOUCH_BAR_MIN_H})")
+        return [], h
+    bar = Pos(0, (top + bot) / 2, st.plate_bot - P.TOUCH_BAR_T) * Box(
+        x_span, h, P.TOUCH_BAR_T, align=MIN)
+    return [Item(bar, "touch_bar_pcb", C_PCB, 3)], h
 
 
 def full_device(tilt: bool = True) -> tuple[list[Item], Layout, dict]:
@@ -375,7 +464,7 @@ def full_device(tilt: bool = True) -> tuple[list[Item], Layout, dict]:
     m = P.FRAME_PCB_MARGIN
     rect = (-P.AA_W / 2 - m, P.AA_W / 2 + m, -P.AA_H / 2 - min(m, P.PANEL_BORDER_BOTTOM),
             P.AA_H / 2 + m)
-    fsk = frame_pcb_sketch(rect, L.key_xy, L.win_xy, L.win_size)
+    fsk = frame_pcb_sketch(rect, L.key_xy, L.cut_xy, L.cut_size)
     frame = Pos(0, 0, st.pcb_bot) * extrude(fsk, amount=P.PCB_T)
     items.append(Item(frame, "frame_pcb", C_PCB, 2))
     sw = switch(st)
@@ -388,22 +477,24 @@ def full_device(tilt: bool = True) -> tuple[list[Item], Layout, dict]:
         items.append(Item(Pos(x, y, 0) * cap, f"cap_{i}", C_CAP, 3))
 
     # Top plate
-    psk = plate_sketch(outer, P.CORNER_R, L.key_xy, L.win_xy, L.win_size, L.knob_xy)
-    plate = Pos(0, 0, st.plate_bot) * extrude(psk, amount=P.TOP_PLATE_T)
+    psk = plate_sketch(outer, P.CORNER_R, L.key_xy, L.cut_xy, L.cut_size, L.knob_xy)
+    plate = top_plate(psk, st, P.TOP_PLATE_T, L)
     items.append(Item(plate, "top_plate", C_PLATE, 4))
-    # Clear windows over the knob displays
-    for i, (x, y) in enumerate(L.win_xy):
-        win = Pos(x, y, st.plate_bot) * Box(L.win_size[0] - 0.2, L.win_size[1] - 0.2,
-                                             P.TOP_PLATE_T, align=MIN)
-        items.append(Item(win, f"knob_window_{i}", C_CAP, 4))
+    items += knob_windows(st, L)
+    tb, tb_h = touch_bar(st, L, P.KNOBS * (P.AA_W / P.KNOBS) - 2,
+                         knob_y + P.MOTOR_D / 2)
+    items += tb
 
-    # Knobs
-    for n, (x, y) in enumerate(L.knob_xy):
-        items += knob_module(st, x, y, n)
+    # Knobs: one board for all of them
+    standoffs = [(sx * (P.PANEL_W / 2 - 6), panel_cy + sy * (P.PANEL_H / 2 - 6))
+                 for sx in (-1, 1) for sy in (-1, 1)]
+    kitems, ksk = knob_board(st, L.knob_xy, "knob_board", with_mcu=True, avoid_xy=standoffs)
+    items += kitems
 
     info = {
         "outer_mm": (round(ox1 - ox0, 1), round(oy1 - oy0, 1), round(st.plate_top, 1)),
         "stack": st, "frame_sketch": fsk, "plate_sketch": psk, "normal": (0.0, 0.0, 1.0),
+        "knob_board_sketch": ksk, "touch_bar_h": tb_h,
     }
     if tilt:
         items, info2 = tilt_on_stand(items, outer, st)
@@ -454,12 +545,13 @@ def prototype() -> tuple[list[Item], Layout, dict]:
     strip_h = strip_top - strip_bot
     win = (P.KNOB_WIN[0], min(P.KNOB_WIN[1], strip_h - 3.7))
     wins = [(0.0, (strip_top + strip_bot) / 2)]
-    knob_y = -gh / 2 - P.INNER_CLEAR - P.MOTOR_D / 2
+    knob_y = min(-gh / 2 - P.INNER_CLEAR, touch_bar_floor(wins[0][1], win[1])) - P.MOTOR_D / 2
     knobs = [(0.0, knob_y)]
     warns = check_key_fit(P.KEY_PITCH)
     if P.PROTO_KEYS * P.KEY_PITCH > aw + 0.5:
         warns.append("prototype keys are wider than the 2.4\" active area")
-    L = Layout(keys, wins, win, knobs, warns)
+    cut_xy, cut_size = strip_cut(wins, win, win[0])
+    L = Layout(keys, wins, win, knobs, warns, cut_xy, cut_size)
 
     items: list[Item] = []
     # Plate outline covers the display module PCB and the knob
@@ -494,7 +586,7 @@ def prototype() -> tuple[list[Item], Layout, dict]:
                     back_pcb=(P.P24_PCB[0], P.P24_PCB[1], P.P24_PCB_OFFSET_X))
 
     rect = (-aw / 2 - 2.5, aw / 2 + 2.5, -ah / 2 - 2.5, ah / 2 + 2.5)
-    fsk = frame_pcb_sketch(rect, keys, wins, win)
+    fsk = frame_pcb_sketch(rect, keys, cut_xy, cut_size)
     frame = Pos(0, 0, st.pcb_bot) * extrude(fsk, amount=P.PCB_T)
     items.append(Item(frame, "frame_pcb", C_PCB, 2))
     sw = switch(st)
@@ -503,13 +595,18 @@ def prototype() -> tuple[list[Item], Layout, dict]:
         items.append(Item(Pos(x, y + SW_DY, 0) * sw, f"switch_{i}", C_SWITCH, 2))
         items.append(Item(Pos(x, y, 0) * cap, f"cap_{i}", C_CAP, 3))
 
-    psk = plate_sketch(outline, 3.0, keys, wins, win, knobs, corner_holes)
+    psk = plate_sketch(outline, 3.0, keys, cut_xy, cut_size, knobs, corner_holes)
     plate = Pos(0, 0, st.plate_bot) * extrude(psk, amount=P.PROTO_PLATE_T)
     items.append(Item(plate, "top_plate_acrylic", C_PLATE, 4))
+    items += knob_windows(st, L, P.PROTO_PLATE_T)
+    tb, tb_h = touch_bar(st, L, win[0], knob_y + P.MOTOR_D / 2)
+    items += tb
 
-    items += knob_module(st, knobs[0][0], knobs[0][1], 0)
-    # Proto knob module sits directly on the base plate bosses
+    # Knob module: the same tongue/press design as the full knob board, one knob
+    kitems, ksk = knob_board(st, knobs, "knob_module", with_mcu=False)
+    items += kitems
     info = {
+        "knob_board_sketch": ksk, "touch_bar_h": tb_h,
         "outer_mm": (round(x1 - x0, 1), round(y1 - y0, 1), round(st.plate_top, 1)),
         "stack": st, "frame_sketch": fsk, "plate_sketch": psk, "base_sketch": base_sk.sketch,
     }

@@ -11,6 +11,9 @@
   Full force feedback is not required.
 - **USB only.** Must not show up as a monitor.
 - Custom host software / integrations (Linux first).
+- Knobs also **press to click**, like Stream Deck dials.
+- A **touch band** under the knob displays for taps and swipes.
+- Cheap to build: case printable at home (256 mm bed), one JLC order.
 
 **Explicitly not wanted**
 - Hall-effect switches.
@@ -20,15 +23,28 @@
 ## Architecture
 
 ```
- PC (custom host software, Python first)
+ PC: OpenDeck + clickdeck device plugin (or the Python library directly)
    │  single USB cable
    ▼
- ESP32-S3 (main MCU, native USB)
-   ├── USB HID interface   → key presses + knob events (no driver needed)
+ ESP32-S3 + 7" display board (bought: Waveshare ESP32-S3-LCD-7)
+   ├── USB HID interface    → key presses, knob turns/presses, touch
    ├── USB CDC/bulk channel → images and commands from the PC (~1 MB/s)
-   ├── drives one LCD panel  → all key images + knob display areas
-   └── link (UART/I²C) → knob controller(s) in the full build
+   ├── drives the LCD       → all key images + knob display areas
+   └── UART ──► knob board: RP2350B
+                 ├── 5 knobs: MT6701 sensor + motor driver + press switch each
+                 ├── 21-key matrix (frame PCB, switches only)
+                 └── I²C ──► touch band (under the top plate)
 ```
+
+### Host software: OpenDeck
+[OpenDeck](https://github.com/nekename/OpenDeck) is an open-source app (Linux,
+Windows, macOS) that runs Stream Deck plugins. It officially supports Elgato
+hardware, and other vendors' devices through plugins. A **clickdeck device
+plugin** gives builders much of the Stream Deck plugin library without
+writing integrations. Plugins that rely on Elgato-only features may not
+work. Knob feel (detents, stops, haptic ticks) needs clickdeck-specific
+settings on top. A small Python library talks to the device directly for
+custom scripts.
 
 ### Why two USB interfaces
 HID on the ESP32-S3's full-speed USB is limited to ~64 KB/s (one 120×120 key
@@ -65,11 +81,24 @@ between keys is 3.6 mm, so 13 mm mouse switches don't fit.
 ### Knobs
 Small brushless gimbal motor + magnetic angle sensor + low-voltage driver,
 run with the SimpleFOC library. Software modes: clicky (detent count/
-strength), smooth (free or light drag), end stops.
+strength), smooth (free or light drag), end stops, haptic ticks.
 Driver must work from USB 5 V: TMC6300 (2–11 V). **Not** the SimpleFOC
 Mini / DRV8313, which needs 8–30 V.
-Full build: the motors likely run on separate RP2040(s) because the display
-uses most of the ESP32-S3's pins. Not decided yet.
+
+All five knobs share **one knob board** run by an **RP2350B**. Each motor is
+driven with 3 PWM signals (the TMC6300 needs 6, so an inverter derives the
+low sides; DRV8316 is the fallback). Details in [pcb.md](pcb.md).
+
+**Press to click:** each knob sits on a tongue cut into the knob board
+(U-shaped slot, hinged at the back). Pressing the knob flexes the tongue onto
+a B3U switch underneath.
+
+### Touch band
+A thin capacitive sensor PCB under the top plate, just below the knob
+displays: tap or swipe on the plate surface, like the + XL's touch strip.
+(Touching the display glass itself doesn't work: it sits ~7 mm below the top
+surface because of the key stack.) The knobs moved forward 4 mm to make the
+band 10 mm tall.
 
 ## Stages (test board: 2 keys + 1 knob)
 
@@ -77,8 +106,11 @@ uses most of the ESP32-S3's pins. Not decided yet.
    2" screen.
 2. **Switches:** a press sends an HID event; the PC reacts by changing that
    key's image.
-3. **Knob:** on the Rev 0 knob module (MT6701 + TMC6300); SimpleFOC closed loop; clicky/smooth/stops switched by a
-   command from the PC.
+3. **Knob:** on the Rev 0 knob module (MT6701 + TMC6300 + press switch on
+   a tongue); SimpleFOC closed loop; clicky/smooth/stops switched by a
+   command from the PC. Also test: the press feel (tongue stiffness), and
+   driving the TMC6300 with 3 PWM signals + inverter.
+3b. **Touch band:** tap and swipe through the 3 mm acrylic top plate.
 4. **Mechanics:** frame + clear cap + tab + guides; adjust until a press
    anywhere on the key clicks cleanly. No 3D printer → order prints
    (JLC3DP clear resin) and/or laser-cut acrylic.

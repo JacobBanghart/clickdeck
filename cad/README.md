@@ -22,6 +22,8 @@ the motor diameter.
 | `clickdeck_proto.step` | 2-key + 1-knob prototype |
 | `key_cutaway.step` | One key cut in half, to inspect the cap/tab/switch stack |
 | `*_frame_pcb_outline.dxf` | Board outline with key windows. KiCad: File → Import → Graphics, layer Edge.Cuts |
+| `full_knob_board_outline.dxf`, `proto_knob_module_outline.dxf` | Knob board outlines with the tongue slots |
+| `print_case_tray.stl`, `print_top_plate.stl`, `print_stand.stl` | Case parts for a home printer (fit a 256 mm bed) or JLC3DP |
 | `proto_*_plate_3mm_acrylic.dxf` | Laser-cut plates for the prototype (SendCutSend/Ponoko) |
 | `full_top_plate.dxf` | Top plate outline for the full device |
 | `key_cap_clear_resin.stl`, `knob.stl` | 3D-print files (JLC3DP) |

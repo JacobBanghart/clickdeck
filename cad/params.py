@@ -50,8 +50,16 @@ MAGNET_D, MAGNET_H = 6.0, 2.5           # diametric magnet on the shaft end
 SENSOR_GAP = 1.0                        # magnet face to MT6701 top
 MT6701 = (4.9, 3.9, 1.5)                # SOIC-8 body
 TMC6300 = (3.0, 3.0, 0.9)               # QFN-20
-KNOB_PCB = (30.0, 30.0)
-KNOB_PCB_LIFT = 1.0                     # bosses under the knob module
+# Knob board: one PCB for all knobs (sensors, drivers, RP2040). Each knob sits
+# on a tongue cut free by a U-shaped slot, hinged at the back. Pressing the
+# knob flexes the tongue onto a B3U switch under its front tip (press-to-click).
+TONGUE = 26.0                           # tongue size (square), centered on the knob
+TONGUE_SLOT = 1.0                       # slot width around the tongue
+TONGUE_HINGE_W = 8.0                    # uncut neck at the back = the hinge
+KNOB_PRESS_GAP = 0.05                   # press switch actuator to case floor
+KNOB_BOARD_EDGE = 3.0                   # solid border outside the slots
+KNOB_BOARD_BACK = 18.0                  # solid strip behind the tongues (RP2040, connector)
+RP2040 = (7.0, 7.0, 0.9)
 # Knob shape copies the Keebio aluminum encoder knob: tapered, wider at the
 # top. (EST) Keebio doesn't publish dimensions; measure yours and update.
 #
@@ -73,10 +81,21 @@ ADAPTER_D = 14.0
 ADAPTER_H = 1.5
 SHAFT_FLAT = 4.5                        # D-shaft: 6 mm round with a flat at 4.5 mm
 PLATE_SHAFT_HOLE_D = 8.0                # top plate hole, keebio_adapter style
-KNOB_WIN = (26.0, 15.0)                 # knob display window (max size)
+KNOB_WIN = (26.0, 15.0)                 # knob display area per knob (max size)
+# Touch band: a thin capacitive sensor PCB glued under the top plate, right
+# below the knob displays. Tap or swipe on the plate surface (like the + XL
+# touch strip). Touching the display glass itself doesn't work: it sits ~7 mm
+# below the top surface because of the key stack.
+TOUCH_BAR = True
+TOUCH_BAR_T = 0.8                       # thin PCB
+TOUCH_BAR_MARGIN = 0.8                  # clearance to the window above and motors below
+TOUCH_BAR_MIN_H = 5.0
+TOUCH_BAR_H = 10.0                      # knobs move forward as needed to make room
 MOTOR_TO_PLATE = 0.3
 
 # --- Case -----------------------------------------------------------------
+# Case parts should fit a common home 3D printer bed (Bambu A1/P1, Prusa MK4).
+PRINT_BED = (256.0, 256.0, 256.0)
 # The case is a slab on a separate wedge stand, like the Stream Deck + XL.
 TILT_DEG = 42.0           # slab angle toward the user (40–45° range chosen)
 STAND_INSET = 8.0         # stand is this much narrower than the slab on each side

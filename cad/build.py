@@ -71,6 +71,21 @@ def main():
     export_dxf(pinfo["frame_sketch"], str(OUT / "proto_frame_pcb_outline.dxf"))
     export_dxf(pinfo["plate_sketch"], str(OUT / "proto_top_plate_3mm_acrylic.dxf"))
     export_dxf(pinfo["base_sketch"], str(OUT / "proto_base_plate_3mm_acrylic.dxf"))
+    export_dxf(info["knob_board_sketch"], str(OUT / "full_knob_board_outline.dxf"))
+    export_dxf(pinfo["knob_board_sketch"], str(OUT / "proto_knob_module_outline.dxf"))
+
+    # Case parts as printable STLs (flat model: tray and plate print face-down/up as-is)
+    print_lines = []
+    for label, src in (("case_tray", flat), ("top_plate", flat), ("stand", full)):
+        part = next(it.part for it in src if it.label == label)
+        export_stl(part, str(OUT / f"print_{label}.stl"))
+        bb = part.bounding_box()
+        dims = sorted((bb.size.X, bb.size.Y, bb.size.Z))
+        fits = all(d <= b for d, b in zip(dims, sorted(P.PRINT_BED)))
+        print_lines.append(
+            f"- {label}: {bb.size.X:.0f} x {bb.size.Y:.0f} x {bb.size.Z:.0f} mm, "
+            + ("fits" if fits else "DOES NOT FIT")
+            + f" a {P.PRINT_BED[0]:.0f} mm bed")
 
     cap = next(it for it in proto if it.label == "cap_0")
     export_stl(cap.part, str(OUT / "key_cap_clear_resin.stl"))
@@ -95,8 +110,13 @@ def main():
             f"switch top {st.sw_top:.2f}, top plate {st.plate_bot:.2f}-{st.plate_top:.2f}, "
             f"motor {st.motor_bot:.2f}-{st.motor_top:.2f}",
         ]
+        if P.TOUCH_BAR and inf.get("touch_bar_h", 0) >= P.TOUCH_BAR_MIN_H:
+            plate_t = P.TOP_PLATE_T if name == "Full device" else P.PROTO_PLATE_T
+            lines.append(f"- Touch band: {inf['touch_bar_h']:.1f} mm tall under the knob "
+                         f"displays, sensing through {plate_t:.0f} mm of plate")
         lines += [f"- WARNING: {w_}" for w_ in lay.warnings] or ["- Fit checks: OK"]
         lines.append("")
+    lines += ["## Printing (case parts)", *print_lines, ""]
     (OUT / "summary.md").write_text("\n".join(lines))
     print("\n".join(lines))
     print(f"exports done in {time.time() - t0:.1f}s")
@@ -115,6 +135,13 @@ def main():
             ("proto_iso.png", proto, dict(az=-55, el=34)),
             ("proto_exploded.png", proto, dict(az=-55, el=24, offsets=exploded_offsets(proto),
                                                size=(1300, 1200))),
+            ("knob_board_detail.png",
+             [it for it in flat if it.label.startswith(("knob_board", "knob0_", "knob1_",
+                                                         "touch_bar"))
+              and not it.label.endswith("_knob")],
+             dict(az=-70, el=38, size=(1500, 900), tol=0.08,
+                  offsets={f"knob{i}_{p}": (0, 0, 18) for i in (0, 1)
+                           for p in ("motor_2204", "magnet")})),
             ("proto_key_section.png", proto_section, dict(az=0, el=0.5, size=(1500, 700), tol=0.02)),
         ]
         for name, items, kw in jobs:

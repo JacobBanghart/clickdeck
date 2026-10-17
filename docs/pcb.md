@@ -2,66 +2,89 @@
 
 ## Tools
 - **KiCad 9** (free, runs natively on Linux). Schematic → layout → Gerbers.
-- Footprints: the Espressif KiCad library (ESP32-S3-WROOM-1), and
-  `easyeda2kicad` to pull LCSC/JLC part footprints so assembly parts match
-  what JLC stocks.
-- Case and caps: code-based CAD (**build123d** or CadQuery). Parts are
-  defined in Python, so they're easy to change and to iterate on with AI.
+- Footprints: `easyeda2kicad` pulls LCSC/JLC part footprints so assembly
+  parts match what JLC stocks.
+- Board outlines come from the CAD model: `cad/out/*_outline.dxf`
+  (KiCad: File → Import → Graphics, layer Edge.Cuts).
 
-## Revisions
+## Boards in the full build
 
-### Rev 0: knob module (first PCB)
-The ~30 × 30 mm board that bolts to the 2204 motor: MT6701 sensor +
-TMC6300 driver (JLC-assembled). See parts.md, Order 2. The design gets
-reused 5× in the final build.
+The ESP32-S3 + 7" display is a bought board (Waveshare ESP32-S3-LCD-7), so
+it isn't designed here. It handles USB and draws the screen. Everything
+else is on three boards:
 
-### Rev A: carrier board (after the breadboard + knob module work)
-Same circuit as the breadboard, but on a real board with the real key
-mechanics:
-- The dev board plugs into headers (no fine-pitch soldering;
-  modules can be reused).
-- **Window cutout(s)** in the board outline (Edge.Cuts) over the display.
-- Micro switch footprints on the strips between the windows, positioned for
-  the cap tabs.
-- Display connector, motor/encoder connector, mounting holes matching the
-  case.
-- Connector for the knob module (the small MT6701 knob PCB from
-  parts.md, Order 2), which is designed and tested first.
-- 2-layer, 5 boards from JLCPCB: a few dollars + shipping. All parts
-  through-hole → you can hand-solder it.
+| Board | What's on it | Outline |
+|---|---|---|
+| **Knob board** | RP2350B, 5× MT6701 sensors, 5× motor drivers, 5× B3U press switches, connector to the display board | `full_knob_board_outline.dxf` |
+| **Frame PCB** | 21× B3U key switches around the key windows, cable to the knob board. No chips | `full_frame_pcb_outline.dxf` |
+| **Touch band** | Capacitive touch electrodes + touch controller, glued under the top plate below the knob displays | strip, ~150 × 10 mm |
 
-Goal: prove the cap/tab/switch geometry and mounting on a real PCB.
+### Knob board
+- One PCB for all five knobs. Each knob sits on a **tongue**: a U-shaped
+  slot cuts it free on three sides, and the uncut neck at the back is the
+  hinge. Pressing the knob flexes the tongue ~0.15 mm onto a **B3U switch on
+  the underside** of its front tip, which presses against the case floor.
+  The MT6701 rides on the tongue, so it stays aligned with the motor's
+  magnet.
+- **Microcontroller: RP2350B** (48 GPIO, 24 PWM channels). An RP2040 isn't
+  enough: 16 PWM channels, 30 GPIO.
+- **Motor drivers: 3 PWM signals per motor** (15 total).
+  - Plan A: TMC6300 (2–11 V, ideal on USB 5 V) with an inverter deriving
+    each low-side input from its high-side input. Check the datasheet for
+    built-in break-before-make (shoot-through protection), and test on the
+    prototype.
+  - Plan B: DRV8316 in its native 3x PWM mode. Its 4.5 V minimum is close
+    to USB 5 V under motor load, so it's the fallback.
+- Pin budget (approx.): 15 PWM, 2 sensor bus + 5 chip selects, 5 press
+  switches, 10 for the 7×3 key matrix, 2 UART to the display board, a
+  driver enable, I²C to the touch band. About 42 of 48.
 
-### Rev B: everything on the board
-- ESP32-S3-WROOM-1-N8R8 module soldered down, USB-C connector + ESD
-  protection, 3.3 V regulator.
-- **JLC PCBA** solders the surface-mount parts (LCSC parts); you
-  hand-solder the switches and connectors.
+### Frame PCB
+- Board outline with key and knob-display windows from the CAD model.
+- B3U switches on the strips between windows, placed for the cap tabs.
+- Only switches (and diodes if the matrix needs them) and a connector.
 
-### Rev C: full device
-- 7" panel, 20 key windows, 5 knob areas.
-- Knob controller(s) (RP2040 + TMC6300 per knob or per group), linked to the
-  ESP32-S3.
-- Case + clear caps ordered from JLC3DP in the same order.
+### Touch band
+- Thin (0.8 mm) PCB, ~150 × 10 mm, interleaved electrodes for a slider.
+- Touch controller on the band (exact part TBD, must be in LCSC stock),
+  I²C to the knob board.
+- Senses through the 2 mm top plate.
 
-## Workflow per revision
+### Order everything from JLC at once
+Put the frame PCB, knob board and touch band in **one panel**
+(JLC accepts multiple designs panelized with mouse bites), so there's one
+PCB order and one assembly setup fee. Add the 3D prints (caps, knobs,
+case if you don't print it yourself) to the same JLC order so it ships
+together.
+
+## Prototype boards
+
+### Rev 0: knob module
+One tongue of the knob board: MT6701, motor driver, B3U press switch, same
+tongue/hinge geometry. Outline: `proto_knob_module_outline.dxf`. It tests the
+knob feel, the press, and Plan A (TMC6300 + inverter) driven by the ESP32-S3
+dev board.
+
+### Rev A: prototype frame PCB
+Two key windows + one knob-display window, B3U switches.
+Outline: `proto_frame_pcb_outline.dxf`.
+
+## Workflow per board
 1. Schematic in KiCad; run ERC.
-2. Assign footprints; for JLC assembly, pick parts that are in LCSC stock
-   ("basic" parts avoid setup fees).
-3. Lay out the board: board outline and window cutouts first (they come from
-   the mechanical design), then place switches/connectors, then route.
+2. Assign footprints; for JLC assembly, pick parts in LCSC stock
+   ("basic" parts avoid extra fees).
+3. Import the outline DXF, then place switches/connectors, then route.
 4. Run DRC with JLCPCB's design rules.
-5. Export Gerbers + drill files (+ BOM/CPL for assembly), upload to JLCPCB,
-   check their preview.
+5. Export Gerbers + drill files + BOM/CPL, upload to JLCPCB, check the
+   preview.
 6. Cross-check against the CAD model: window positions, switch heights, cap
-   travel, mounting holes.
+   travel, tongue slots, mounting holes.
 
 ## Where AI helps
-- Writing and reviewing the schematic (pin assignments, ESP32-S3 boot/strap
-  pins, USB wiring, decoupling).
-- Checking KiCad files (they're plain text): ERC/DRC results, footprint
-  choices, the netlist against the firmware's pin map.
-- Code-CAD for the case and caps, and firmware.
+- Writing and reviewing schematics (pin assignments, strap pins, USB,
+  decoupling).
+- Checking KiCad files (plain text): ERC/DRC results, footprints, the
+  netlist against the firmware's pin map.
+- Code-CAD and firmware.
 
-AI is weak at manual board routing; plan on routing in KiCad yourself
-(Rev A is simple enough to route by hand).
+AI is weak at manual board routing; plan on routing in KiCad yourself.
