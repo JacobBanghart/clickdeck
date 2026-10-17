@@ -40,3 +40,17 @@ the motor diameter.
 
 x right, y toward the back (the user sits at -y), z up. Origin is the center
 of the display's active area, at the case floor.
+
+## FreeCAD screenshots (headless)
+
+FreeCAD 1.1.4 AppImage is extracted at `~/Applications/freecad/squashfs-root`.
+To capture real FreeCAD views of a STEP file without a display:
+
+```sh
+xvfb-run -a -s "-screen 0 1920x1080x24" \
+  env CLICKDECK_STEP=cad/out/clickdeck_full.step CLICKDECK_OUT=cad/out/freecad \
+  ~/Applications/freecad/squashfs-root/AppRun cad/freecad_screenshot.py
+```
+
+Writes `freecad_three_quarter.png`, `freecad_front.png`, `freecad_side.png`.
+To open the model interactively: `~/Applications/freecad/squashfs-root/AppRun cad/out/clickdeck_full.step`.
