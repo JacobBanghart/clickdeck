@@ -37,9 +37,11 @@ Sources and licenses:
    5 V; testers on weak USB ports or thin breadboard wires got unstable,
    noisy motors ([#32](https://github.com/scottbez1/smartknob/issues/32),
    [#113](https://github.com/scottbez1/smartknob/issues/113)).
-   → clickdeck has 5 motors plus a 7" backlight on one USB-C cable, so it
-   needs a **power budget**: firmware caps total motor current, motors use
-   only the torque a detent needs, and the device assumes the host's
+   → clickdeck has 5 motors plus a 7" backlight on one USB-C cable. Motors
+   only draw real current while pushing back on a hand, so drivers sleep
+   until their knob moves and a firmware arbiter shares about one motor's
+   worth of current (one active knob gets it all, two split it). See the
+   power budget in [plan.md](plan.md). The device reads the host's
    advertised USB-C current (1.5 A or 3 A), falling back to a low limit.
    Require a C-to-C cable. On the prototype, power the motor with short,
    thick leads, not breadboard jumpers.

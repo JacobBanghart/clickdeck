@@ -95,10 +95,25 @@ a B3U switch underneath.
 
 ### Power budget
 One USB-C cable feeds the display board, its backlight and 5 motors. One
-SmartKnob motor alone draws ~0.7–1 A peak at 5 V, so the firmware caps total
-motor current, motors use only the torque a detent needs, and the device
-assumes the current the host advertises on USB-C (1.5 A or 3 A), falling
-back to a low limit. Requires a C-to-C cable. See
+SmartKnob motor alone draws ~0.7–1 A peak at 5 V. But a motor only draws
+real current while it's pushing back on a hand: an untouched knob sits at a
+detent center and needs no torque. So the budget is about **one motor's
+worth (~1 A)**, enforced by a firmware arbiter:
+
+- **Wake on movement.** All angle sensors stay on (a few mA each). A
+  knob's driver wakes when it moves more than a fraction of a degree
+  (well under 1 ms, too fast to feel) and goes back to standby after
+  1–2 s without movement.
+- **Share the budget.** One active knob gets the full current limit; if
+  two move at once, each gets half (they feel slightly weaker for that
+  moment instead of browning out).
+- **Time-limit end stops.** Pushing against a stop is the only sustained
+  full-torque case; ease off if someone leans on it.
+- **Queue haptic notifications** so pulses never overlap. Calibrate knobs
+  one at a time.
+
+The device reads the host's advertised USB-C current (1.5 A or 3 A) and
+falls back to a low limit. Requires a C-to-C cable. See
 [lessons.md](lessons.md) #2.
 
 ### Firmware updates
