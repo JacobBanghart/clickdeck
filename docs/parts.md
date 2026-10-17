@@ -38,7 +38,7 @@ Notes
   them. The meter and scale are for the pass/fail tests in
   [prototype-tests.md](prototype-tests.md).
 
-## Order 2 — JLCPCB knob module (~$20–30, after the motor arrives)
+## Order 2 — JLCPCB knob module (~$30–45, after the motor arrives)
 
 Rev 0 PCB, one knob's section of the full knob board (same tongue design),
 so it isn't throwaway: it proves the design that gets repeated 5×.
@@ -57,7 +57,7 @@ Outline from CAD: `cad/out/proto_knob_module_outline.dxf`.
   press switch.
 
 Cost: 5 bare boards + assembly on 2 of them (setup fee + LCSC parts +
-"extended part" fees). Roughly $20–30 with economy shipping. Confirm both
+"extended part" fees; ~$5.93 per TMC6300). Roughly $30–45 with economy shipping. Confirm both
 chips are in LCSC stock when ordering.
 
 Why not an $18 SparkFun TMC6300 breakout instead: it costs about the same as
@@ -82,8 +82,8 @@ Add to a later JLC order so it ships together:
   local makerspace).
 
 ## Rough total
-AliExpress ~$55–80 (including test tools) + JLC knob module ~$20–30 ≈
-**$75–110** for the working electronics, plus roughly $30–60 later for
+AliExpress ~$55–80 (including test tools) + JLC knob module ~$30–45 ≈
+**$85–125** for the working electronics, plus roughly $30–60 later for
 plates, frame PCB and caps (stage 4). Estimates; get real quotes from the
 generated files.
 
