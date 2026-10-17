@@ -18,6 +18,9 @@
 - Touch band: 10.0 mm tall under the knob displays, sensing through 3 mm of plate
 - Fit checks: OK
 
+## Stability (estimate)
+- Estimated mass 940 g; tips backward at 10.3 N on a top-row key (a firm press is ~3 N). Rough densities, see cad/stability.py
+
 ## Printing (case parts)
 - case_tray: 178 x 134 x 24 mm, fits a 256 mm bed
 - top_plate: 178 x 134 x 2 mm, fits a 256 mm bed

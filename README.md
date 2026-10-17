@@ -54,6 +54,11 @@ Prototype (2 keys + 1 knob, laser-cut acrylic):
 
 ![Prototype](cad/out/proto_exploded.png)
 
+Inside, with the panel removed: Waveshare's board at the back, the knob
+board across the front, USB-C tunnel in the left wall:
+
+![Inside](cad/out/inside_layout.png)
+
 Knob board (one PCB, five knobs). Each knob sits on a hinged tongue that
 presses a switch underneath; motors lifted to show the tongues:
 
@@ -72,9 +77,11 @@ presses a switch underneath; motors lifted to show the tongues:
 - [docs/pcb.md](docs/pcb.md): how the PCBs get designed and ordered
 - [cad/](cad/): parametric CAD (build123d). STEP files for FreeCAD/Fusion 360 in `cad/out/`
 
-Status (2026-10-17): design and CAD done for the prototype stage. Next:
-order the prototype parts ([docs/parts.md](docs/parts.md)), write the
-protocol spec and prototype firmware. Open items:
+Status (2026-10-17): design stage, nothing built. Done on paper: CAD for
+the full device and prototype (real Waveshare 7B dimensions), prototype
+frame PCB (generated, DRC clean), Rev 0 knob module spec, wiring/power spec,
+USB protocol draft. Next: order prototype parts ([docs/parts.md](docs/parts.md)),
+draw the knob module schematic, prototype firmware. Open items:
 [docs/open-questions.md](docs/open-questions.md); pass/fail criteria:
 [docs/prototype-tests.md](docs/prototype-tests.md).
 

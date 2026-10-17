@@ -123,6 +123,17 @@ def main():
                          f"displays, sensing through {plate_t:.0f} mm of plate")
         lines += [f"- WARNING: {w_}" for w_ in lay.warnings] or ["- Fit checks: OK"]
         lines.append("")
+    import stability
+    stab = stability.check(full, L, info)
+    stab_line = (f"- Estimated mass {stab['mass_g']:.0f} g; tips backward at "
+                 f"{stab['tip_force_n']:.1f} N on a top-row key (a firm press is "
+                 f"~{stab['press_n']:.0f} N). Rough densities, see cad/stability.py")
+    lines += ["## Stability (estimate)", stab_line]
+    if stab["tip_force_n"] < 2 * stab["press_n"]:
+        msg = "less than 2x margin against tipping when pressing the top row"
+        L.warnings.append(msg)
+        lines.append(f"- WARNING: {msg}")
+    lines.append("")
     lines += ["## Printing (case parts)", *print_lines, ""]
     (OUT / "summary.md").write_text("\n".join(lines))
     print("\n".join(lines))
