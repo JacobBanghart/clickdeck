@@ -18,11 +18,13 @@ the motor diameter.
 
 | File | Use |
 |---|---|
-| `clickdeck_full.step` | Full device, 120 named and colored parts. Open in FreeCAD or Fusion 360 |
+| `clickdeck_full.step` | Full device, every part named and colored. Open in FreeCAD or Fusion 360 |
 | `clickdeck_proto.step` | 2-key + 1-knob prototype |
 | `key_cutaway.step` | One key cut in half, to inspect the cap/tab/switch stack |
 | `*_frame_pcb_outline.dxf` | Board outline with key windows. KiCad: File → Import → Graphics, layer Edge.Cuts |
 | `full_knob_board_outline.dxf`, `proto_knob_module_outline.dxf` | Knob board outlines with the tongue slots |
+| `full_usb_board_outline.dxf` | USB board (hub) outline |
+| `cabling.png` | Top view of the internal cabling, display and top plate removed |
 | `print_case_tray.stl`, `print_top_plate.stl`, `print_stand.stl` | Case parts for a home printer (fit a 256 mm bed) or JLC3DP |
 | `proto_*_plate_3mm_acrylic.dxf` | Laser-cut plates for the prototype (SendCutSend/Ponoko) |
 | `full_top_plate.dxf` | Top plate outline for the full device |
@@ -62,12 +64,18 @@ To open the model interactively: `~/Applications/freecad/squashfs-root/AppRun ca
 `cad/assembly.py` defines the assembly steps and checks that the design can
 actually be built and serviced: no overlapping parts, every screw reachable
 with a straight screwdriver at its step, the top plate, display and knob
-board lift out in order, and a paperclip reaches the display board's
-BOOT/RESET through the back wall. It also renders the step pictures, the
-animation and [docs/assembly.md](../docs/assembly.md).
+board lift out in order, a paperclip reaches the display board's
+BOOT/RESET through the back wall, every plug (modeled at full size,
+overmolds included) slides straight into its socket at the step that
+connects it, cables don't run through parts, and the top plate's cables
+reach with the plate lifted 40 mm. Cable bends below the minimum radius are
+fit warnings in `build.py`. It also renders the step pictures, the
+animation, [docs/assembly.md](../docs/assembly.md) and
+[docs/bom.md](../docs/bom.md).
 
 ```sh
 .venv/bin/python cad/assembly.py --check     # checks only (~30 s)
+.venv/bin/python cad/assembly.py --bom       # checks + docs/bom.md
 .venv/bin/python cad/assembly.py             # + pictures and the guide (~2 min)
 .venv/bin/python cad/assembly.py --animate   # + the animation (~15 min)
 ```

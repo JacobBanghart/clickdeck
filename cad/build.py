@@ -73,6 +73,7 @@ def main():
     export_dxf(pinfo["plate_sketch"], str(OUT / "proto_top_plate_3mm_acrylic.dxf"))
     export_dxf(pinfo["base_sketch"], str(OUT / "proto_base_plate_3mm_acrylic.dxf"))
     export_dxf(info["knob_board_sketch"], str(OUT / "full_knob_board_outline.dxf"))
+    export_dxf(info["usb_board_sketch"], str(OUT / "full_usb_board_outline.dxf"))
     # PCB geometry for the KiCad generators in hardware/ (mm, CAD coordinates, y up)
     import json
     (OUT / "proto_frame_pcb.json").write_text(json.dumps(pinfo["frame_pcb"], indent=1) + "\n")
@@ -119,6 +120,13 @@ def main():
                          f"{inf['display_floor_gap']:.1f} mm above the floor"
                          + (f" (connector row sits in a {inf['floor_pocket']:.1f} mm floor pocket)"
                             if inf['floor_pocket'] > 0 else "") + " (Waveshare STEP depths)")
+        if "cables" in inf:
+            cab = ", ".join(f"{n.removeprefix('cable_')} {c['buy']} mm"
+                            for n, c in inf["cables"].items() if c["buy"])
+            lead = max(inf["leads"].values(), key=lambda v: v["coil_h"])
+            lines.append(f"- Internal cables (bought, plug-in): {cab}; "
+                         f"{P.MOTOR_LEAD_LEN:.0f} mm motor leads coil {lead['coil_h']:.1f} mm "
+                         f"high ({lead['room']:.1f} mm room under the panel)")
         if P.TOUCH_BAR and inf.get("touch_bar_h", 0) >= P.TOUCH_BAR_MIN_H:
             plate_t = P.TOP_PLATE_T if name == "Full device" else P.PROTO_PLATE_T
             lines.append(f"- Touch band: {inf['touch_bar_h']:.1f} mm tall under the knob "
@@ -166,6 +174,14 @@ def main():
                                           "frame_pcb", "panel7", "touch_bar"))
               and not it.label.endswith("_knob")],
              dict(az=-115, el=55, size=(1500, 1000))),
+            ("cabling.png",                    # top-down, display and top plate removed
+             [it for it in flat
+              if not it.label.startswith(("top_plate", "cap_", "knob_window", "switch_",
+                                          "frame_pcb", "panel7", "touch_bar", "display_board_pcb",
+                                          "display_board_esp32s3", "screw_", "plug_ffc_frame",
+                                          "plug_touch_band"))
+              and not it.label.endswith(("_knob", "_hub"))],
+             dict(az=-90, el=89.9, size=(1500, 1250))),
             ("knob_board_detail.png",
              [it for it in flat if it.label.startswith(("knob_board", "knob0_", "knob1_",
                                                          "touch_bar"))

@@ -48,15 +48,34 @@ def translate(v) -> np.ndarray:
     return m
 
 
+def tessellate(part, tol):
+    """Mesh a part; if the whole shape fails (fused cables can), mesh face by face."""
+    try:
+        verts, tris = part.tessellate(tol, 0.3)
+        return (np.array([[p.X, p.Y, p.Z] for p in verts], dtype=float),
+                np.array(tris, dtype=int).reshape(-1, 3))
+    except Exception:
+        vs, ts, n = [], [], 0
+        for f in part.faces():
+            try:
+                verts, tris = f.tessellate(tol, 0.3)
+            except Exception:
+                continue
+            vs.append(np.array([[p.X, p.Y, p.Z] for p in verts], dtype=float).reshape(-1, 3))
+            ts.append(np.array(tris, dtype=int).reshape(-1, 3) + n)
+            n += len(verts)
+        if not vs:
+            return np.zeros((0, 3)), np.zeros((0, 3), dtype=int)
+        return np.vstack(vs), np.vstack(ts)
+
+
 class Scene:
     def __init__(self, items: list[Item], tol: float = 0.15, edges: bool = True):
         self.items = {}
         for it in items:
-            verts, tris = it.part.tessellate(tol, 0.3)
-            v = np.array([[p.X, p.Y, p.Z] for p in verts], dtype=float)
-            t = np.array(tris, dtype=int).reshape(-1, 3)
+            v, t = tessellate(it.part, tol)
             segs = []
-            if edges:
+            if edges and not it.label.startswith("cable_"):   # cables: no seam lines
                 for e in it.part.edges():
                     n = 2 if e.geom_type == GeomType.LINE else max(8, min(48, int(e.length * 1.5)))
                     pts = e.positions([i / (n - 1) for i in range(n)])

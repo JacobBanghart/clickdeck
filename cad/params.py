@@ -52,8 +52,12 @@ DISPLAY_STANDOFF_H = 0.0                 # board sits directly on the frame (STE
 DISPLAY_PARTS_H = 5.0                    # deepest general part under the board: USB-C (STEP)
 DISPLAY_CONNECTOR_H = 8.3                # the row of six HY2.0 connectors on one edge (STEP)
 FLOOR_POCKET_MARGIN = 1.0                # floor pocket under the connectors, if they need one
-USB_FROM_PCB_BACK = 35.6                 # native USB-C port center, on the board's left edge (EST)
-USB_TUNNEL = (12.5, 7.5)                 # hole through the left wall for a USB-C plug (w x h)
+# Two USB-C ports on the board's left edge, facing left (Waveshare STEP model, 2026-10-17):
+# the native USB port ("USB", Type_C2) and the USB-to-UART port behind it. Which
+# is which is from the earlier estimate: check the silkscreen on the real board.
+USB_FROM_PCB_BACK = 36.1                 # native USB-C port center from the board's back edge
+UART_USB_FROM_PCB_BACK = 51.2            # USB-to-UART port (not used)
+USB_BELOW_PCB = 2.97                     # port center below the board's underside (STEP)
 
 # --- 2.4" 240x320 SPI module, used landscape in the prototype (EST) -----
 P24_GLASS = (60.26, 42.72, 2.5)
@@ -160,6 +164,43 @@ PROTO_STANDOFF_D = 6.0     # M3 hex standoff (drawn round)
 FRAME_MOUNT_INSET = 3.0    # hole center from the frame PCB's side edge
 FRAME_MOUNT_Y = (8.0, -12.0)
 FRAME_MOUNT_HOLE_D = 2.2   # M2 clearance
+
+# --- Internal cabling (full device) ----------------------------------------
+# No soldering or crimping by the builder: every internal link is a bought
+# cable plugged into a connector JLC fits. See docs/wiring.md.
+# USB-C plug bodies (overmold + the metal that sticks out of the socket):
+# (width, thickness, length out of the socket face). Typical cables measure
+# 10.5-12.5 x 5.5-6.5 mm; the model uses the large end.
+USB_PLUG_STRAIGHT = (12.5, 6.5, 22.0)
+USB_PLUG_RA = (12.5, 6.5, 13.0)         # right-angle ("side-angle") plug: cable leaves sideways
+USB_CABLE_D = 3.5                       # USB 2.0 C-to-C cable
+USB_BEND_R = 10.0                       # minimum bend radius for the USB-C cable
+USB_C_SOCKET = (8.94, 3.26, 7.35)       # receptacle shell (w, h, depth)
+# USB board: hub + external USB-C socket, back-left corner of the tray (docs/wiring.md)
+USB_BOARD_Z = 2.5                       # board underside above the floor (on printed bosses)
+USB_EXT_X = -16.0                       # external port, x from the case center (left of the pinholes)
+USB_EXT_POCKET = (14.0, 8.0)            # opening in the back wall the plug overmold seats in
+GH_PLUG = (10.8, 4.3, 5.5)              # JST-GH 8-pin plug outside its header (w, h, length)
+GH_HEADER = (12.8, 4.3, 4.3)            # SM08B-GHS-TB side-entry header (w, h, depth)
+GH_CABLE_D = 3.0
+# 2204 motor leads: ~30 cm with a 3-pin 2.54 mm servo-style plug (Futaba/JR) per one
+# listing; VERIFY ON ARRIVAL. The knob board has a right-angle 1x3 header per motor.
+MOTOR_PLUG = (7.6, 2.6, 14.0)           # plug body (w, h, length)
+MOTOR_LEAD_LEN = 300.0
+MOTOR_LEAD_D = 2.2
+HEADER_3P = (2.5, 7.6, 2.5)             # right-angle 1x3 header body (along the pins, w, h)
+# Keys: 12-pin 1.0 mm FFC between two flip-lock ZIF connectors. Touch: JST-SH 6-pin.
+ZIF_12P = (16.0, 4.6, 2.0)              # (length along the pins' row, depth, height) (EST)
+SH_HEADER_SIDE = (9.0, 4.25, 2.9)       # SM06B-SRSS-TB, side entry (w, depth, h)
+SH_HEADER_TOP = (9.0, 4.25, 4.25)       # BM06B-SRSS-TB, top entry (w, depth, h)
+SH_PLUG = (7.0, 3.0, 4.5)               # JST-SH 6-pin plug body outside the header (w, h, length)
+# Plug insertion check: each plug needs a straight path this long behind it: its
+# travel into the socket plus ~3 mm, at the step that connects it (fingers grip the
+# plug body from the sides; the cable trails behind).
+# Motor plugs: the header pins are ~6 mm long.
+PLUG_APPROACH = {"usb": 10.0, "gh": 6.0, "sh": 5.0, "motor": 6.0, "ffc": 2.0}
+LIFT_SERVICE = 40.0                     # top plate lifts this far with its cables still plugged in
+CLIP = (2.0, 1.2)                       # printed cable clip prong (thickness, lip)
 
 # --- Drawing ----------------------------------------------------------------
 EXPLODE = 22.0

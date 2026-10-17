@@ -16,6 +16,7 @@ from build123d import (
     BuildPart,
     BuildSketch,
     Color,
+    Compound,
     Cone,
     Cylinder,
     Locations,
@@ -283,11 +284,15 @@ def tongue_slots(x: float, y: float) -> list[tuple[float, float, float, float]]:
 
 
 def knob_board(st: Stack, knob_xy: list, label: str, with_mcu: bool,
-               avoid_xy: list = (), screw_xy: list | None = None) -> tuple[list[Item], Sketch]:
+               avoid_xy: list = (), screw_xy: list | None = None,
+               tabs: list = (), slots_xy: list = (),
+               mcu_xy: tuple | None = None) -> tuple[list[Item], Sketch]:
     """One PCB carrying every knob. Returns parts and the 2D outline (for KiCad).
 
     screw_xy: if given, the board's screw holes (bosses are printed in the tray
     elsewhere); otherwise the board gets its own bosses (prototype).
+    tabs: extra rectangles (x0, x1, y0, y1) added to the outline.
+    slots_xy: tie-down slots for straps (cable ties) around the motor lead coils.
     """
     xs = [x for x, _ in knob_xy]
     ky = knob_xy[0][1]
@@ -303,6 +308,12 @@ def knob_board(st: Stack, knob_xy: list, label: str, with_mcu: bool,
     with BuildSketch() as sk:
         with Locations(((x0 + x1) / 2, (y0 + y1) / 2)):
             RectangleRounded(x1 - x0, y1 - y0, 2.0)
+        for tx0, tx1, ty0, ty1 in tabs:
+            with Locations(((tx0 + tx1) / 2, (ty0 + ty1) / 2 - 0.5)):
+                Rectangle(tx1 - tx0, ty1 - ty0 + 1.0)
+        for sx, sy in slots_xy:
+            with Locations((sx, sy)):
+                RectangleRounded(1.4, 3.2, 0.6, mode=Mode.SUBTRACT)
         for cx, cy, w, h in slots:
             with Locations((cx, cy)):
                 Rectangle(w, h, mode=Mode.SUBTRACT)
@@ -323,8 +334,8 @@ def knob_board(st: Stack, knob_xy: list, label: str, with_mcu: bool,
             boss = b if boss is None else boss + b
         items.insert(0, Item(boss, f"{label}_bosses", C_STANDOFF, 0))
     if with_mcu:
-        mcu = Pos(xs[len(xs) // 2], y1 - P.KNOB_BOARD_BACK / 2, st.knob_pcb_top) * Box(
-            *P.RP2040, align=MIN)
+        mx, my = mcu_xy or (xs[len(xs) // 2], y1 - P.KNOB_BOARD_BACK / 2)
+        mcu = Pos(mx, my, st.knob_pcb_top) * Box(*P.RP2040, align=MIN)
         items.append(Item(mcu, f"{label}_rp2040", C_CHIP, 0))
     for n, (x, y) in enumerate(knob_xy):
         items += knob_stack(st, x, y, n)
@@ -425,10 +436,11 @@ def knob_windows(st: Stack, L: Layout, t: float = P.TOP_PLATE_T) -> list[Item]:
                  f"knob_window_{i}", C_CAP, 4) for i, (x, y) in enumerate(L.cut_xy)]
 
 
-def touch_bar(st: Stack, L: Layout, x_span: float, motor_edge_y: float) -> tuple[list[Item], float]:
+def touch_bar(st: Stack, L: Layout, x_span, motor_edge_y: float) -> tuple[list[Item], float]:
     """Capacitive touch band under the top plate, between the windows and the motors.
 
-    Returns the parts and the band height (0 if it doesn't fit).
+    x_span: width (centered) or (x0, x1). Returns the parts and the band height
+    (0 if it doesn't fit).
     """
     if not P.TOUCH_BAR:
         return [], 0.0
@@ -438,8 +450,9 @@ def touch_bar(st: Stack, L: Layout, x_span: float, motor_edge_y: float) -> tuple
     if h < P.TOUCH_BAR_MIN_H:
         L.warnings.append(f"touch band is only {h:.1f} mm tall (min {P.TOUCH_BAR_MIN_H})")
         return [], h
-    bar = Pos(0, (top + bot) / 2, st.plate_bot - P.TOUCH_BAR_T) * Box(
-        x_span, h, P.TOUCH_BAR_T, align=MIN)
+    x0, x1 = (-x_span / 2, x_span / 2) if isinstance(x_span, (int, float)) else x_span
+    bar = Pos((x0 + x1) / 2, (top + bot) / 2, st.plate_bot - P.TOUCH_BAR_T) * Box(
+        x1 - x0, h, P.TOUCH_BAR_T, align=MIN)
     return [Item(bar, "touch_bar_pcb", C_PCB, 3)], h
 
 
@@ -484,15 +497,93 @@ def tool_part(sc: Screw, reach: float = 120.0) -> Part:
     return Pos(sc.x, sc.y, sc.z + hh + 0.05) * Cylinder(P.TOOL_D / 2, reach, align=MIN)
 
 
+def fillet_path(points, r: float, name: str = "", warnings: list | None = None):
+    """Round every corner of a 3D polyline with radius r (a cable's bend).
+
+    Returns dense points. If a corner's arc doesn't fit between its neighbours,
+    the radius there is reduced and a warning added (so --strict catches it).
+    """
+    pts = [Vector(*p) for p in points]
+    n = len(pts)
+    seg = [(pts[i + 1] - pts[i]).length for i in range(n - 1)]
+    phi = [0.0] * n
+    want = [0.0] * n                          # tangent length each corner wants
+    for i in range(1, n - 1):
+        u = (pts[i] - pts[i - 1]).normalized()
+        v = (pts[i + 1] - pts[i]).normalized()
+        phi[i] = math.acos(max(-1.0, min(1.0, u.dot(v))))
+        want[i] = r * math.tan(phi[i] / 2) if phi[i] > 1e-3 else 0.0
+    t = list(want)
+    for i in range(n - 1):                    # share each segment between its two corners
+        need = want[i] + want[i + 1]
+        if need > seg[i] > 0:
+            f = seg[i] / need
+            t[i] = min(t[i], want[i] * f)
+            t[i + 1] = min(t[i + 1], want[i + 1] * f)
+    out = [pts[0]]
+    for i in range(1, n - 1):
+        if want[i] <= 0:
+            out.append(pts[i])
+            continue
+        u = (pts[i] - pts[i - 1]).normalized()
+        v = (pts[i + 1] - pts[i]).normalized()
+        rr = t[i] / math.tan(phi[i] / 2)
+        if warnings is not None and rr < r - 0.5:
+            warnings.append(f"{name}: bend radius {rr:.1f} mm at corner {i} (minimum {r:.0f} mm)")
+        a = pts[i] - u * t[i]
+        nn = (v - u * u.dot(v)).normalized()
+        c = a + nn * rr
+        steps = max(2, int(math.degrees(phi[i]) / 15))
+        for k in range(steps + 1):
+            al = phi[i] * k / steps
+            out.append(c + (nn * (-math.cos(al)) + u * math.sin(al)) * rr)
+    out.append(pts[-1])
+    return [(p.X, p.Y, p.Z) for p in out]
+
+
+def path_length(points) -> float:
+    return sum((Vector(*b) - Vector(*a)).length for a, b in zip(points, points[1:]))
+
+
+def cable_clip(x: float, y: float, zc: float, r: float, along_x: bool) -> Part:
+    """Printed push-in cable clip on the tray floor: a pedestal up to the cable,
+    two prongs either side with small lips the cable snaps past."""
+    t, lip = P.CLIP
+    gap = r + 0.25
+    top = zc + 0.6 * r
+    ln = 5.0
+    w = 2 * (gap + t)
+    part = None
+    base_h = zc - r - 0.15 - P.FLOOR
+    if base_h > 0.2:
+        part = Pos(0, 0, P.FLOOR - 0.01) * Box(w, ln, base_h + 0.01, align=MIN)
+    for sx in (-1, 1):
+        prong = Pos(sx * (gap + t / 2), 0, P.FLOOR - 0.01) * Box(t, ln, top - P.FLOOR + 0.01, align=MIN)
+        lip_b = Pos(sx * (gap - 0.25), 0, top - 0.8) * Box(0.5 + 0.02, ln, 0.8, align=MIN)
+        part = (prong + lip_b) if part is None else part + prong + lip_b
+    part = Rot(Z=90) * part if along_x else part
+    return Pos(x, y, 0) * part
+
+
 def cable(points: list[tuple[float, float, float]], d: float) -> tuple[Part, float]:
     """A cable as joined cylinders along a path. Returns the part and its length."""
-    part, length = None, 0.0
-    for a, b in zip(points, points[1:]):
-        v = Vector(*b) - Vector(*a)
-        seg = Plane(origin=a, z_dir=v) * Cylinder(d / 2, v.length, align=MIN)
-        joint = Pos(*b) * Sphere(d / 2)
-        part = seg + joint if part is None else part + seg + joint
+    solids, length = [], 0.0
+    pts = [Vector(*points[0])]
+    for p in points[1:]:                       # drop near-duplicate points (arc ends)
+        if (Vector(*p) - pts[-1]).length > 0.2:
+            pts.append(Vector(*p))
+    for i, (a, b) in enumerate(zip(pts, pts[1:])):
+        v = b - a
+        solids.append(Plane(origin=a, z_dir=v) * Cylinder(d / 2, v.length, align=MIN))
+        if i < len(pts) - 2:
+            solids.append(Pos(b) * Sphere(d / 2))
         length += v.length
+    try:
+        part = solids[0].fuse(*solids[1:]) if len(solids) > 1 else solids[0]
+        if part is None or part.volume <= 0:
+            raise ValueError
+    except Exception:
+        part = Compound(children=solids)
     return part, length
 
 
@@ -535,7 +626,8 @@ def full_device(tilt: bool = True) -> tuple[list[Item], Layout, dict]:
     dpcb_top = panel_z0 - P.DISPLAY_STANDOFF_H
     dpcb_bot = dpcb_top - P.PCB_T
     usb_y = dy1 - P.USB_FROM_PCB_BACK
-    usb_z = dpcb_bot - 1.6
+    uart_y = dy1 - P.UART_USB_FROM_PCB_BACK
+    usb_z = dpcb_bot - P.USB_BELOW_PCB
     lowest = dpcb_bot - P.DISPLAY_PARTS_H
     conn_bot = dpcb_bot - P.DISPLAY_CONNECTOR_H
     pocket = math.ceil(max(0.0, (P.FLOOR + 1.0) - conn_bot) * 2) / 2   # 1 mm clearance, 0.5 mm steps
@@ -562,6 +654,101 @@ def full_device(tilt: bool = True) -> tuple[list[Item], Layout, dict]:
     frame_holes = [(x, py1 + 2.5) for x in (-50.0, 0.0, 50.0)]
     frame_holes += [(px0 - 2.5, y) for y in (0.0, 25.0)]
 
+    # --- Internal cabling layout (docs/wiring.md). Every plug is a box: its
+    # overmold or housing outside the socket, so the interference checks see it.
+    W_usb, H_usb, Ls_usb = P.USB_PLUG_STRAIGHT
+    Lra_usb = P.USB_PLUG_RA[2]
+    sw_, sh_, sd_ = P.USB_C_SOCKET
+    warns = L.warnings
+    # USB board: main body in the back-left corner beside the display board, an
+    # arm along the back wall to the external port (left of the BOOT/RESET pinholes)
+    ub_z0 = P.FLOOR + P.USB_BOARD_Z
+    ub_z1 = ub_z0 + P.PCB_T
+    ub_x0, ub_x1 = ix0 + 1.2, dx0 - 2.7
+    ub_front = 21.0                               # main body front edge
+    arm_y0 = dy1 + 0.4                            # arm sits behind the display board
+    ext_x = P.USB_EXT_X
+    arm_x1 = ext_x + 11.5
+    ext_z = ub_z0 + P.PCB_T / 2                   # mid-mount socket: shell centered on the board
+    j_disp_x = ub_x0 + 5.3                        # USB-C socket for the display board cable
+    gh_usb = (ub_x0 + 15.2, 36.3)                 # JST-GH header (to the knob board), facing front
+    ub_screws = [(ub_x0 + 5.5, 31.5), (ub_x1 - 2.5, 41.0), (ext_x - 8.0, 49.2), (ext_x + 7.7, 49.2)]
+    with BuildSketch() as usk:
+        with Locations(((ub_x0 + ub_x1) / 2, (ub_front + iy1) / 2)):
+            Rectangle(ub_x1 - ub_x0, iy1 - ub_front)
+        with Locations(((ub_x1 - 1.0 + arm_x1) / 2, (arm_y0 + iy1) / 2)):
+            Rectangle(arm_x1 - ub_x1 + 1.0, iy1 - arm_y0)
+        for (x, y), r in ([(pp, P.PANEL_POST_D / 2 + 0.6) for pp in panel_posts]
+                          + [(pp, post_r + 0.6) for pp in plate_posts]):
+            if ub_x0 - r < x < arm_x1 + r and ub_front - r < y < iy1 + r:
+                with Locations((x, y)):
+                    Circle(r, mode=Mode.SUBTRACT)
+        with Locations((ext_x, iy1 - (sd_ + 0.3) / 2)):
+            Rectangle(sw_ + 0.3, sd_ + 0.3, mode=Mode.SUBTRACT)    # socket sinks into the board
+        with Locations(*ub_screws):
+            Circle(P.M2_CLEAR / 2, mode=Mode.SUBTRACT)
+    usb_sketch = usk.sketch
+
+    # Knob board connectors: JST-GH (USB link) at the back-left corner; keys FFC
+    # (ZIF) and touch (JST-SH, top entry) at the right end. Motor headers behind
+    # each tongue, plugs pointing left; excess motor lead coiled on the back strip.
+    kpt = st.knob_pcb_top
+    gh_k = (-board_x1 + 9.3, board_back_y)       # header mouth on the back edge
+    zif_y = board_back_y - 2.4                    # ZIF center (also the frame PCB's ZIF)
+    zif_x1 = board_x1                             # mouth at the board's right edge
+    tch = (board_x1 - P.KNOB_BOARD_EDGE / 2, knob_y + 7.24)
+    mh_y = knob_y + P.TONGUE / 2 + P.TONGUE_SLOT + 0.4 + P.HEADER_3P[1] / 2
+    coil_y0, coil_y1 = mh_y + P.HEADER_3P[1] / 2 + 0.4, board_back_y - P.GH_HEADER[2] - 0.2
+    coil_l = 24.0
+    slots = [(x + sx * (coil_l / 2 - 1.5), (coil_y0 + coil_y1) / 2) for x in kxs for sx in (-1, 1)]
+    mcu_xy = (2.0, mh_y)                         # centre
+    frame_x1 = ix1 - 2.2                          # frame PCB reaches past the panel on the right
+
+    # Cable paths (flat frame). (points, diameter, bend radius, kind, plug ends)
+    cpaths = {}
+    # Display board cable: right-angle plug on the display board (cable leaves
+    # forward), loop in the free bay at the left, straight plug into the USB board
+    s7 = (dx0 - Lra_usb + 3.0, usb_y - W_usb / 2, usb_z)
+    e7 = (j_disp_x, ub_front - Ls_usb, ub_z1 + sh_ / 2)
+    yu, xu = -24.5, s7[0] - 2 * P.USB_BEND_R      # U-turn: bottom line and return run
+    cpaths["cable_usb_display"] = (
+        [s7, (s7[0], yu, 11.0), (xu, yu, 11.0), (xu, -12.0, 10.0), (e7[0], -4.5, e7[2]), e7],
+        P.USB_CABLE_D, P.USB_BEND_R, "usb", ("plug_display_usb", "plug_usb_board_display"))
+    # USB link to the knob board (JST-GH 8-pin): between the two USB-C plugs, under the loop
+    sg = (gh_usb[0], gh_usb[1] - P.GH_PLUG[2], ub_z1 + P.GH_PLUG[1] / 2)
+    eg = (gh_k[0], gh_k[1] + P.GH_PLUG[2], kpt + P.GH_PLUG[1] / 2)
+    cpaths["cable_usb_knob_gh"] = (
+        [sg, (sg[0], 16.0, 8.6), (sg[0], 0.0, 7.0), (sg[0] - 4.0, -14.0, 4.7),
+         (eg[0], -21.0, 4.7), (eg[0], eg[1] + 3.5, eg[2]), eg],
+        P.GH_CABLE_D, 3.0, "gh", ("plug_usb_board_gh", "plug_knob_gh"))
+    # Keys FFC: frame PCB ZIF (top side, right edge) down past the panel into the knob board's ZIF
+    sf = (frame_x1 + 1.0, zif_y, st.pcb_top + 1.0)
+    ef = (zif_x1 + 1.0, zif_y, kpt + 1.0)
+    cpaths["cable_keys_ffc"] = (
+        [sf, (ix1 - 0.5, zif_y, sf[2]), (ix1 - 0.5, zif_y, ef[2]), ef],
+        0.6, 1.0, "ffc", ("plug_ffc_frame", "plug_ffc_knob"))
+    # Touch: band connector (under the plate, right end) to the knob board's top-entry header
+    tb_c = (frame_x1 - P.SH_HEADER_SIDE[0] / 2, knob_y + P.MOTOR_D / 2 + P.TOUCH_BAR_MARGIN + 0.12
+            + P.SH_HEADER_SIDE[1] / 2, st.plate_bot - P.TOUCH_BAR_T - P.SH_HEADER_SIDE[2] / 2)
+    st_ = (tb_c[0], tb_c[1] - P.SH_HEADER_SIDE[1] / 2 - P.SH_PLUG[2], tb_c[2])
+    et_ = (tch[0], tch[1], kpt + P.SH_HEADER_TOP[2] + P.SH_PLUG[2])
+    cpaths["cable_touch"] = (
+        [st_, (st_[0], st_[1] - 3.0, st_[2]), (ix1 - 1.5, tch[1] - 3.0, st_[2] - 3.0),
+         (ix1 - 1.5, tch[1] - 3.0, et_[2] + 2.0), (et_[0], et_[1], et_[2] + 2.5), et_],
+        1.6, 1.5, "sh", ("plug_touch_band", "plug_knob_touch"))
+    # Motor leads: motor -> coil on the back strip (strapped through two slots) -> plug
+    lead_pts = {}
+    for n, kx in enumerate(kxs):
+        p0 = (kx, knob_y + P.MOTOR_BASE_D / 2, st.motor_bot + 1.0)
+        pts = [p0, (kx + 1.0, mh_y - 1.0, 10.6), (kx + coil_l / 2, (coil_y0 + coil_y1) / 2, 9.0)]
+        tail = [(kx - coil_l / 2, (coil_y0 + coil_y1) / 2, 9.0), (kx - coil_l / 2 - 1.0, mh_y + 2.0, 10.6),
+                (kx - 21.0, mh_y + 2.0, 10.6), (kx - 21.0, mh_y, kpt + 1.8),
+                (kx - 4.5 - P.MOTOR_PLUG[2], mh_y, kpt + 1.8)]
+        lead_pts[n] = (pts, tail)
+    # Clips printed with the tray: (x, y, cable center z, cable d, cable runs along x?)
+    clips = [(s7[0], -8.0, 9.6, P.USB_CABLE_D, False), (xu, -14.3, 10.8, P.USB_CABLE_D, False),
+             (sg[0] - 2.25, -18.0, 4.7, P.GH_CABLE_D, False)]
+
     # --- Tray: floor, walls, and everything printed with it
     outer_sk = Pos(cx, cy) * RectangleRounded(ox1 - ox0, oy1 - oy0, P.CORNER_R)
     inner_sk = Pos((ix0 + ix1) / 2, (iy0 + iy1) / 2) * RectangleRounded(
@@ -581,7 +768,19 @@ def full_device(tilt: bool = True) -> tuple[list[Item], Layout, dict]:
         tray -= Pos(hy_x - P.FLOOR_POCKET_MARGIN, hy_y, P.FLOOR - pocket) * Box(
             6 + 2 * P.FLOOR_POCKET_MARGIN, hy_len + 2 * P.FLOOR_POCKET_MARGIN, pocket + 1,
             align=(Align.MIN, Align.CENTER, Align.MIN))
-    tray -= Pos(ox0 + P.WALL / 2, usb_y, usb_z) * Box(P.WALL * 3, *P.USB_TUNNEL)
+    for x, y in ub_screws:                                     # USB board bosses
+        tray += Pos(x, y, P.FLOOR - 0.01) * Cylinder(P.KNOB_BOARD_BOSS_D / 2, ub_z0 - P.FLOOR + 0.01,
+                                                     align=MIN)
+        tray -= Pos(x, y, 0.6) * Cylinder(P.M2_PILOT / 2, 20, align=MIN)
+    # Backstop behind the USB board's arm: pushing a plug in loads the case, not the solder joints
+    tray += Pos(ext_x, arm_y0 - 0.75, P.FLOOR - 0.01) * Box(12.0, 1.5, ub_z1 - P.FLOOR + 0.01,
+                                                            align=(Align.CENTER, Align.CENTER, Align.MIN))
+    # External USB-C port: the socket face is flush with the inside of the back wall;
+    # the plug's overmold seats in this opening, so a sideways yank bears on the wall
+    tray -= Pos(ext_x, (iy1 + oy1) / 2 + 0.5, ext_z) * Box(P.USB_EXT_POCKET[0], P.WALL + 1.02,
+                                                          P.USB_EXT_POCKET[1])
+    for x, y, zc, d, along_x in clips:
+        tray += cable_clip(x, y, zc, d / 2, along_x)
     pin_z = dpcb_bot - 1.0
     for name, off in P.DISPLAY_BUTTONS.items():                # paperclip holes, back wall
         tray -= Pos(dx0 + off, iy1 + P.WALL / 2, pin_z) * Rot(X=90) * Cylinder(
@@ -613,7 +812,10 @@ def full_device(tilt: bool = True) -> tuple[list[Item], Layout, dict]:
                                         align=(Align.MIN, Align.MAX, Align.MIN))
     module = Pos(dx0 + 8.0, dy1 - 1, dpcb_bot - 3.1) * Box(
         18, 25.5, 3.1, align=(Align.MIN, Align.MAX, Align.MIN))
-    usb = Pos(dx0 - 1.0, usb_y, usb_z) * Box(7.5, 9.0, 3.2, align=(Align.MIN, Align.CENTER, Align.CENTER))
+    usb = None
+    for y in (usb_y, uart_y):                                  # native USB + USB-to-UART ports
+        u = Pos(dx0, y, usb_z) * Box(7.6, sw_, 4.06, align=(Align.MIN, Align.CENTER, Align.CENTER))
+        usb = u if usb is None else usb + u
     hy = Pos(hy_x, hy_y, conn_bot) * Box(
         6, hy_len, P.DISPLAY_CONNECTOR_H, align=(Align.MIN, Align.CENTER, Align.MIN))
     buttons = None
@@ -634,7 +836,7 @@ def full_device(tilt: bool = True) -> tuple[list[Item], Layout, dict]:
 
     # --- Frame PCB + switches (hangs from the top plate)
     m = P.FRAME_PCB_MARGIN
-    rect = (frame_x0, P.AA_W / 2 + m, -P.AA_H / 2 - min(m, P.PANEL_BORDER_FRONT), frame_y1)
+    rect = (frame_x0, frame_x1, -P.AA_H / 2 - min(m, P.PANEL_BORDER_FRONT), frame_y1)
     fsk = frame_pcb_sketch(rect, L.key_xy, L.cut_xy, L.cut_size, frame_holes)
     notch = None
     for x, y in plate_posts:                       # clear the top plate's posts
@@ -667,7 +869,7 @@ def full_device(tilt: bool = True) -> tuple[list[Item], Layout, dict]:
         plate -= Pos(x, y, st.pcb_top - 0.1) * Cylinder(P.M2_PILOT / 2, 4.5, align=MIN)
     items.append(Item(plate, "top_plate", C_PLATE, 4))
     items += knob_windows(st, L)
-    tb, tb_h = touch_bar(st, L, P.KNOBS * (P.AA_W / P.KNOBS) - 2, knob_y + P.MOTOR_D / 2)
+    tb, tb_h = touch_bar(st, L, (-(P.AA_W - 2) / 2, frame_x1), knob_y + P.MOTOR_D / 2)
     items += tb
     for i, (x, y) in enumerate(plate_posts):
         screws.append(Screw(f"screw_plate_{i}", "", x, y, cb, True,
@@ -676,43 +878,134 @@ def full_device(tilt: bool = True) -> tuple[list[Item], Layout, dict]:
     # --- Knob board: screwed to the tray along its front edge, back strip on ribs
     avoid = panel_posts + plate_posts
     kitems, ksk = knob_board(st, L.knob_xy, "knob_board", with_mcu=True,
-                             avoid_xy=avoid, screw_xy=kb_screws)
+                             avoid_xy=avoid, screw_xy=kb_screws,
+                             tabs=[(board_x1 - P.KNOB_BOARD_EDGE, board_x1, board_back_y,
+                                    zif_y + P.ZIF_12P[0] / 2 + 0.2)],
+                             slots_xy=slots, mcu_xy=mcu_xy)
     items += kitems
     for i, (x, y) in enumerate(kb_screws):
         screws.append(Screw(f"screw_knobboard_{i}", "", x, y, st.knob_pcb_top, False,
                             std_length(P.PCB_T + (st.knob_pcb_bot - P.FLOOR) + 2.0), P.M2_HEAD,
                             "case_tray", "knob_board"))
     kb = next(it.part for it in kitems if it.label == "knob_board_pcb").bounding_box()
-    if kb.max.Y > dy1 - P.DISPLAY_PCB[1] - 1.0:
+    if board_back_y > dy1 - P.DISPLAY_PCB[1] - 1.0:
         L.warnings.append(f"knob board reaches y={kb.max.Y:.1f}, into the display board "
                           f"(front edge y={dy1 - P.DISPLAY_PCB[1]:.1f})")
 
-    # Knob board connectors (top side): link bundle at the right end of the back strip,
-    # keys (FFC) and touch at the left end
-    kconn_z = st.knob_pcb_top
-    # (boxes centered on these points)
-    k_link = (52.0, board_back_y - 5.0)                            # clear of the panel post
-    k_keys = (-board_x1 + P.KNOB_BOARD_EDGE / 2, knob_y + 13.0)   # end strip, clear of the end screw
-    conns = (Pos(k_link[0], k_link[1], kconn_z) * Box(8, 6, 5.0, align=MIN)
-             + Pos(k_keys[0], k_keys[1], kconn_z) * Box(4, 14, 2.5, align=MIN))
-    items.append(Item(conns, "knob_board_connectors", C_SWITCH, 0))
+    # --- USB board (hub, external USB-C, current sensing) and every connector + mated plug
+    def bx(c, size):
+        return Pos(*c) * Box(*size)
 
-    # --- Cables (for picture and length; routing is approximate)
+    gw, ghh, gd = P.GH_HEADER
+    zl, zd, zh = P.ZIF_12P
+    items.append(Item(Pos(0, 0, ub_z0) * extrude(usb_sketch, amount=P.PCB_T), "usb_board_pcb", C_PCB, 0))
+    items += [
+        Item(bx((ext_x, iy1 - sd_ / 2, ext_z), (sw_, sd_, sh_)), "usb_board_usb_ext", C_MOTOR, 0),
+        Item(bx((j_disp_x, ub_front + sd_ / 2, ub_z1 + sh_ / 2), (sw_, sd_, sh_)),
+             "usb_board_usb_display", C_MOTOR, 0),
+        Item(bx((gh_usb[0], gh_usb[1] + gd / 2, ub_z1 + ghh / 2), (gw, gd, ghh)), "usb_board_gh", C_SWITCH, 0),
+        Item(bx((ub_x1 - 8.0, 44.5, ub_z1 + 0.43), (4.0, 4.0, 0.85))           # hub
+             + bx((ub_x0 + 9.5, 44.0, ub_z1 + 0.55), (3.0, 3.0, 1.1))          # power switch
+             + bx((ext_x - 12.0, 49.5, ub_z1 + 0.5), (2.9, 1.6, 1.0)),         # ESD
+             "usb_board_chips", C_CHIP, 0),
+        Item(bx((gh_k[0], gh_k[1] - gd / 2, kpt + ghh / 2), (gw, gd, ghh)), "knob_board_conn_gh", C_SWITCH, 0),
+        Item(bx((zif_x1 - zd / 2, zif_y, kpt + zh / 2), (zd, zl, zh)), "knob_board_conn_zif", C_SWITCH, 0),
+        Item(bx((tch[0], tch[1], kpt + P.SH_HEADER_TOP[2] / 2),
+                (P.SH_HEADER_TOP[1], P.SH_HEADER_TOP[0], P.SH_HEADER_TOP[2])),
+             "knob_board_conn_touch", C_SWITCH, 0),
+        Item(bx((frame_x1 - zd / 2, zif_y, st.pcb_top + zh / 2), (zd, zl, zh)), "frame_pcb_zif", C_SWITCH, 2),
+        Item(bx(tb_c, P.SH_HEADER_SIDE), "touch_bar_conn", C_SWITCH, 3),
+    ]
+    for i, (x, y) in enumerate(ub_screws):
+        screws.append(Screw(f"screw_usbboard_{i}", "", x, y, ub_z1, False,
+                            std_length(P.PCB_T + P.USB_BOARD_Z + 1.5), P.M2_HEAD, "case_tray", "usb_board"))
+    mp = P.MOTOR_PLUG
+    for n, kx in enumerate(kxs):
+        items.append(Item(bx((kx - 2.0 - P.HEADER_3P[0] / 2, mh_y, kpt + P.HEADER_3P[2] / 2), P.HEADER_3P),
+                          f"knob{n}_header", C_CHIP, 0))
+
+    # Mated plugs: (label, body, insertion direction, kind, mating connector, step, length out of socket)
+    C_PLUG = Color(0.20, 0.20, 0.22)
+    plugs = [
+        ("plug_usb_ext", bx((ext_x, iy1 + Ls_usb / 2, ext_z), (W_usb, Ls_usb, H_usb)), (0, -1, 0), "usb",
+         "usb_board_usb_ext", "plug_in", Ls_usb),
+        ("plug_display_usb", bx((dx0 - Lra_usb / 2, usb_y, usb_z), (Lra_usb, W_usb, H_usb)), (1, 0, 0), "usb",
+         "display_board_usb_c", "display", Lra_usb),
+        ("plug_usb_board_display", bx((j_disp_x, ub_front - Ls_usb / 2, ub_z1 + sh_ / 2), (W_usb, Ls_usb, H_usb)),
+         (0, 1, 0), "usb", "usb_board_usb_display", "display", Ls_usb),
+        ("plug_usb_board_gh", bx((gh_usb[0], gh_usb[1] - P.GH_PLUG[2] / 2, ub_z1 + P.GH_PLUG[1] / 2),
+                                 (P.GH_PLUG[0], P.GH_PLUG[2], P.GH_PLUG[1])), (0, 1, 0), "gh",
+         "usb_board_gh", "knob_board", P.GH_PLUG[2]),
+        ("plug_knob_gh", bx((gh_k[0], gh_k[1] + P.GH_PLUG[2] / 2, kpt + P.GH_PLUG[1] / 2),
+                            (P.GH_PLUG[0], P.GH_PLUG[2], P.GH_PLUG[1])), (0, -1, 0), "gh",
+         "knob_board_conn_gh", "knob_board", P.GH_PLUG[2]),
+        ("plug_ffc_frame", bx((frame_x1 + 0.5, zif_y, st.pcb_top + 1.0), (1.0, 13.0, 0.3)), (-1, 0, 0), "ffc",
+         "frame_pcb_zif", "top_plate_sub", 1.0),
+        ("plug_touch_band", bx((tb_c[0], tb_c[1] - P.SH_HEADER_SIDE[1] / 2 - P.SH_PLUG[2] / 2, tb_c[2]),
+                               (P.SH_PLUG[0], P.SH_PLUG[2], P.SH_HEADER_SIDE[2])), (0, 1, 0), "sh",
+         "touch_bar_conn", "top_plate_sub", P.SH_PLUG[2]),
+        ("plug_ffc_knob", bx((zif_x1 + 0.5, zif_y, kpt + 1.0), (1.0, 13.0, 0.3)), (-1, 0, 0), "ffc",
+         "knob_board_conn_zif", "close", 1.0),
+        ("plug_knob_touch", bx((tch[0], tch[1], kpt + P.SH_HEADER_TOP[2] + P.SH_PLUG[2] / 2),
+                               (P.SH_PLUG[1], P.SH_PLUG[0], P.SH_PLUG[2])), (0, 0, -1), "sh",
+         "knob_board_conn_touch", "close", P.SH_PLUG[2]),
+    ]
+    for n, kx in enumerate(kxs):
+        plugs.append((f"knob{n}_motor_plug", bx((kx - 4.5 - mp[2] / 2, mh_y, kpt + 0.5 + mp[1] / 2),
+                                                (mp[2], mp[0], mp[1])), (1, 0, 0), "motor",
+                      f"knob{n}_header", "knob_sub", mp[2]))
+    plug_len = {}
+    for lb, part, d, kind, mate, step, ln in plugs:
+        color = C_PLUG if kind == "usb" else (C_CABLE if kind == "ffc" else C_SWITCH)
+        items.append(Item(part, lb, color, 0))
+        plug_len[lb] = ln
+
+    # --- Cables (bought, plugged in; lengths from these routes)
+    std = {"usb": (100, 150, 200, 250, 300), "gh": (50, 100, 150, 200, 300),
+           "sh": (50, 100, 150, 200, 300), "ffc": (50, 60, 80, 100, 150, 200)}
     cables = {}
-    link_pts = [(hy_x + 8, hy_y, conn_bot + 4.0), (hy_x + 8, k_link[1] + 3, conn_bot + 4.0),
-                (k_link[0] + 4, k_link[1] + 3, kconn_z + 4.0)]
-    keys_pts = [(frame_x0 + 2.0, -20.0, st.pcb_bot + 0.8), (frame_x0 + 1.5, -20.0, kconn_z + 6),
-                (frame_x0 + 1.5, k_keys[1] + 4, kconn_z + 6), (k_keys[0], k_keys[1] + 4, kconn_z + 2.5)]
-    tb_y = (L.cut_xy[0][1] - L.cut_size[1] / 2 + knob_y + P.MOTOR_D / 2) / 2
-    touch_pts = [(-P.AA_W / 2 + 2, tb_y, st.plate_bot - P.TOUCH_BAR_T - 1.0),
-                 (frame_x0 + 3.5, tb_y, st.plate_bot - 2.0), (frame_x0 + 3.5, k_keys[1] - 4, kconn_z + 6),
-                 (k_keys[0], k_keys[1] - 4, kconn_z + 2.5)]
-    for name, pts, d, color in (("cable_link", link_pts, 4.0, C_CABLE),
-                                ("cable_keys_ffc", keys_pts, 1.2, C_CABLE),
-                                ("cable_touch", touch_pts, 2.0, C_CABLE)):
+    for name, (corners, d, r, kind, ends) in cpaths.items():
+        pts = fillet_path(corners, r, name, warns)
         part, length = cable(pts, d)
-        items.append(Item(part, name, color, 2))
-        cables[name] = length
+        overall = length + sum(plug_len[e] for e in ends)
+        lift = None
+        if name in ("cable_keys_ffc", "cable_touch"):              # top-plate side end lifts off
+            a, b = Vector(*corners[0]) + Vector(0, 0, P.LIFT_SERVICE), Vector(*corners[-1])
+            lift = (a - b).length + 10.0 + sum(plug_len[e] for e in ends)
+        need = max(overall, lift or 0.0)
+        buy = next((n for n in std[kind] if n >= need - 0.5), None)
+        if buy is None:
+            warns.append(f"{name}: needs {need:.0f} mm, longer than any stock length")
+        cables[name] = dict(kind=kind, length=overall, lift=lift, buy=buy, ends=ends, d=d)
+        items.append(Item(part, name, C_CABLE, 2))
+    ext_pts = [(ext_x, iy1 + Ls_usb, ext_z), (ext_x, iy1 + Ls_usb + 30.0, ext_z)]
+    items.append(Item(cable(ext_pts, 4.0)[0], "cable_usb_ext", C_PLUG, 0))
+    cables["cable_usb_ext"] = dict(kind="usb", length=None, lift=None, buy=None, ends=("plug_usb_ext",), d=4.0)
+
+    # Motor leads: whatever doesn't fit the route is coiled on the back strip and strapped
+    leads = {}
+    cw = coil_y1 - coil_y0
+    for n, kx in enumerate(kxs):
+        head, tail = lead_pts[n]
+        hp = fillet_path(head, 3.0, f"cable_motor{n}", warns)
+        tp = fillet_path(tail, 2.0, f"cable_motor{n}", warns)
+        part = Compound(children=[cable(hp, P.MOTOR_LEAD_D)[0], cable(tp, P.MOTOR_LEAD_D)[0]])
+        routed = path_length(hp) + path_length(tp)
+        excess = max(0.0, P.MOTOR_LEAD_LEN - routed)
+        per_turn = 2 * (coil_l - cw) + math.pi * cw
+        across = max(1, int(cw // P.MOTOR_LEAD_D))
+        layers = max(1, math.ceil(excess / per_turn / across))
+        coil_h = layers * P.MOTOR_LEAD_D
+        room = panel_z0 - 0.3 - (kpt + 0.1)
+        if coil_h > room:
+            fit = routed + int(room // P.MOTOR_LEAD_D) * across * per_turn
+            warns.append(f"motor {n}: {P.MOTOR_LEAD_LEN:.0f} mm lead needs a {coil_h:.1f} mm coil, "
+                         f"only {room:.1f} mm under the panel (leads up to ~{fit:.0f} mm fit)")
+        coil = Pos(kx, (coil_y0 + coil_y1) / 2, kpt + 0.1) * Box(coil_l, cw, min(coil_h, room),
+                                                                align=MIN)
+        items.append(Item(part, f"cable_motor{n}", C_CABLE, 0))
+        items.append(Item(coil, f"cable_motor{n}_coil", C_CABLE, 0))
+        leads[n] = dict(routed=routed, excess=excess, coil_h=coil_h, room=room)
 
     for sc in screws:
         sc.kind = f"{'M3' if sc.head == P.M3_HEAD else 'M2'}x{sc.length}"
@@ -721,11 +1014,15 @@ def full_device(tilt: bool = True) -> tuple[list[Item], Layout, dict]:
     info = {
         "outer_mm": (round(ox1 - ox0, 1), round(oy1 - oy0, 1), round(st.plate_top, 1)),
         "stack": st, "frame_sketch": fsk, "plate_sketch": psk, "normal": (0.0, 0.0, 1.0),
-        "display_gap": (dy1 - P.DISPLAY_PCB[1]) - kb.max.Y,
+        "display_gap": (dy1 - P.DISPLAY_PCB[1]) - board_back_y,
         "display_floor_gap": min(lowest, conn_bot + pocket) - P.FLOOR,
         "floor_pocket": pocket,
         "knob_board_sketch": ksk, "touch_bar_h": tb_h,
-        "screws": screws, "cables": cables, "outer": outer,
+        "screws": screws, "cables": cables, "outer": outer, "leads": leads,
+        "plugs": [dict(label=lb, dir=d, kind=k, mate=m, step=sp, length=ln)
+                  for lb, _, d, k, m, sp, ln in plugs],
+        "clips": clips, "ext_port": (ext_x, oy1, ext_z), "usb_board_screws": ub_screws,
+        "usb_board_sketch": usb_sketch,
         "pinholes": [(dx0 + off, iy1, pin_z, name) for name, off in P.DISPLAY_BUTTONS.items()],
         "magnets": magnets,
     }

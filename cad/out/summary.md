@@ -7,6 +7,7 @@
 - Knob display window: 26.0 x 15.0 mm
 - Z stack: glass 19.55, frame PCB 19.75-21.35, switch top 22.95, top plate 24.65-26.65, motor 11.25-24.35
 - Display board: 7.0 mm behind the knob board, 1.5 mm above the floor (connector row sits in a 1.0 mm floor pocket) (Waveshare STEP depths)
+- Internal cables (bought, plug-in): usb_display 100 mm, usb_knob_gh 100 mm, keys_ffc 80 mm, touch 100 mm; 300 mm motor leads coil 6.6 mm high (6.7 mm room under the panel)
 - Touch band: 11.2 mm tall under the knob displays, sensing through 2 mm of plate
 - Fit checks: OK
 
@@ -19,7 +20,7 @@
 - Fit checks: OK
 
 ## Stability (estimate)
-- Estimated mass 1065 g; tips backward at 13.1 N on a top-row key (a firm press is ~3 N). Rough densities, see cad/stability.py
+- Estimated mass 1068 g; tips backward at 13.2 N on a top-row key (a firm press is ~3 N). Rough densities, see cad/stability.py
 
 ## Printing (case parts)
 - case_tray: 178 x 146 x 25 mm, fits a 256 mm bed
