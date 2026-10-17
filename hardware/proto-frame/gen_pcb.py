@@ -6,7 +6,9 @@
 Runs with the system Python that KiCad's `pcbnew` module is installed for
 (KiCad 9). The board is fully defined here (no schematic): two B3U switches,
 three through-hole wire pads (GND, K1, K2) for hand-wiring to the ESP32-S3
-dev board, and four M2 holes to hang it from the top plate.
+dev board, and four M2 holes to hang it from the top plate. The board is
+wider than the 2.4" glass so the screw heads and the pads' solder tails sit
+off the glass (checked below).
 
 UNTESTED. Run DRC and check everything before ordering.
 """
@@ -39,7 +41,7 @@ board.SetCopperLayerCount(2)
 ds.SetCopperLayerCount(2)
 ds.m_TrackMinWidth = FromMM(0.2)
 ds.m_MinClearance = FromMM(0.2)
-ds.m_CopperEdgeClearance = FromMM(0.3)
+ds.m_CopperEdgeClearance = FromMM(GEOM.get("copper_edge", 0.3))
 ds.SetBoardThickness(FromMM(GEOM["thickness"]))
 
 
@@ -62,27 +64,25 @@ def edge_arc(center, start, end):
     board.Add(s)
 
 
-def edge_rect(cx, cy, w, h):
-    x0, x1, y0, y1 = cx - w / 2, cx + w / 2, cy - h / 2, cy + h / 2
-    for a, b in (((x0, y0), (x1, y0)), ((x1, y0), (x1, y1)),
-                 ((x1, y1), (x0, y1)), ((x0, y1), (x0, y0))):
-        edge_line(a, b)
+def edge_rrect(x0, x1, y0, y1, r):
+    """Rounded rectangle on Edge.Cuts (outline or window; windows get the router's radius)."""
+    edge_line((x0 + r, y0), (x1 - r, y0))
+    edge_line((x1, y0 + r), (x1, y1 - r))
+    edge_line((x1 - r, y1), (x0 + r, y1))
+    edge_line((x0, y1 - r), (x0, y0 + r))
+    # Corners (start/end order matters: KiCad sweeps start -> end clockwise on screen)
+    edge_arc((x1 - r, y0 + r), (x1, y0 + r), (x1 - r, y0))
+    edge_arc((x1 - r, y1 - r), (x1 - r, y1), (x1, y1 - r))
+    edge_arc((x0 + r, y1 - r), (x0, y1 - r), (x0 + r, y1))
+    edge_arc((x0 + r, y0 + r), (x0 + r, y0), (x0, y0 + r))
 
 
 # --- Outline: rounded rectangle, then the windows as internal cutouts
 x0, x1, y0, y1 = GEOM["outline"]
-r = GEOM["corner_r"]
-edge_line((x0 + r, y0), (x1 - r, y0))
-edge_line((x1, y0 + r), (x1, y1 - r))
-edge_line((x1 - r, y1), (x0 + r, y1))
-edge_line((x0, y1 - r), (x0, y0 + r))
-# Convex corners (start/end order matters: KiCad sweeps start -> end clockwise on screen)
-edge_arc((x1 - r, y0 + r), (x1, y0 + r), (x1 - r, y0))
-edge_arc((x1 - r, y1 - r), (x1 - r, y1), (x1, y1 - r))
-edge_arc((x0 + r, y1 - r), (x0, y1 - r), (x0 + r, y1))
-edge_arc((x0 + r, y0 + r), (x0 + r, y0), (x0, y0 + r))
+edge_rrect(x0, x1, y0, y1, GEOM["corner_r"])
+wr = GEOM.get("window_corner_r", 0.5)
 for cx, cy, w, h in GEOM["key_windows"] + GEOM["other_windows"]:
-    edge_rect(cx, cy, w, h)
+    edge_rrect(cx - w / 2, cx + w / 2, cy - h / 2, cy + h / 2, wr)
 
 # --- Nets
 nets = {}
@@ -152,6 +152,13 @@ pad(p_k2, 1).SetNet(nets["K2"])
 for i, (hx, hy) in enumerate(GEOM["mount_holes"]):
     place("MountingHole", "MountingHole_2.2mm_M2", f"H{i + 1}", "M2", hx, hy)
 
+# Nothing that sticks out under the board (screw heads, solder tails) may sit over the glass
+gx, gy = GEOM.get("glass_half", (0.0, 0.0))
+for name, (px, py), rad in ([(f"H{i + 1}", h, 3.8 / 2) for i, h in enumerate(GEOM["mount_holes"])]
+                            + [("TP1", (-mx, s1y), 0.75), ("TP2", (-mx, 2.0), 0.75), ("TP3", (mx, s2y), 0.75)]):
+    if abs(px) - rad < gx + 0.3 and abs(py) - rad < gy + 0.3:
+        raise SystemExit(f"{name} at ({px:.2f}, {py:.2f}) is over the glass (+-{gx:.2f} x +-{gy:.2f})")
+
 # --- Routing. The strip between the key windows and the knob-display
 # window is the only channel, so: K1/K2 run out along it on the top layer,
 # GND joins the two switches on top and leaves on the bottom layer.
@@ -183,7 +190,7 @@ def text(s, x, y, size=1.0, layer=pcbnew.F_SilkS):
 
 
 text("clickdeck proto frame", 0, y0 + 1.6, 0.9)
-text("rev A  UNTESTED", 0, y1 - 1.6, 0.9)
+text("rev B  UNTESTED", 0, y1 - 1.6, 0.9)
 text("K1", -mx, s1y - 1.8, 0.8)
 text("GND", -mx, 2.0 + 1.8, 0.8)
 text("K2", mx, s2y - 1.8, 0.8)

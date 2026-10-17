@@ -33,7 +33,7 @@
    │             ├── 21-key matrix (frame PCB, switches only)
    │             └── I²C ──► touch band (under the top plate)
    └── USB ──► ESP32-S3 + 7" display board (USB device 2; bought: Waveshare ESP32-S3-LCD-7B, 1024×600)
-                 ├── USB data channel → images and display commands from the PC (~1 MB/s)
+                 ├── USB data channel → images and display commands from the PC (~0.5 MB/s)
                  └── drives the LCD   → all key images + knob display areas
 ```
 
@@ -54,15 +54,21 @@ custom scripts.
 
 ### Why a data channel for images
 HID on full-speed USB is limited to ~64 KB/s (one 120×120 key
-image ≈ 0.5 s). A CDC/bulk channel on the ESP32-S3 does ~1 MB/s (<50 ms per key).
-Optimizations: upload icons once and reference them by ID; send only the parts
-of the screen that changed; optionally JPEG + on-device decode.
+image ≈ 0.5 s). A CDC channel on the ESP32-S3 does about 0.5 MB/s
+(Espressif's figure): one raw key takes ~85 ms, a raw full page ~1.8 s. So
+RLE/JPEG is the default, not an option. Also: upload icons once and
+reference them by ID; redraw only the parts of the screen that changed.
+Target: a full page in under 300 ms.
 
 ### Keys: Elgato style
 One LCD panel under a **frame-shaped PCB** (square window cut out per key).
-A clear cap (3–5 mm clear resin/acrylic) sits in each window; a tab on the
-cap presses a micro switch mounted on the PCB strip between windows. Guides
-in the case stop the cap from tilting.
+A clear resin cap sits in each window; a tab on the cap presses a micro
+switch mounted on the PCB strip between windows. What stops the cap from
+tilting, and how the frame PCB is supported, is still open
+([open-questions.md](open-questions.md)). Laser-cut acrylic caps are out:
+sheet tolerance alone is larger than the key stack's budget. The cap has
+0.2 mm of free play; an optional foam or silicone ring on the flange stops
+rattle.
 
 ```
       ┌──────────────┐  ← clear cap (the image shows through it)
@@ -79,8 +85,8 @@ Full build target: Waveshare **ESP32-S3-LCD-7B** (non-touch, SKU 31727,
 $33.99), 7" 1024×600 RGB panel with **adjustable backlight**. Chosen over
 the original ESP32-S3-LCD-7 (800×480): same price and pinout, but the
 original's backlight is on/off only (CH422G expander pin) without a wire
-mod. Layout (from the CAD model): **7×3 = 21 keys at 22 mm pitch** (~146×146
-px per key) plus a ~20 mm strip below the keys for the 5 knob displays.
+mod. Layout (from the CAD model): **7×3 = 21 keys at 22 mm pitch** (146 px
+pitch; about 120×120 px visible under each cap) plus a ~20 mm strip below the keys for the 5 knob displays.
 (5×4 at 30 mm doesn't fit: the panel's active area is only ~86 mm tall.)
 
 The display board only draws the screen; it needs none of its free pins.
@@ -98,6 +104,17 @@ strength), smooth (free or light drag), end stops, haptic ticks.
 Driver must work from USB 5 V: TMC6300 (2–11 V). **Not** the SimpleFOC
 Mini / DRV8313, which needs 8–30 V.
 
+Firmware notes:
+- Five FOC loops on one RP2350B are unproven. FOC runs on core 1 from RAM,
+  targeting ≥ 2–5 kHz per motor; all drivers are initialized before any is
+  enabled. Rev 0 times 1 real and 4 dummy loops first.
+- The 2204 has 84 cogging steps per turn, which don't line up with 24 or 48
+  detents. Each knob gets a cogging feed-forward table from calibration.
+- On wake, the detent grid re-anchors at the current angle, so the knob
+  doesn't snap.
+- In free smooth mode the driver stays in standby (3-PWM shorts the windings
+  at zero torque, which drags) and wakes only for effects.
+
 All five knobs share **one knob board** run by an **RP2350B**. Each motor is
 driven with 3 PWM signals (the TMC6300 needs 6, so an inverter derives the
 low sides; DRV8316 is the fallback). Details in [pcb.md](pcb.md).
@@ -113,7 +130,7 @@ real current while it's pushing back on a hand: an untouched knob sits at a
 detent center and needs no torque. So the budget is about **one motor's
 worth (~1 A)**, enforced by a firmware arbiter:
 
-- **Wake on movement.** All angle sensors stay on (a few mA each). A
+- **Wake on movement.** All angle sensors stay on (10–14 mA each). A
   knob's driver wakes when it moves more than a fraction of a degree
   (well under 1 ms, too fast to feel) and goes back to standby after
   1–2 s without movement.
@@ -128,7 +145,8 @@ worth (~1 A)**, enforced by a firmware arbiter:
 The USB board reads the host port's advertised USB-C current (CC pins) and
 the knob board sets the motor budget from it: 500 mA for default USB power
 (or an A-to-C cable), 1.0 A for a 1.5 A port, 1.5 A for a 3 A port (capped by
-the internal cable). A brownout guard on the 5 V input backs it up. Details:
+the internal cable). A brownout guard on the 5 V input backs it up (it trips
+on a drop from idle, not a fixed 4.6 V). Details:
 [wiring.md](wiring.md); see also [lessons.md](lessons.md) #2.
 
 ### Firmware updates
@@ -154,7 +172,14 @@ A thin capacitive sensor PCB under the top plate, just below the knob
 displays: tap or swipe on the plate surface, like the + XL's touch strip.
 (Touching the display glass itself doesn't work: it sits ~7 mm below the top
 surface because of the key stack.) The knobs moved forward 4 mm to make the
-band 10 mm tall.
+band 11.2 mm tall (model). It sits close to the motor bells, so it has a
+grounded guard trace and firmware ignores touches for 300 ms around knob
+motion or a press ([pcb.md](pcb.md)).
+
+### Case material
+The case holds about 2.3 W in a closed box, and the 7B is rated 0–65 °C.
+Print it in PETG or ASA (not PLA), with 4 walls and ≥ 25% infill at the
+bosses. Log temperatures for 2 h at full brightness on the first build.
 
 ## Stages (test board: 2 keys + 1 knob)
 
@@ -166,13 +191,18 @@ band 10 mm tall.
    a tongue); SimpleFOC closed loop; clicky/smooth/stops switched by a
    command from the PC. Also test: the press feel (tongue stiffness), and
    driving the TMC6300 with 3 PWM signals + inverter.
-3b. **Touch band:** tap and swipe through the 3 mm acrylic top plate.
-4. **Mechanics:** frame + clear cap + tab + guides; adjust until a press
-   anywhere on the key clicks cleanly. No 3D printer → order prints
-   (JLC3DP clear resin) and/or laser-cut acrylic.
+3b. **Touch band:** a full-length, 10–12-segment strip under an offcut of
+   the printed plate, with the motor running and the panel lit
+   ([prototype-tests.md](prototype-tests.md)).
+4. **Mechanics:** frame + clear cap + tab; adjust until a press anywhere
+   on the key clicks cleanly. Caps are JLC3DP clear resin prints; the
+   prototype plates are laser-cut acrylic.
 5. **Decide go/no-go:** if the knob and cap feel are both good → full
    20-key/5-knob design.
 
-Software: PlatformIO + Arduino-ESP32 core (TinyUSB, SimpleFOC) on the device;
-Python + `pyserial` + `hidapi` on the PC. Keep the host integration layer
-behind an abstraction so it carries over to the full build.
+Software: on the RP2350B, the arduino-pico core + SimpleFOC (or pico-sdk);
+on the ESP32-S3, a toolchain that can set ESP-IDF sdkconfig options (the
+7B's RGB panel needs them: [protocol.md](protocol.md)); Python with
+`pyserial` and `hidapi` on the PC. Pin every version and build in CI. Keep the host
+integration layer behind an abstraction so it carries over to the full
+build.

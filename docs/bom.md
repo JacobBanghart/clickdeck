@@ -22,28 +22,34 @@ Screws, cable types and lengths come from the model, so they match
 
 | Qty | Part | Spec | Source / LCSC # | ~Price | Used in |
 |---|---|---|---|---|---|
-| 1 | RP2350B | QFN-80 microcontroller, 48 GPIO, native USB; + 16 MB QSPI flash, 12 MHz crystal | LCSC (look up in JLC's library) (V) | $2–3 | knob board |
-| 5 | TMC6300-LA-T | 3-phase motor driver, 2–11 V | [C5274455](https://www.lcsc.com/product-detail/C5274455.html) (200 in stock, 2026-10-17) | ~$26 | knob board |
-| 5 | MT6701QT-STD | magnetic angle sensor, SSI | [C2913974](https://www.lcsc.com/product-detail/C2913974.html) | ~$5 | knob board |
-| 5 | SN74LVC3G04DCTR | triple inverter (3-PWM drive) | [C139324](https://www.lcsc.com/product-detail/C139324.html) | ~$1 | knob board |
+| 1 | RP2350B, stepping A4 (erratum E9 fixed) | QFN-80 microcontroller, 48 GPIO, native USB | LCSC (look up in JLC's library) (V: A4 marking) | $1–2 | knob board |
+| 1 | RP2350B support parts | 16 MB QSPI flash W25Q128JVSIQ [C97521](https://www.lcsc.com/product-detail/C97521.html); 12 MHz crystal (ABM8-272-T3 class, Raspberry Pi's reference); 3.3 µH SMPS inductor (AOTA-B201610S3R3 class); 3.3 V regulator | JLC (V: part numbers except the flash) | $1–2 | knob board |
+| 5 | TMC6300-LA-T | 3-phase motor driver, 2–11 V | [C5274455](https://www.lcsc.com/product-detail/C5274455.html) (59 in stock, 2026-10-17; DigiKey ~4,100) | ~$26 | knob board |
+| 5 | MT6701CT-STD | magnetic angle sensor, SSI, SOP-8 (not the QT: that's a 3×3 QFN-16) | [C3003196](https://www.lcsc.com/product-detail/C3003196.html) (V: JLC stock) | ~$5 | knob board |
+| 5 | SN74LVC3G04DCTR | triple inverter (3-PWM drive), SM8 (DCT) package | [C139324](https://www.lcsc.com/product-detail/C139324.html) | ~$1 | knob board |
 | 5 | B3U-1000P | knob press switch (underside of each tongue) | [C231329](https://www.lcsc.com/product-detail/C231329.html) | ~$2 | knob board |
-| 5 | 1×3 right-angle pin header, 2.54 mm | motor plug sockets (must match the motor's plug) | [C2886703](https://www.lcsc.com/product-detail/C2886703.html) (V: confirm male pins) | ~$0.5 | knob board |
+| 5 | 1N4148W | SOD-123 diodes for the knob press switches (in the key matrix) | JLC basic part | ~$0.1 | knob board |
+| 5 | 1×3 right-angle pin header, 2.54 mm | motor plug sockets (must match the motor's plug; prefer a shrouded/keyed one so the plug can't go on offset) | [C2886703](https://www.lcsc.com/product-detail/C2886703.html) (V: confirm male pins) | ~$0.5 | knob board |
 | 1 | JST SM08B-GHS-TB | 8-pin GH header, side entry, latching (USB link) | [C265111](https://www.lcsc.com/product-detail/C265111.html) | ~$0.5 | knob board |
 | 1 | FFC/FPC connector, 12-pin 1.0 mm, flip-lock ZIF, right angle | e.g. XUNPU FPC-1.0FX-12PWCR-H20 (V: contact side, height) | [C19269355](https://www.lcsc.com/product-detail/C19269355.html) | ~$0.2 | knob board |
 | 1 | JST BM06B-SRSS-TB | 6-pin SH header, top entry (touch cable) | [C160392](https://www.lcsc.com/product-detail/C160392.html) | ~$0.2 | knob board |
-| 1 set | Knob board passives | load switch (soft start), ~470 µF bulk, decoupling, 3.3 V regulator, BOOTSEL button, CC sense filters | JLC basic parts | $3–5 | knob board |
-| 21 | B3U-1000P | key switches | [C231329](https://www.lcsc.com/product-detail/C231329.html) | ~$8 | frame PCB |
-| 21 | 1N4148W | SOD-123 matrix diodes | JLC basic part | ~$0.5 | frame PCB |
+| 1 | ESD/TVS arrays | on the key-matrix lines at the ZIF and the touch lines at the SH header, with series resistors (part not chosen) | LCSC (V) | ~$0.5 | knob board |
+| 1 set | Knob board passives | 2 × 22 µF 0805 per driver; 10 kΩ pull-downs on NSTDBY and every PWM net; ~1 kΩ series on the high-side inputs; 0 Ω/shunt on each driver's BRUV/BRW; load switch (soft start, motor rail only); ~470 µF bulk; decoupling; BOOTSEL button; CC sense filters; I²C pull-ups for the touch band | JLC basic parts | $3–5 | knob board |
+| 21 | B3U-1000P | key switches (buy spares and sort by feel) | [C231329](https://www.lcsc.com/product-detail/C231329.html) | ~$8 | frame PCB |
+| 21 | 1N4148W | SOD-123 matrix diodes (26 in all with the knob board's 5) | JLC basic part | ~$0.5 | frame PCB |
 | 1 | FFC/FPC connector, 12-pin 1.0 mm, flip-lock ZIF | same as on the knob board | [C19269355](https://www.lcsc.com/product-detail/C19269355.html) | ~$0.2 | frame PCB |
 | 1 | Touch controller | capacitive slider controller, I²C (part not chosen yet) | LCSC (V) | $0.5–2 | touch band |
 | 1 | JST SM06B-SRSS-TB | 6-pin SH header, side entry | JLC C160405 | ~$0.2 | touch band |
-| 1 | WCH CH334F | 4-port USB 2.0 hub, QFN-24, no crystal needed | [C5187527](https://www.lcsc.com/product-detail/C5187527.html) (8,489 in stock, $0.63, 2026-10-17) | ~$0.6 | USB board |
-| 1 | USB-C receptacle, 16-pin, mid-mount (sinks 1.6 mm into the board) | external port; HCTL HC-TYPE-C-16P-CB1.6 (V: through-hole shell legs, protrusion) | [C2894902](https://www.lcsc.com/product-detail/C2894902.html); fallback top-mount TYPE-C-31-M-12 [C165948](https://www.lcsc.com/product-detail/C165948.html) | ~$0.2 | USB board |
+| 1 set | Touch band passives | 1–10 kΩ in series with each electrode; ferrite bead + 10 µF on 3V3 | JLC basic parts | ~$0.2 | touch band |
+| 1 | WCH CH334F | 4-port USB 2.0 hub, QFN-24; PSELF strapped low (bus-powered), 0 Ω option to flip | [C5187527](https://www.lcsc.com/product-detail/C5187527.html) (8,489 in stock, $0.63, 2026-10-17) | ~$0.6 | USB board |
+| 1 | 12 MHz crystal, 3225 | CH334F XI/XO (its load caps are built in); plus a 0 Ω link footprint that can ground XI for crystal-free mode | JLC basic part (V) | ~$0.1 | USB board |
+| 1 | USB-C receptacle, 16-pin, mid-mount (sinks 1.6 mm into the board) | external port; HCTL HC-TYPE-C-16P-CB1.6 (V: get the drawing; slot and pad depth in the outline are from the model, shell legs unverified) | [C2894902](https://www.lcsc.com/product-detail/C2894902.html); fallback top-mount TYPE-C-31-M-12 [C165948](https://www.lcsc.com/product-detail/C165948.html) | ~$0.2 | USB board |
 | 1 | USB-C receptacle, 16-pin, TYPE-C-31-M-12 | internal port to the display board; SMD signals, 4 through-hole shell legs | [C165948](https://www.lcsc.com/product-detail/C165948.html) | ~$0.2 | USB board |
 | 1 | JST SM08B-GHS-TB | 8-pin GH header (USB link to the knob board) | [C265111](https://www.lcsc.com/product-detail/C265111.html) | ~$0.5 | USB board |
-| 1 | SY6280AAC | current-limited power switch for the display board's port | [C55136](https://www.lcsc.com/product-detail/C55136.html) (V: limit) | ~$0.1 | USB board |
-| 1 | USBLC6-2SC6 | USB ESD protection, external port | [C7519](https://www.lcsc.com/product-detail/C7519.html) | ~$0.1 | USB board |
-| 1 set | USB board passives | 5.1 kΩ CC pull-downs ×2, 56 kΩ CC pull-ups ×2 (display port), 10 kΩ CC sense resistors ×2, TVS, decoupling | JLC basic parts | ~$0.5 | USB board |
+| 2 | Reverse-blocking current-limited switches | one per downstream VBUS branch: display port (~0.5–1 A) and knob board (~1.8 A). Must block reverse current while on (the SY6280 only blocks when off, so the 7B could back-feed the PC); or SY6280AAC + an ideal diode | LCSC (V: not chosen) | ~$0.5 | USB board |
+| 1 | USBLC6-2SC6 | USB ESD protection, external port, in line between the socket and the hub | [C7519](https://www.lcsc.com/product-detail/C7519.html) | ~$0.1 | USB board |
+| 1 | VBUS TVS | 5–5.5 V standoff, clamping below the load switches' 6 V absolute max | LCSC (V: not chosen) | ~$0.1 | USB board |
+| 1 set | USB board passives | 5.1 kΩ CC pull-downs ×2, 56 kΩ CC pull-ups ×2 (display port), 10 kΩ CC sense resistors ×2 (+ 10–22 kΩ at the knob end), 22–47 µF polymer at the input, RC delay on the switch enables, explicit Rset, 22 µF on the CH334F's VDD33, decoupling | JLC basic parts | ~$1 | USB board |
 
 JLC's assembly minimum is 2 boards, so you pay for the parts on a spare set too
 (see [cost.md](cost.md)). JLC charges a setup fee once for the panel, plus a fee per
@@ -54,11 +60,15 @@ JLC's assembly minimum is 2 boards, so you pay for the parts on a spare set too
 | Qty | Part | Spec | Source / LCSC # | ~Price | Used in |
 |---|---|---|---|---|---|
 | 21 | Clear key caps | `cad/out/key_cap_clear_resin.stl`, clear resin (SLA) | JLC3DP | $20–40 | Build the top plate |
-| 1 | Case tray | `cad/out/print_case_tray.stl`; the cable clips are part of it | home printer or JLC3DP | $4–6 / $20–40 | Print the case |
-| 1 | Top plate | `cad/out/print_top_plate.stl` | home printer or JLC3DP | $3–5 / $15–30 | Print the case |
-| 1 | Stand | `cad/out/print_stand.stl` | home printer or JLC3DP | $3–5 / $10–25 | Put it on the stand |
-| 5 | Knob caps | `cad/out/knob.stl` | home printer or JLC3DP | $1–5 | Press on the knob caps |
-| 5 | Knob hubs | 10 mm hubs bonded to the motor bells (model: `knobN_hub`) | home printer or JLC3DP | <$1 | Build the knob board |
+| 5 | Knob-window covers | `cad/out/knob_window.stl`, clear resin (SLA), same order as the caps; sit on a ledge in the top plate | JLC3DP | $3–6 | Build the top plate |
+| 1 | Case tray | `cad/out/print_case_tray.stl`; the cable clips are part of it. PETG or ASA, 4 walls, ≥25% infill | home printer or JLC3DP | $4–6 / $20–40 | Print the case |
+| 1 | Top plate | `cad/out/print_top_plate.stl` (exported face-down); PETG or ASA, 100% infill over the touch band, no CF/metal-filled filament | home printer or JLC3DP | $3–5 / $15–30 | Print the case |
+| 1 | Stand | `cad/out/print_stand.stl` (a shell, open underneath, with ribs) | home printer or JLC3DP (get a quote) | $2–4 / $10–25 | Put it on the stand |
+| 5 | Knob caps | `cad/out/knob.stl` (D-bore with crush ribs) | home printer or JLC3DP | $1–5 | Press on the knob caps |
+| 5 | Knob hubs | `cad/out/knob_hub.stl`: D-flat column, flange screwed to the bell | home printer or JLC3DP | <$1 | Build the knob board |
+| 5 | Motor spacer rings | `cad/out/motor_spacer.stl`: set the sensor gap, center the magnet | home printer or JLC3DP | <$1 | Build the knob board |
+| 2 | Plate props (tool) | `cad/out/print_plate_prop.stl`: hold the top plate 40 mm up while you plug its cables in | home printer | <$1 | Close the case |
+| 1 | Fit coupon (optional) | `cad/out/print_fit_coupon.stl`: cap holes, magnet pocket and hub fit at three sizes; print it first and set `HOLE_COMP` in params.py | home printer | <$1 | Print the case |
 
 ## Order 2: AliExpress / Waveshare
 
@@ -66,41 +76,45 @@ JLC's assembly minimum is 2 boards, so you pay for the parts on a spare set too
 
 | Qty | Part | Spec | Source / LCSC # | ~Price | Used in |
 |---|---|---|---|---|---|
-| 1 | Waveshare ESP32-S3-LCD-7B (non-touch, SKU 31727) | 7" 1024×600 display board | Waveshare | $34 | Mount the display |
-| 5 | 2204 gimbal motor (Mitoot 2204 260KV or similar) | ~28 × 13 mm, hollow shaft; lead ~30 cm with a 3-pin 2.54 mm servo-style (Futaba/JR) plug per one listing (V: check plug and lead on arrival) | AliExpress | $40–60 | Build the knob board |
+| 1 | Waveshare ESP32-S3-LCD-7B (non-touch, SKU 31727) | 7" 1024×600 display board. No battery on J3 | Waveshare | $34 | Mount the display |
+| 5 | 2204 gimbal motor (Mitoot 2204 260KV or similar) | ~28 × 13 mm, hollow shaft; lead ~30 cm with a 3-pin 2.54 mm servo-style (Futaba/JR) plug per one listing (V: check plug and lead on arrival; measure base/bell hole patterns and thread depths against params.py) | AliExpress (two sellers) | $40–60 | Build the knob board |
 | 5 | Diametric magnets 6 × 2.5 mm | for the MT6701 sensors | AliExpress | ~$5 | Build the knob board |
 
 ### Internal cables (ready-made, plug-in)
 
 | Qty | Part | Spec | Source / LCSC # | ~Price | Used in |
 |---|---|---|---|---|---|
-| 1 | USB-C to USB-C | USB 2.0 (3 A), one 90° side-exit end + one straight end; **100 mm** (model route 97 mm) | AliExpress (search the spec) | $2–4 | Mount the display; plug in its USB cable |
-| 1 | JST-GH 1.25 mm 8-pin | plugs both ends, pin 1 to pin 1 ("same direction"); **100 mm** (model route 74 mm) | AliExpress (search the spec) | $1–2 | Screw the knob board into the tray; plug in the USB link |
-| 1 | FFC | 12-pin, 1.0 mm pitch, contacts on opposite sides (type B); **80 mm** (model route 22 mm, 67 mm with the plate lifted) | AliExpress (search the spec) | $0.5–1 | Build the top plate (on the bench) |
-| 1 | JST-SH 1.0 mm 6-pin | plugs both ends, pin 1 to pin 1; **100 mm** (model route 30 mm, 67 mm with the plate lifted) | AliExpress (search the spec) | $0.5–1 | Build the top plate (on the bench) |
+| 1 | USB-C to USB-C | USB 2.0 (3 A), one 90° side-exit end + one straight end; **100 mm** (model route 98 mm) | AliExpress (search the spec) | $2–4 | Mount the display; plug in its USB cable |
+| 1 | JST-GH 1.25 mm 8-pin | plugs both ends, pin 1 to pin 1 ("same direction"), 26 AWG; **100 mm** (model route 74 mm) | AliExpress (search the spec) | $1–2 (26 AWG) | Screw the knob board into the tray; plug in the USB link |
+| 1 | FFC | 12-pin, 1.0 mm pitch, contacts on opposite sides (type B); **80 mm** (model route 24 mm, 70 mm with the plate lifted) | AliExpress (search the spec) | $0.5–1 | Build the top plate (on the bench) |
+| 1 | JST-SH 1.0 mm 6-pin | plugs both ends, pin 1 to pin 1; **80 mm** (model route 37 mm, 69 mm with the plate lifted) | AliExpress (search the spec) | $0.5–1 | Build the top plate (on the bench) |
 
-Search terms that find them: "USB C to USB C 90 degree 10cm" (pick a side-angle (left/right) plug for the display end, not up/down); "JST GH 1.25 8 pin double head cable 10cm" (same direction); "FFC 12 pin 1.0mm 80mm" (reverse/opposite side); "JST SH 1.0 6 pin double head 10cm".
+Search terms that find them: "USB C to USB C 90 degree 10cm" (pick a side-angle (left/right) plug for the display end, not up/down); "JST GH 1.25 8 pin double head cable 10cm" (same direction, 26 AWG); "FFC 12 pin 1.0mm 80mm" (reverse/opposite side); "JST SH 1.0 6 pin double head 8cm".
 
 ### Hardware
 
 | Qty | Part | Spec | Source / LCSC # | ~Price | Used in |
 |---|---|---|---|---|---|
-| 4 | M3x14 screw | machine | hardware kit |  | Mount the display; plug in its USB cable |
-| 11 | M2x5 screw | self-tapping (for plastic) | hardware kit |  | Build the top plate (on the bench), Screw the knob board into the tray; plug in the USB link |
-| 4 | M3x10 screw | self-tapping (for plastic) | hardware kit |  | Close the case |
-| 4 | M2x6 screw | self-tapping (for plastic) | hardware kit |  | Screw in the USB board |
-| 4 | Magnets 8 × 1.5 mm | tray | AliExpress | ~$1 | Print the case; fit magnets and front feet |
+| 4 | M3x16 screw | machine | hardware kit |  | Mount the display; plug in its USB cable |
+| 5 | M2x5 screw | thread-forming | hardware kit |  | Build the top plate (on the bench) |
+| 4 | M3x10 screw | thread-forming | hardware kit |  | Close the case |
+| 20 | M2x8 screw | machine | hardware kit |  | Build the knob board (on the bench) |
+| 20 | M2x3 screw | countersunk machine | hardware kit |  | Build the knob board (on the bench) |
+| 15 | M2x6 screw | thread-forming | hardware kit |  | Screw the knob board into the tray; plug in the USB link, Screw in the USB board |
+| 4 | Magnets 8 × 1.5 mm | tray | AliExpress | ~$1 | Print the case; fit magnets, feet and press strikers |
 | 4 | Magnets 8 × 3 mm | stand | AliExpress | ~$1 | Put it on the stand |
-| 6 | Rubber feet 10 × 1.5 mm | self-adhesive | AliExpress | ~$1 | Print the case; fit magnets and front feet, Put it on the stand |
+| 6 | Rubber feet 10 × 1.5 mm | self-adhesive | AliExpress | ~$1 | Print the case; fit magnets, feet and press strikers, Put it on the stand |
 | 5 | Hook-and-loop cable ties | ~10 mm wide, reusable; strap the motor lead coils | AliExpress | ~$1 | Build the knob board (on the bench) |
-| 5 sets | Motor mounting screws | usually supplied with the motors (check length) | with the motors |  | Build the knob board (on the bench) |
-| — | Epoxy | knob hubs, magnets | any | ~$3 | Build the knob board (on the bench), Print the case; fit magnets and front feet |
+| 5 | M2×3 set screws | press strikers, threaded up through the floor | hardware kit |  | Print the case; fit magnets, feet and press strikers |
+| 1 | 3M 467MP or 468MP transfer tape | full coverage under the touch band (no air gaps) | AliExpress / DigiKey | ~$3 | Build the top plate (on the bench) |
+| — | Epoxy | magnets | any | ~$3 | Build the knob board (on the bench), Print the case; fit magnets, feet and press strikers |
+| — (optional) | Thin foam or silicone ring | on each key cap's flange, against rattle | any |  | Build the top plate (on the bench) |
 
 ## Not in the kit
 
 | Qty | Part | Spec | Source / LCSC # | ~Price | Used in |
 |---|---|---|---|---|---|
-| 1 | USB-C to USB-C cable (to the computer) | USB 2.0 is enough; a C-to-C cable lets the device read the port's 1.5 A / 3 A offer. An A-to-C cable works, with weaker haptics (500 mA). Plug overmold ≤ 13.5 × 7.5 mm to seat in the back-wall opening | any | $3–8 | Plug it in |
+| 1 | USB-C to USB-C cable (to the computer) | USB 2.0 is enough; a C-to-C cable lets the device read the port's 1.5 A / 3 A offer. An A-to-C cable works, with weaker haptics (500 mA). Plug overmold ≤ 12.5 × 6.5 mm to seat in the back-wall opening | any | $3–8 | Plug it in |
 
 ## Totals
 

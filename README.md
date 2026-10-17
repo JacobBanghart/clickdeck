@@ -43,13 +43,14 @@ those don't matter, buy the + XL.
 | **Build one, with your own 3D printer** | **$300–450** |
 | Build one, case ordered from JLC3DP | $330–525 |
 | Per unit, 5 people ordering together | $195–370 |
-| Stream Deck + XL, for comparison | ~$350 |
+| Stream Deck + XL (36 keys, 6 dials), for comparison | ~$350 |
 
 Covers parts, PCBs (JLC's 5-board minimum and 2-board assembly minimum
 included), prints, ready-made internal cables and shipping, in two orders:
 JLC (all PCBs in one panel, plus prints) and AliExpress/Waveshare. No
 soldering or crimping: JLC fits every part, and every cable inside plugs in.
-The five motor drivers (~$26) are the biggest cost after the display.
+After the display, the biggest costs are the motors, JLC's fees and the
+motor drivers (10 chips, since JLC assembles at least 2 knob boards).
 Breakdown: [docs/cost.md](docs/cost.md); every part: [docs/bom.md](docs/bom.md).
 
 ## Design
@@ -110,7 +111,7 @@ These cover parts of it:
 
 | Project | Keys | Per-key images | Knobs | What clickdeck takes from it |
 |---|---|---|---|---|
-| [Open Deck (joshr120)](https://github.com/joshr120/open-deck), MIT. Not the OpenDeck app | ✓ 4 keys, real switches | ✓ one 1.8" screen under acrylic caps | ✗ | Same key idea at small scale. Cap recipe: 4.5 mm acrylic, or laser-cut 1.5 + 3 mm layers glued with UV glue |
+| [Open Deck (joshr120)](https://github.com/joshr120/open-deck), MIT. Not the OpenDeck app | ✓ 4 keys, real switches | ✓ one 1.8" screen under acrylic caps | ✗ | Same key idea at small scale. Its acrylic caps (4.5 mm, or 1.5 + 3 mm layers glued with UV glue) are too loose in tolerance for clickdeck's key stack |
 | [eezbotfun 8-key macropad](https://github.com/eezbotfun/8-key-macropad), case files CC BY-NC | ✓ mechanical | ✗ one 3.5" screen | ✗ | ESP32-S3 + HID reference |
 | [Super Make Something DIY Stream Deck](https://make.co/contestants/diy-stream-deck/) | ✓ | ✓ LCD buttons | plain encoders | Reference for LCD keys |
 | [SmartKnob](https://github.com/scottbez1/smartknob) | ✗ | ✗ | ✓ haptic, one knob with a round screen | Haptic firmware: detents, end stops, click profiles |

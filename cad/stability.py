@@ -17,10 +17,12 @@ DENSITY = [
     ("knob", 0.0),                 # handled below (motors) / small
     ("cap_", 1.2),                 # clear resin
     ("frame_pcb", 1.85), ("touch_bar", 1.85),
-    ("case_tray", 0.75), ("top_plate", 1.0), ("stand", 0.6),
+    ("case_tray", 0.75), ("top_plate", 1.0),
+    ("stand", 0.9),                # shelled stand: its CAD volume is mostly walls and ribs (PETG ~1.27 solid)
     ("panel_post", 1.24), ("display_standoff", 7.8),
 ]
 MOTOR_G = 24.0                     # Mitoot 2204 listing
+CABLE_PULL_N = 4.0                 # a horizontal tug on the USB cable, backward
 KEY_PRESS_N = 3.0                  # a firm press
 
 
@@ -48,8 +50,8 @@ def check(items, layout, info) -> dict:
         mz += m * c.Z
     yc, zc = my / mass, mz / mass
 
-    stand = next(it.part for it in items if it.label == "stand").bounding_box()
-    y_rear = stand.max.Y                                  # tipping edge (stand's rear foot)
+    # Tipping edge: the rear stand feet's contact patches (back edge of the rubber)
+    y_rear = max(it.part.bounding_box().max.Y for it in items if it.label.startswith("foot_stand"))
     th = math.radians(P.TILT_DEG)
 
     # Top-row key center, in the tilted frame: find the cap with the largest z
@@ -61,4 +63,9 @@ def check(items, layout, info) -> dict:
     resist = w * (y_rear - yc)
     lever = math.sin(th) * top.Z - math.cos(th) * (y_rear - top.Y)
     tip_force = resist / lever if lever > 0 else float("inf")
-    return {"mass_g": mass, "tip_force_n": tip_force, "press_n": KEY_PRESS_N}
+    # Horizontal backward pull on the USB plug (back wall, tilted) about the same edge
+    plug = next((it.part.center() for it in items if it.label == "plug_usb_ext"), None)
+    pull_n = resist / plug.Z if plug is not None and plug.Z > 0 else float("inf")
+    stand_g = next(it.part.volume for it in items if it.label == "stand") / 1000.0 * density("stand")
+    return {"mass_g": mass, "tip_force_n": tip_force, "press_n": KEY_PRESS_N,
+            "cable_pull_n": pull_n, "stand_g": stand_g}

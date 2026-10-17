@@ -24,11 +24,15 @@ the motor diameter.
 | `*_frame_pcb_outline.dxf` | Board outline with key windows. KiCad: File → Import → Graphics, layer Edge.Cuts |
 | `full_knob_board_outline.dxf`, `proto_knob_module_outline.dxf` | Knob board outlines with the tongue slots |
 | `full_usb_board_outline.dxf` | USB board (hub) outline |
+| `full_touch_band_outline.dxf` | Touch band outline (stops short of the frame PCB's ZIF) |
 | `cabling.png` | Top view of the internal cabling, display and top plate removed |
-| `print_case_tray.stl`, `print_top_plate.stl`, `print_stand.stl` | Case parts for a home printer (fit a 256 mm bed) or JLC3DP |
+| `print_case_tray.stl`, `print_top_plate.stl`, `print_stand.stl` | Case parts for a home printer (fit a 256 mm bed) or JLC3DP, in print orientation (plate face-down). PETG or ASA |
+| `print_plate_prop.stl` | Tool: two of these hold the top plate 40 mm up while its cables are plugged in |
+| `print_fit_coupon.stl` | Print first: cap hole, magnet pocket and hub bore at -0.1/0/+0.1 mm; set `HOLE_COMP` from it |
 | `proto_*_plate_3mm_acrylic.dxf` | Laser-cut plates for the prototype (SendCutSend/Ponoko) |
 | `full_top_plate.dxf` | Top plate outline for the full device |
-| `key_cap_clear_resin.stl`, `knob.stl` | 3D-print files (JLC3DP) |
+| `key_cap_clear_resin.stl`, `knob_window.stl` | Clear resin (SLA) parts: key caps, knob-window covers (JLC3DP) |
+| `knob.stl`, `knob_hub.stl`, `motor_spacer.stl` | Knob cap, hub (screws to the bell), motor spacer ring |
 | `full_side.png`, `full_face.png` | Side profile and straight-on view of the angled device |
 | `*.png` | Quick previews from a small CPU renderer (`render.py`) |
 
@@ -62,7 +66,10 @@ To open the model interactively: `~/Applications/freecad/squashfs-root/AppRun ca
 ## Assembly and service
 
 `cad/assembly.py` defines the assembly steps and checks that the design can
-actually be built and serviced: no overlapping parts, every screw reachable
+actually be built and serviced: no overlapping parts (screws may enter only
+their target, and only as deep as its thread allows; pilot holes run past the
+tips), minimum gaps between mating parts, nothing floating, nothing hitting the
+stand or below the desk in the tilted model, every screw reachable
 with a straight screwdriver at its step, the top plate, display and knob
 board lift out in order, a paperclip reaches the display board's
 BOOT/RESET through the back wall, every plug (modeled at full size,

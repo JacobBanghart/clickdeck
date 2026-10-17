@@ -108,7 +108,10 @@ Sources and licenses:
 
 10. **Settings must survive firmware updates.** Stream32 keeps calibration,
     rotation and color settings in NVS, past the app partition.
-    → Same for knob calibration and display settings.
+    → Same for knob calibration and display settings. But on the 7B, flash
+    writes glitch the RGB panel, and on the RP2350 they stall the FOC loop,
+    so settings and images live in RAM and reach flash only on an explicit
+    save ([protocol.md](protocol.md)).
 
 ## USB protocol (from Stream32's documented protocol)
 
@@ -175,7 +178,8 @@ Sources and licenses:
 
 25. **Caps without a CNC or printer.** Open Deck's caps are 4.5 mm acrylic,
     or 1.5 mm + 3 mm laser-cut layers glued with UV-curing glue.
-    → A cheaper alternative to resin-printed caps for the prototype.
+    → Not for clickdeck: acrylic sheet tolerance alone is larger than the
+    key stack's budget, so caps are resin prints.
 
 ## Licensing notes
 

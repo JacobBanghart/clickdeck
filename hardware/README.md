@@ -27,8 +27,21 @@ Python), plus the project's `.venv` for the CAD.
 
 Two B3U switches on the strip below the key windows, three through-hole
 wire pads (K1, K2, GND) to hand-wire to the ESP32-S3 dev board, and four M2
-holes. It hangs from the acrylic top plate on 3 mm M2 standoffs, resting
-0.2 mm above the display glass.
+holes. The board is 72 mm wide, wider than the 2.4" glass (60.3 mm), so the
+M2 screw heads and the pads' solder tails sit off the glass; `gen_pcb.py`
+refuses to build if any of them lands over it. Copper stays 0.5 mm from every
+board and window edge, and the windows have R0.5 corners (what the router
+mills).
+
+It hangs from the acrylic top plate on M2 standoffs, resting 0.2 mm above the
+display glass. The model needs **3.3 mm** between the board and the plate:
+use 3 mm standoffs plus a 0.3 mm shim (washer or shim stack) on each, and keep
+a 0.1/0.2 mm shim kit to tune the gap. At 3.0 mm the switches are held down
+0.1 mm and may read as pressed.
+
+Other prototype standoffs (from `cad/model.py`; the stack rises if params change):
+M3 corner standoffs 24.7 mm (base plate to top plate), display module
+standoffs 15.5 mm, knob module bosses 2.2 mm.
 
 ```sh
 hardware/proto-frame/export.sh     # CAD -> KiCad -> DRC -> JLC files
