@@ -6,7 +6,7 @@ module, assembled). Prices are rough estimates from 2026-10-16; check
 listings before ordering. The AliExpress links below are searches. Pick a
 listing with good ratings and a clear pinout photo.
 
-## Order 1 — AliExpress (~$55–80)
+## Order 1 — AliExpress (~$60–95)
 
 | Qty | Part | ~Price | Search |
 |---|---|---|---|
@@ -22,8 +22,25 @@ listing with good ratings and a clear pinout photo.
 | 1 | Digital calipers (to measure the motor bolt pattern) | $8–15 | [digital caliper](https://www.aliexpress.us/w/wholesale-digital-caliper.html) |
 | 1 | USB-C power meter (inline, shows volts/amps), to measure knob current for the power budget | $8–15 | [usb c power meter](https://www.aliexpress.us/w/wholesale-usb-c-power-meter.html) |
 | 1 | 0.1 g kitchen/jewelry scale, to measure press force on keys and knob | $5–10 | [0.1g digital scale](https://www.aliexpress.us/w/wholesale-0.1g-digital-scale.html) |
+| 1 | **USB-C to USB-C cable, ~10 cm, one 90° side-exit (left/right) end**, USB 2.0. The same cable the full build uses for the display board: measure its plugs against the CAD (12.5 × 6.5 mm overmold assumed) and check the bend | $2–4 | [usb c to usb c 90 degree 10cm](https://www.aliexpress.us/w/wholesale-usb-c-to-usb-c-90-degree-10cm.html) |
+| 1 | Small USB 2.0 hub (any) — put the two boards below behind it and build the host app's device pairing early | $3–5 | [usb 2.0 hub type c](https://www.aliexpress.us/w/wholesale-usb-2.0-hub-type-c.html) |
+| 1 | RP2350B core board (48 GPIO, e.g. WeAct Studio), to run the knob module from the chip the full build uses | $5–8 | [rp2350b core board](https://www.aliexpress.us/w/wholesale-rp2350b-core-board.html) |
 
 Notes
+- **Internal hub (2026-10-17):** in the full build the RP2350B runs keys,
+  knobs and touch on its own USB connection, and the ESP32-S3 only draws the
+  screen ([wiring.md](wiring.md)). The prototype mirrors that cheaply: knob
+  module on the RP2350B board, screen and keys on the ESP32-S3, both behind
+  the hub, so the knob firmware, the two-device pairing and the cable get
+  tested. The ESP32-S3 can still drive the knob module if the RP2350B board
+  is skipped.
+- **Not in the prototype:** the JST-GH link, the FFC + ZIF and the JST-SH
+  touch cable. The prototype boards don't carry those connectors (jumper
+  wires do the job), and they're standard parts; the first full-build boards
+  test them.
+- **Motor plug:** the Rev 0 module has a 1×3 2.54 mm header for the motor
+  ([knob-module.md](knob-module.md)). Check the plug on the motors that
+  arrive.
 - Generic displays and ESP32 clones differ in pin order. Wire from the
   listing's pinout, not a tutorial.
 - Seller specs for the 2204 disagree on KV and mounting pattern (M3 thread
@@ -53,8 +70,9 @@ Outline from CAD: `cad/out/proto_knob_module_outline.dxf`.
   the back) with a **B3U** switch under its front tip.
 - Screw holes matching the measured motor, so the board itself keeps the
   magnet centered over the sensor (no printed jig needed).
-- Header to the ESP32-S3: 5 V, 3V3, GND, 3–6 PWM, sensor SSI (CS/CLK/DO),
-  press switch.
+- Header to the controller board (RP2350B or ESP32-S3): 5 V, 3V3, GND,
+  3–6 PWM, sensor SSI (CS/CLK/DO), press switch. A 1×3 header for the
+  motor's plug.
 
 Cost: 5 bare boards + assembly on 2 of them (setup fee + LCSC parts +
 "extended part" fees; ~$5.93 per TMC6300). Roughly $30–45 with economy shipping. Confirm both
@@ -82,8 +100,8 @@ Add to a later JLC order so it ships together:
   local makerspace).
 
 ## Rough total
-AliExpress ~$55–80 (including test tools) + JLC knob module ~$30–45 ≈
-**$85–125** for the working electronics, plus roughly $30–60 later for
+AliExpress ~$60–95 (including test tools) + JLC knob module ~$30–45 ≈
+**$90–140** for the working electronics, plus roughly $30–60 later for
 plates, frame PCB and caps (stage 4). Estimates; get real quotes from the
 generated files.
 

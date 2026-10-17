@@ -41,8 +41,9 @@ Sources and licenses:
    only draw real current while pushing back on a hand, so drivers sleep
    until their knob moves and a firmware arbiter shares about one motor's
    worth of current (one active knob gets it all, two split it). See the
-   power budget in [plan.md](plan.md). The device reads the host's
-   advertised USB-C current (1.5 A or 3 A), falling back to a low limit.
+   power budget in [plan.md](plan.md). The USB board reads the host's
+   advertised USB-C current (default, 1.5 A or 3 A) and the motor budget
+   follows it, with a brownout guard ([wiring.md](wiring.md)).
    Require a C-to-C cable. On the prototype, power the motor with short,
    thick leads, not breadboard jumpers.
 
@@ -94,10 +95,10 @@ Sources and licenses:
    ([#14](https://github.com/eezbotfun/8-key-macropad/issues/14)). Their
    locked bootloader drew complaints
    ([#12](https://github.com/eezbotfun/8-key-macropad/issues/12)).
-   → The ESP32-S3 updates over its native USB. The RP2350B on the knob board
-   has no USB connection of its own, so wire its RUN and boot-select (or
-   SWD) pins to the ESP32-S3 so the main board can reflash it. Never lock
-   the bootloader.
+   → Both chips update over USB: an internal hub gives the ESP32-S3 and the
+   RP2350B on the knob board their own USB connections, so the RP2350B
+   uses its built-in UF2 bootloader (BOOTSEL button for recovery). Never
+   lock the bootloader.
 
 9. **Heavy artwork can lock up USB.** On eezbotfun's ESP32-S2, custom icons
    plus a background made the USB device stop responding until a firmware

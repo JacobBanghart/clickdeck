@@ -5,6 +5,12 @@ with 3-PWM drive, B3U press switch on a hinged tongue. It plugs into the
 ESP32-S3 dev board with jumper wires. This is the netlist-level spec to
 draw the KiCad schematic from. Untested.
 
+In the full build the knobs run on the knob board's RP2350B, which has its
+own USB connection through an internal hub ([wiring.md](wiring.md)). Rev 0
+is unaffected: its J1 header is plain 3.3 V signals, so it works from the
+ESP32-S3 dev board or from an RP2350 board (closer to the final firmware;
+see [parts.md](parts.md)).
+
 Outline (with the tongue slots): `cad/out/proto_knob_module_outline.dxf`.
 **Layout waits on measuring the 2204 motor** (bolt pattern, base height).
 
@@ -28,7 +34,7 @@ Outline (with the tongue slots): `cad/out/proto_knob_module_outline.dxf`.
 | JP1–JP3 | Solder jumpers, 3-pad | — | — | Low-side source: inverter (default) or header pin (6-PWM mode) |
 | J1 | 1×14 pin header, 2.54 mm | THT | — | Signals to the ESP32-S3 dev board |
 | J2 | 2 pads, large | THT | — | 5 V and GND from the bench supply (short, thick wires) |
-| J3 | 3 pads | THT | — | Motor phases U, V, W |
+| J3 | 1×3 pin header, 2.54 mm, right angle | THT | C2886703 (verify male pins) | Motor phases U, V, W. Matches the 3-pin servo-style plug one 2204 listing shows, as on the full knob board; if the motor arrives with bare wires or another plug, fit pads instead |
 
 LCSC numbers were looked up on 2026-10-17; "basic" parts avoid JLC's
 extended-part fee. Confirm everything in JLC's parts library when ordering.

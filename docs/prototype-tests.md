@@ -50,6 +50,7 @@ force.
 | Reconnect | Unplug and replug | Keys reappear without resending images (cache works) |
 | Plain HID | Unplug from the host software | Keys still work as a keyboard |
 | Idle | Leave untouched | Screen blanks after the idle timeout; wakes on touch, key or knob |
+| Two devices, one hub | Knob board (RP2350B) and display (ESP32-S3) behind one USB hub; replug in a different port | The host app pairs them every time; images and events land on the right device |
 
 ## Decision
 

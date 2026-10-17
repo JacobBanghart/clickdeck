@@ -40,16 +40,17 @@ those don't matter, buy the + XL.
 
 | | ~Cost |
 |---|---|
-| **Build one, with your own 3D printer** | **$275–415** |
-| Build one, case ordered from JLC3DP | $305–490 |
-| Per unit, 5 people ordering together | $185–355 |
+| **Build one, with your own 3D printer** | **$300–450** |
+| Build one, case ordered from JLC3DP | $330–525 |
+| Per unit, 5 people ordering together | $195–370 |
 | Stream Deck + XL, for comparison | ~$350 |
 
 Covers parts, PCBs (JLC's 5-board minimum and 2-board assembly minimum
-included), prints and shipping, in two orders: JLC (all PCBs in one panel,
-plus prints) and AliExpress/Waveshare. The five motor drivers (~$26) are
-the biggest cost after the display.
-Breakdown: [docs/cost.md](docs/cost.md).
+included), prints, ready-made internal cables and shipping, in two orders:
+JLC (all PCBs in one panel, plus prints) and AliExpress/Waveshare. No
+soldering or crimping: JLC fits every part, and every cable inside plugs in.
+The five motor drivers (~$26) are the biggest cost after the display.
+Breakdown: [docs/cost.md](docs/cost.md); every part: [docs/bom.md](docs/bom.md).
 
 ## Design
 
@@ -62,9 +63,17 @@ Prototype (2 keys + 1 knob, laser-cut acrylic):
 ![Prototype](cad/out/proto_exploded.png)
 
 Inside, with the panel removed: Waveshare's board at the back, the knob
-board across the front, USB-C tunnel in the left wall:
+board across the front, the USB board (hub) in the back-left corner with the
+USB-C port in the back wall:
 
 ![Inside](cad/out/inside_layout.png)
+
+Cabling from above (display and top plate removed): one USB-C cable in, a
+hub on the USB board, a short USB-C cable to the display board and a
+latching JST-GH cable to the knob board. Every cable is bought and plugged
+in ([docs/wiring.md](docs/wiring.md)):
+
+![Cabling](cad/out/cabling.png)
 
 Knob board (one PCB, five knobs). Each knob sits on a hinged tongue that
 presses a switch underneath; motors lifted to show the tongues:
@@ -75,10 +84,11 @@ presses a switch underneath; motors lifted to show the tongues:
 - [docs/plan.md](docs/plan.md): goals, architecture, and the staged build plan
 - [docs/parts.md](docs/parts.md): prototype parts list with links
 - [docs/cost.md](docs/cost.md): cost breakdown
+- [docs/bom.md](docs/bom.md): full-build bill of materials (generated from the CAD)
 - [docs/lessons.md](docs/lessons.md): lessons from related projects, so we don't relearn them
-- [docs/wiring.md](docs/wiring.md): power path, connector pinouts, key matrix, pin budget
+- [docs/wiring.md](docs/wiring.md): power path, cables and connectors, strain relief, key matrix, pin budget
 - [docs/knob-module.md](docs/knob-module.md): Rev 0 knob module netlist, parts and design notes
-- [docs/protocol.md](docs/protocol.md): USB protocol draft and the internal link
+- [docs/protocol.md](docs/protocol.md): USB protocol draft (two USB devices behind a hub)
 - [hardware/](hardware/): KiCad boards generated from the CAD
 - [docs/open-questions.md](docs/open-questions.md): what's unverified, and how/when it gets answered
 - [docs/prototype-tests.md](docs/prototype-tests.md): pass/fail tests for the prototype
@@ -87,8 +97,8 @@ presses a switch underneath; motors lifted to show the tongues:
 
 Status (2026-10-17): design stage, nothing built. Done on paper: CAD for
 the full device and prototype (real Waveshare 7B dimensions), prototype
-frame PCB (generated, DRC clean), Rev 0 knob module spec, wiring/power spec,
-USB protocol draft. Next: order prototype parts ([docs/parts.md](docs/parts.md)),
+frame PCB (generated, DRC clean), Rev 0 knob module spec, wiring/power spec
+(internal USB hub, plug-in cables only), USB protocol draft. Next: order prototype parts ([docs/parts.md](docs/parts.md)),
 draw the knob module schematic, prototype firmware. Open items:
 [docs/open-questions.md](docs/open-questions.md); pass/fail criteria:
 [docs/prototype-tests.md](docs/prototype-tests.md).

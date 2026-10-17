@@ -24,17 +24,23 @@
 
 ```
  PC: OpenDeck + clickdeck device plugin (or the Python library directly)
-   │  single USB cable
+   │  single USB-C cable, into the back wall
    ▼
- ESP32-S3 + 7" display board (bought: Waveshare ESP32-S3-LCD-7B, 1024×600)
-   ├── USB HID interface    → key presses, knob turns/presses, touch
-   ├── USB CDC/bulk channel → images and commands from the PC (~1 MB/s)
-   ├── drives the LCD       → all key images + knob display areas
-   └── UART (board's UART connector) ──► knob board: RP2350B
-                 ├── 5 knobs: MT6701 sensor + motor driver + press switch each
-                 ├── 21-key matrix (frame PCB, switches only)
-                 └── I²C ──► touch band (under the top plate)
+ USB board: USB 2.0 hub (CH334F), reads the port's current offer (CC pins)
+   ├── USB ──► knob board: RP2350B (USB device 1)
+   │             ├── USB HID + data channel → keys, knob turns/presses, touch; knob settings
+   │             ├── 5 knobs: MT6701 sensor + motor driver + press switch each
+   │             ├── 21-key matrix (frame PCB, switches only)
+   │             └── I²C ──► touch band (under the top plate)
+   └── USB ──► ESP32-S3 + 7" display board (USB device 2; bought: Waveshare ESP32-S3-LCD-7B, 1024×600)
+                 ├── USB data channel → images and display commands from the PC (~1 MB/s)
+                 └── drives the LCD   → all key images + knob display areas
 ```
+
+The host sees two USB devices behind a hub and pairs them
+([protocol.md](protocol.md)). Inside the case every link is a bought cable
+plugged into a connector JLC fits: no soldering or crimping
+([wiring.md](wiring.md)).
 
 ### Host software: OpenDeck
 [OpenDeck](https://github.com/nekename/OpenDeck) is an open-source app (Linux,
@@ -46,9 +52,9 @@ work. Knob feel (detents, stops, haptic ticks) needs clickdeck-specific
 settings on top. A small Python library talks to the device directly for
 custom scripts.
 
-### Why two USB interfaces
-HID on the ESP32-S3's full-speed USB is limited to ~64 KB/s (one 120×120 key
-image ≈ 0.5 s). The CDC/bulk channel does ~1 MB/s (<50 ms per key).
+### Why a data channel for images
+HID on full-speed USB is limited to ~64 KB/s (one 120×120 key
+image ≈ 0.5 s). A CDC/bulk channel on the ESP32-S3 does ~1 MB/s (<50 ms per key).
 Optimizations: upload icons once and reference them by ID; send only the parts
 of the screen that changed; optionally JPEG + on-device decode.
 
@@ -77,12 +83,10 @@ mod. Layout (from the CAD model): **7×3 = 21 keys at 22 mm pitch** (~146×146
 px per key) plus a ~20 mm strip below the keys for the 5 knob displays.
 (5×4 at 30 mm doesn't fit: the panel's active area is only ~86 mm tall.)
 
-Free pins on the board (from Waveshare's pin tables): the display, touch
-I²C, USB, SD card and RS485 use most GPIOs. Left for us: the **UART
-connector (GPIO43/44)**, used for the knob-board link, and the **sensor
-connector** (likely GPIO6), used to reset the knob board. 1024×600 is more
-work for the ESP32-S3 than 800×480; fine for mostly static key images, but
-test full-screen redraw speed early.
+The display board only draws the screen; it needs none of its free pins.
+Keys, knobs and touch go to the RP2350B, which has its own USB connection
+through the hub. 1024×600 is more work for the ESP32-S3 than 800×480; fine
+for mostly static key images, but test full-screen redraw speed early.
 
 Switches: **Omron B3U-1000P** (3.0 × 2.5 mm SMD tactile). The strip
 between keys is 3.6 mm, so 13 mm mouse switches don't fit.
@@ -121,14 +125,19 @@ worth (~1 A)**, enforced by a firmware arbiter:
 - **Queue haptic notifications** so pulses never overlap. Calibrate knobs
   one at a time.
 
-The device reads the host's advertised USB-C current (1.5 A or 3 A) and
-falls back to a low limit. Requires a C-to-C cable. See
-[lessons.md](lessons.md) #2.
+The USB board reads the host port's advertised USB-C current (CC pins) and
+the knob board sets the motor budget from it: 500 mA for default USB power
+(or an A-to-C cable), 1.0 A for a 1.5 A port, 1.5 A for a 3 A port (capped by
+the internal cable). A brownout guard on the 5 V input backs it up. Details:
+[wiring.md](wiring.md); see also [lessons.md](lessons.md) #2.
 
 ### Firmware updates
-Both chips update over the single USB cable, no extra tools: the ESP32-S3
-through its native USB, and the RP2350B through the ESP32-S3 (its RUN and
-boot pins, or SWD, are wired to the ESP32-S3). Bootloaders stay unlocked.
+Both chips update over the single USB cable, no extra tools, each over its
+own USB connection through the hub: the ESP32-S3 with esptool (or the
+host app), the RP2350B by rebooting into its built-in bootloader and
+copying a UF2 file (drag and drop works too). No custom bootloader. If the
+RP2350B firmware is broken, a BOOTSEL button on the knob board recovers it.
+Bootloaders stay unlocked.
 Knob calibration and display settings live in flash storage that firmware
 updates don't erase.
 
@@ -136,7 +145,7 @@ updates don't erase.
 Follows lessons from Stream32's documented protocol
 ([lessons.md](lessons.md) #11–16): versioned hello with feature flags,
 image cache by CRC so reconnects resend nothing, the device reports key
-size in pixels, binary framing with RLE/JPEG, saved pages that work offline
+size in pixels, binary framing with RLE/JPEG, saved pages that persist
 plus temporary live-state overlays, separate key-down/key-up events, and a
 plain HID keyboard mode that needs no host software.
 
