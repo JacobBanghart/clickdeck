@@ -93,6 +93,29 @@ low sides; DRV8316 is the fallback). Details in [pcb.md](pcb.md).
 (U-shaped slot, hinged at the back). Pressing the knob flexes the tongue onto
 a B3U switch underneath.
 
+### Power budget
+One USB-C cable feeds the display board, its backlight and 5 motors. One
+SmartKnob motor alone draws ~0.7–1 A peak at 5 V, so the firmware caps total
+motor current, motors use only the torque a detent needs, and the device
+assumes the current the host advertises on USB-C (1.5 A or 3 A), falling
+back to a low limit. Requires a C-to-C cable. See
+[lessons.md](lessons.md) #2.
+
+### Firmware updates
+Both chips update over the single USB cable, no extra tools: the ESP32-S3
+through its native USB, and the RP2350B through the ESP32-S3 (its RUN and
+boot pins, or SWD, are wired to the ESP32-S3). Bootloaders stay unlocked.
+Knob calibration and display settings live in flash storage that firmware
+updates don't erase.
+
+### USB protocol
+Follows lessons from Stream32's documented protocol
+([lessons.md](lessons.md) #11–16): versioned hello with feature flags,
+image cache by CRC so reconnects resend nothing, the device reports key
+size in pixels, binary framing with RLE/JPEG, saved pages that work offline
+plus temporary live-state overlays, separate key-down/key-up events, and a
+plain HID keyboard mode that needs no host software.
+
 ### Touch band
 A thin capacitive sensor PCB under the top plate, just below the knob
 displays: tap or swipe on the plate surface, like the + XL's touch strip.

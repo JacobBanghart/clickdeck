@@ -35,6 +35,16 @@ else is on three boards:
     prototype.
   - Plan B: DRV8316 in its native 3x PWM mode. Its 4.5 V minimum is close
     to USB 5 V under motor load, so it's the fallback.
+- **Driver stock:** JLC lists the TMC6300 as an "extended" part and has
+  shown it out of stock. Check before ordering; keep the DRV8316 fallback
+  drawn in the schematic.
+- **Sensor:** MT6701 in SSI mode (mode pin strapped on the board).
+- **Motor mount:** holes fit more than one motor (2204 patterns plus a
+  fallback motor), since specific motors go out of stock.
+- **Flashing:** RP2350B RUN and boot-select (or SWD) pins wired to the
+  ESP32-S3 so the main board can update it over USB.
+- **Power:** read the USB-C current advertisement (CC lines) or get it
+  from the display board, so firmware can set the motor current budget.
 - Pin budget (approx.): 15 PWM, 2 sensor bus + 5 chip selects, 5 press
   switches, 10 for the 7×3 key matrix, 2 UART to the display board, a
   driver enable, I²C to the touch band. About 42 of 48.

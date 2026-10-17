@@ -26,6 +26,12 @@ Notes
   listing's pinout, not a tutorial.
 - Seller specs for the 2204 disagree on KV and mounting pattern (M3 thread
   vs 12×12 / 16×16 mm M2/M3). **Measure it when it arrives.**
+- Cheap gimbal motors vary a lot in cogging, which ruins smooth mode.
+  If budget allows, buy a second 2204 from a different seller and compare
+  by hand ([lessons.md](lessons.md) #1).
+- Power the motor with short, thick leads straight from the supply, not
+  through breadboard jumpers ([lessons.md](lessons.md) #2).
+- MT6701 breakouts often default to ABZ/I²C mode; set the mode pad for SSI.
 - Skip the breadboard/calipers if you already have them.
 
 ## Order 2 — JLCPCB knob module (~$20–30, after the motor arrives)

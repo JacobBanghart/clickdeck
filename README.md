@@ -52,6 +52,7 @@ presses a switch underneath; motors lifted to show the tongues:
 - [docs/plan.md](docs/plan.md): goals, architecture, and the staged build plan
 - [docs/parts.md](docs/parts.md): prototype parts list with links
 - [docs/cost.md](docs/cost.md): cost breakdown
+- [docs/lessons.md](docs/lessons.md): lessons from related projects, so we don't relearn them
 - [docs/pcb.md](docs/pcb.md): how the PCBs get designed and ordered
 - [cad/](cad/): parametric CAD (build123d). STEP files for FreeCAD/Fusion 360 in `cad/out/`
 
