@@ -308,10 +308,11 @@ def knob_board(st: Stack, knob_xy: list, label: str, with_mcu: bool,
 def screen(st: Stack, glass_w: float, glass_h: float, glass_t: float,
            aa: tuple[float, float], center_y: float,
            key_xy, win_xy, win_size, label: str,
-           back_pcb: tuple[float, float, float] | None = None) -> list[Item]:
+           back_pcb: tuple[float, float, float] | None = None,
+           center_x: float = 0.0) -> list[Item]:
     """Display module with colored placeholders for the key images."""
     items = []
-    body = Pos(0, center_y, st.glass - glass_t) * Box(glass_w, glass_h, glass_t, align=MIN)
+    body = Pos(center_x, center_y, st.glass - glass_t) * Box(glass_w, glass_h, glass_t, align=MIN)
     items.append(Item(body, f"{label}_module", C_PANEL, 1))
     if back_pcb:
         w, h, ox = back_pcb
@@ -373,7 +374,7 @@ def full_layout() -> Layout:
     knob_pitch = P.AA_W / P.KNOBS
     win_y = (strip_top + strip_bot) / 2
     wins = [((k - (P.KNOBS - 1) / 2) * knob_pitch, win_y) for k in range(P.KNOBS)]
-    panel_bot = -P.AA_H / 2 - P.PANEL_BORDER_BOTTOM
+    panel_bot = -P.AA_H / 2 - P.PANEL_BORDER_FRONT
     knob_y = min(panel_bot - P.INNER_CLEAR, touch_bar_floor(win_y, win[1])) - P.MOTOR_D / 2
     knobs = [(x, knob_y) for x, _ in wins]
     warns = check_key_fit(P.KEY_PITCH)
@@ -422,48 +423,73 @@ def full_device(tilt: bool = True) -> tuple[list[Item], Layout, dict]:
     L = full_layout()
     items: list[Item] = []
 
-    panel_bot_y = -P.AA_H / 2 - P.PANEL_BORDER_BOTTOM
-    panel_cy = panel_bot_y + P.PANEL_H / 2
+    # Panel frame, positioned so the active area is centered at the origin
+    px0 = -P.AA_W / 2 - P.PANEL_BORDER_LEFT
+    px1 = px0 + P.PANEL_W
+    py0 = -P.AA_H / 2 - P.PANEL_BORDER_FRONT
+    py1 = py0 + P.PANEL_H
+    pcx, pcy = (px0 + px1) / 2, (py0 + py1) / 2
+    panel_z0 = st.glass - P.PANEL_T
     knob_y = L.knob_xy[0][1]
 
-    # Case outline
-    ix0 = -P.PANEL_W / 2 - P.INNER_CLEAR
-    ix1 = P.PANEL_W / 2 + P.INNER_CLEAR
-    iy1 = panel_bot_y + P.PANEL_H + P.INNER_CLEAR
+    # Case outline: symmetric about the key grid, wide enough for the off-center panel
+    half_w = max(-px0, px1) + P.INNER_CLEAR
+    ix0, ix1 = -half_w, half_w
+    iy1 = py1 + P.INNER_CLEAR
     iy0 = knob_y - P.MOTOR_D / 2 - P.INNER_CLEAR - 1.0
     ox0, ox1, oy0, oy1 = ix0 - P.WALL, ix1 + P.WALL, iy0 - P.WALL, iy1 + P.WALL
     outer = (ox0, ox1, oy0, oy1)
     cx, cy = (ox0 + ox1) / 2, (oy0 + oy1) / 2
+
+    # Waveshare's ESP32-S3 board behind the panel (parts facing down)
+    dx0 = px0 + P.DISPLAY_PCB_LEFT
+    dy1 = py1 - P.DISPLAY_PCB_BACK
+    dpcb_top = panel_z0 - P.DISPLAY_STANDOFF_H
+    dpcb_bot = dpcb_top - P.PCB_T
+    usb_y = dy1 - P.USB_FROM_PCB_BACK
+    usb_z = dpcb_bot - 1.6                      # USB-C receptacle is 3.2 mm tall
+    lowest = dpcb_bot - P.DISPLAY_PARTS_H
+    if lowest < P.FLOOR + 0.5:
+        L.warnings.append(f"display board parts reach {lowest:.1f} mm, below the floor + 0.5 mm")
 
     outer_sk = Pos(cx, cy) * RectangleRounded(ox1 - ox0, oy1 - oy0, P.CORNER_R)
     inner_sk = Pos((ix0 + ix1) / 2, (iy0 + iy1) / 2) * RectangleRounded(
         ix1 - ix0, iy1 - iy0, max(P.CORNER_R - P.WALL, 0.5))
     tray = extrude(outer_sk, amount=st.plate_bot)
     tray -= Pos(0, 0, P.FLOOR) * extrude(inner_sk, amount=st.plate_bot)
-    # USB-C cutout in the back wall
-    tray -= Pos(0, oy1 - P.WALL / 2, P.FLOOR + 3.0) * Box(
-        P.USB_CUTOUT[0], P.WALL * 3, P.USB_CUTOUT[1])
+    # Tunnel through the left wall so a USB-C plug reaches the board's port
+    tray -= Pos(ox0 + P.WALL / 2, usb_y, usb_z) * Box(P.WALL * 3, *P.USB_TUNNEL)
     items.append(Item(tray, "case_tray", C_CASE, 0))
 
-    # Main PCB (ESP32-S3) under the panel
-    main = Pos(0, iy1 - P.MAIN_PCB[1] / 2 - 2, P.FLOOR + 1.0) * Box(*P.MAIN_PCB, P.PCB_T, align=MIN)
-    module = Pos(0, iy1 - 12, P.FLOOR + 1.0 + P.PCB_T) * Box(18, 25.5, 3.1, align=MIN)
-    usb = Pos(0, iy1 - 3.5, P.FLOOR + 1.0 + P.PCB_T) * Box(9.0, 7.3, 3.2, align=MIN)
-    items += [Item(main, "main_pcb", C_PCB, 0), Item(module, "esp32s3_module", C_MOTOR, 0),
-              Item(usb, "usb_c", C_MOTOR, 0)]
+    dpcb = Pos(dx0, dy1, dpcb_bot) * Box(*P.DISPLAY_PCB, P.PCB_T,
+                                        align=(Align.MIN, Align.MAX, Align.MIN))
+    module = Pos(dx0 + P.DISPLAY_PCB[0] - 22, dy1 - 1, dpcb_bot - 3.1) * Box(
+        18, 25.5, 3.1, align=(Align.MIN, Align.MAX, Align.MIN))
+    usb = Pos(dx0 - 1.0, usb_y, usb_z) * Box(7.5, 9.0, 3.2, align=(Align.MIN, Align.CENTER, Align.CENTER))
+    hy = Pos(dx0 + P.DISPLAY_PCB[0] - 6, dy1 - 45, dpcb_bot - P.DISPLAY_PARTS_H) * Box(
+        6, 40, P.DISPLAY_PARTS_H, align=(Align.MIN, Align.CENTER, Align.MIN))
+    items += [Item(dpcb, "display_board_pcb", C_PCB, 1),
+              Item(module, "display_board_esp32s3", C_MOTOR, 1),
+              Item(usb, "display_board_usb_c", C_MOTOR, 1),
+              Item(hy, "display_board_connectors", C_SWITCH, 1)]
+    for i, (sx, sy) in enumerate([(0, 0), (1, 0), (0, 1), (1, 1)]):
+        bx = dx0 + 6 + sx * (P.DISPLAY_PCB[0] - 12)
+        by = dy1 - 6 - sy * (P.DISPLAY_PCB[1] - 12)
+        items.append(Item(standoff(bx, by, dpcb_top, panel_z0, 4.0), f"display_standoff{i}",
+                          C_STANDOFF, 1))
 
-    # Panel on standoffs
-    panel_z0 = st.glass - P.PANEL_T
-    for i, (sx, sy) in enumerate([(-1, -1), (1, -1), (-1, 1), (1, 1)]):
-        x = sx * (P.PANEL_W / 2 - 6)
-        y = panel_cy + sy * (P.PANEL_H / 2 - 6)
-        items.append(Item(standoff(x, y, P.FLOOR, panel_z0), f"panel_standoff{i}", C_STANDOFF, 0))
-    items += screen(st, P.PANEL_W, P.PANEL_H, P.PANEL_T, (P.AA_W, P.AA_H), panel_cy,
-                    L.key_xy, L.win_xy, L.win_size, "panel7")
+    # Panel held by posts under its 4 M3 tabs
+    panel_posts = [(pcx + sx * P.PANEL_M3_DX / 2, y)
+                   for sx in (-1, 1)
+                   for y in (py0 + P.PANEL_M3_FROM_FRONT, py1 - P.PANEL_M3_FROM_BACK)]
+    for i, (x, y) in enumerate(panel_posts):
+        items.append(Item(standoff(x, y, P.FLOOR, panel_z0, 6.0), f"panel_post{i}", C_STANDOFF, 0))
+    items += screen(st, P.PANEL_W, P.PANEL_H, P.PANEL_T, (P.AA_W, P.AA_H), pcy,
+                    L.key_xy, L.win_xy, L.win_size, "panel7", center_x=pcx)
 
     # Frame PCB + switches
     m = P.FRAME_PCB_MARGIN
-    rect = (-P.AA_W / 2 - m, P.AA_W / 2 + m, -P.AA_H / 2 - min(m, P.PANEL_BORDER_BOTTOM),
+    rect = (-P.AA_W / 2 - m, P.AA_W / 2 + m, -P.AA_H / 2 - min(m, P.PANEL_BORDER_FRONT),
             P.AA_H / 2 + m)
     fsk = frame_pcb_sketch(rect, L.key_xy, L.cut_xy, L.cut_size)
     frame = Pos(0, 0, st.pcb_bot) * extrude(fsk, amount=P.PCB_T)
@@ -487,14 +513,18 @@ def full_device(tilt: bool = True) -> tuple[list[Item], Layout, dict]:
     items += tb
 
     # Knobs: one board for all of them
-    standoffs = [(sx * (P.PANEL_W / 2 - 6), panel_cy + sy * (P.PANEL_H / 2 - 6))
-                 for sx in (-1, 1) for sy in (-1, 1)]
-    kitems, ksk = knob_board(st, L.knob_xy, "knob_board", with_mcu=True, avoid_xy=standoffs)
+    kitems, ksk = knob_board(st, L.knob_xy, "knob_board", with_mcu=True, avoid_xy=panel_posts)
     items += kitems
+    kb = next(it.part for it in kitems if it.label == "knob_board_pcb").bounding_box()
+    if kb.max.Y > dy1 - P.DISPLAY_PCB[1] - 1.0:
+        L.warnings.append(f"knob board reaches y={kb.max.Y:.1f}, into the display board "
+                          f"(front edge y={dy1 - P.DISPLAY_PCB[1]:.1f})")
 
     info = {
         "outer_mm": (round(ox1 - ox0, 1), round(oy1 - oy0, 1), round(st.plate_top, 1)),
         "stack": st, "frame_sketch": fsk, "plate_sketch": psk, "normal": (0.0, 0.0, 1.0),
+        "display_gap": (dy1 - P.DISPLAY_PCB[1]) - kb.max.Y,
+        "display_floor_gap": lowest - P.FLOOR,
         "knob_board_sketch": ksk, "touch_bar_h": tb_h,
     }
     if tilt:

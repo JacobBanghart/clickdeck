@@ -111,6 +111,9 @@ def main():
             f"switch top {st.sw_top:.2f}, top plate {st.plate_bot:.2f}-{st.plate_top:.2f}, "
             f"motor {st.motor_bot:.2f}-{st.motor_top:.2f}",
         ]
+        if "display_gap" in inf:
+            lines.append(f"- Display board: {inf['display_gap']:.1f} mm behind the knob board, "
+                         f"{inf['display_floor_gap']:.1f} mm above the floor (both EST)")
         if P.TOUCH_BAR and inf.get("touch_bar_h", 0) >= P.TOUCH_BAR_MIN_H:
             plate_t = P.TOP_PLATE_T if name == "Full device" else P.PROTO_PLATE_T
             lines.append(f"- Touch band: {inf['touch_bar_h']:.1f} mm tall under the knob "
@@ -141,6 +144,12 @@ def main():
             ("proto_iso.png", proto, dict(az=-55, el=34)),
             ("proto_exploded.png", proto, dict(az=-55, el=24, offsets=exploded_offsets(proto),
                                                size=(1300, 1200))),
+            ("inside_layout.png",
+             [it for it in flat
+              if not it.label.startswith(("top_plate", "cap_", "knob_window", "switch_",
+                                          "frame_pcb", "panel7", "touch_bar"))
+              and not it.label.endswith("_knob")],
+             dict(az=-115, el=55, size=(1500, 1000))),
             ("knob_board_detail.png",
              [it for it in flat if it.label.startswith(("knob_board", "knob0_", "knob1_",
                                                          "touch_bar"))
