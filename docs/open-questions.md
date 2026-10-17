@@ -12,12 +12,12 @@ Status: ❓ open · ⚠️ risk to watch · ✅ answered
 |---|---|---|---|
 | ✅ | Is the 7B's 3-pin sensor connector GPIO6? **Yes**: J8 = 3V3, GND, GPIO6 (schematic, 2026-10-17) | — | [wiring.md](wiring.md) |
 | ✅ | Does the TMC6300 have built-in break-before-make, so one inverter can derive its low-side inputs (3-PWM plan A)? **Yes** (datasheet: "Internal break-before-make (BBM) logic ensures that no cross-conduction occurs"). Catch: in standby no input may be high, so the inverter is powered from the standby pin ([knob-module.md](knob-module.md)). Still verify on the Rev 0 module | — | Driver choice |
-| ⚠️ | TMC6300 stock at JLC (an "extended" part, seen out of stock) | Check the JLC parts library right before each order | Plan A vs DRV8316 plan B |
+| ⚠️ | TMC6300 stock and price. Checked 2026-10-17: TMC6300-LA (C5196961) out of stock; **TMC6300-LA-T (C5274455) 200 in stock, $5.93 each ($5.12 at 10+)**. Five per device makes it the most expensive part after the display | Check stock right before each order. Look for a cheaper low-voltage (≤5 V) 3-phase driver as plan B/C (DRV8316 needs 4.5 V min) | Driver choice, cost |
 | ❓ | Mitoot 2204's real bolt pattern, height and KV (sellers disagree) | Calipers when the motor arrives | Knob board holes, `params.py` |
 | ❓ | Can an RP2350B bootloader update reliably over the UART link from the ESP32-S3? | Prototype firmware | Knob board flashing ([plan.md](plan.md)) |
 | ✅ | Can we read the PC's USB-C current offer? **No**: the 7B's CC pins have fixed 5.1 kΩ pulldowns. Default 500 mA motor budget, user setting to raise it, brownout guard on the 5 V input ([wiring.md](wiring.md)) | — | Power budget |
-| ⚠️ | B3U-1000P (LCSC C231329) is marked "not recommended for new designs"; ~33k in stock (2026-10-17) | Check stock before ordering; find a same-size alternative before the full build | Key switches |
-| ❓ | Real thickness of the 7B (panel + standoffs + tallest part under its board). The model assumes 5.7 + 3 + 1.6 + 5 mm, leaving 1.3 mm above the case floor | Calipers on a real 7B | Case height (`params.py`) |
+| ⚠️ | B3U-1000P (LCSC C231329) is marked "not recommended for new designs" at LCSC (~33k in stock), but Octopart still lists it as in production, so it's likely LCSC's own stocking decision. Same-size (3 × 2.5 mm) alternatives on LCSC: XKB TS-3025-B-A-B (C2885149, 160 gf, 1.5 mm tall), plus Hanxia, SAMZO, Zhongdi and G-Switch parts (2026-10-17) | Order a few alternatives with the prototype and compare the click; check pad layouts | Key switches |
+| ✅ | Real thickness of the 7B. **From Waveshare's STEP model**: panel 6.2 mm, board screwed flat on the frame, USB-C 12.8 mm and the connector row 16.1 mm below the glass. The model now uses these; the connector row gets a 1 mm floor pocket (1.5 mm clearance) | Confirm with calipers on a real board | Case (`params.py`) |
 
 ## Answered by the prototype
 

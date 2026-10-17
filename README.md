@@ -21,15 +21,20 @@ software.
 What this adds:
 - **Programmable knobs.** Each knob switches per function between clicky,
   smooth, a set number of clicks, or hard end stops, and can push back
-  (a tick at a preset, a nudge for attention). Stream Deck dials have one
-  fixed feel.
+  (a tick at a preset, a nudge for attention). They also press to click.
+  Stream Deck dials have one fixed feel.
 - **Clicky keys.** Micro switches instead of soft rubber pads.
 - **Open and Linux-first.** Open hardware, open USB protocol, your own
-  firmware. No vendor app or account.
+  firmware. Works with [OpenDeck](https://github.com/nekename/OpenDeck),
+  which runs Stream Deck plugins, so you aren't starting from zero.
 
-What the + XL does better: it's polished and ready today, has a huge plugin
-library, 36 keys plus a touch strip, and costs about the same (see below). Build this for the knobs and the switch feel; if those don't matter,
-buy the + XL.
+Like the + XL, it has a touch band under the knob displays for taps and
+swipes.
+
+What the + XL does better: it's polished and ready today, has 36 keys, its
+plugins all just work (some won't through OpenDeck), and it costs about the
+same or less (see below). Build this for the knobs and the switch feel; if
+those don't matter, buy the + XL.
 
 ## Cost (rough estimates)
 
@@ -40,8 +45,10 @@ buy the + XL.
 | Per unit, 5 people ordering together | $185–355 |
 | Stream Deck + XL, for comparison | ~$350 |
 
-Covers parts, PCBs (JLC's 5-board minimum included), prints and shipping, in
-two orders: JLC (all PCBs in one panel, plus prints) and AliExpress/Waveshare.
+Covers parts, PCBs (JLC's 5-board minimum and 2-board assembly minimum
+included), prints and shipping, in two orders: JLC (all PCBs in one panel,
+plus prints) and AliExpress/Waveshare. The five motor drivers (~$26) are
+the biggest cost after the display.
 Breakdown: [docs/cost.md](docs/cost.md).
 
 ## Design

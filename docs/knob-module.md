@@ -12,7 +12,7 @@ Outline (with the tongue slots): `cad/out/proto_knob_module_outline.dxf`.
 
 | Ref | Part | Package | LCSC | Notes |
 |---|---|---|---|---|
-| U1 | TMC6300-LA | QFN-20 3×3 | C5196961 / C5274455 (check stock) | Extended part; JLC assembles it |
+| U1 | TMC6300-LA-T | QFN-20 3×3 | C5274455 (200 in stock, $5.93, 2026-10-17); C5196961 is out of stock | Extended part; JLC assembles it |
 | U2 | MT6701QT-STD | SOP-8 | C2913974 | Magnetic angle sensor, SSI mode |
 | U3 | SN74LVC3G04DCTR | VSSOP-8 | C139324 | Triple inverter, derives low-side inputs |
 | SW1 | B3U-1000P | SMD | C231329 | Press switch, **bottom side**, under the tongue tip |
