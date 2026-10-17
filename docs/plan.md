@@ -53,9 +53,14 @@ in the case stop the cap from tilting.
 Knobs sit just past the panel edge; each knob's "display" is an area of
 the same panel.
 
-Full build target: 7" 800×480 RGB panel (5×4 keys at ~30 mm pitch,
-~120×120 px per key), likely an ESP32-S3 + 7" panel board
-(Waveshare/Sunton style).
+Full build target: 7" 800×480 RGB panel. Layout (from the CAD model):
+**7×3 = 21 keys at 22 mm pitch** (~93×93 px per key, about Stream Deck XL
+density) plus a ~20 mm strip below the keys for the 5 knob displays.
+(5×4 at 30 mm doesn't fit: the panel's active area is only ~86 mm tall.)
+Likely an ESP32-S3 + 7" panel board (Waveshare/Sunton style).
+
+Switches: **Omron B3U-1000P** (3.0 × 2.5 mm SMD tactile). The strip
+between keys is 3.6 mm, so 13 mm mouse switches don't fit.
 
 ### Knobs
 Small brushless gimbal motor + magnetic angle sensor + low-voltage driver,
