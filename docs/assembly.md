@@ -7,6 +7,8 @@
 
 ![Assembly animation](../cad/out/assembly/assembly.gif)
 
+Sharper version: [assembly.mp4](../cad/out/assembly/assembly.mp4).
+
 ## Build checks
 
 Run on every build of this guide (`.venv/bin/python cad/assembly.py --check`).

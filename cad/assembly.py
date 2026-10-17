@@ -2,7 +2,7 @@
 
     .venv/bin/python cad/assembly.py --check     # checks only (fast; CI)
     .venv/bin/python cad/assembly.py             # checks + step pictures + guide
-    .venv/bin/python cad/assembly.py --animate   # also the animation (slow, ~15 min)
+    .venv/bin/python cad/assembly.py --animate   # also the animation: GIF, plus MP4 if ffmpeg is installed (~15 min)
 
 Writes cad/out/assembly/*.png, the animation, and docs/assembly.md. The
 pictures come from the same model the checks run on, so a step that can't be
@@ -328,8 +328,13 @@ def service_pictures(scene, items, info, size=(1400, 900)):
     return pics
 
 
-def animate(scene, tilted_scene, info, path_gif, size=(720, 470), frames_move=10, frames_hold=3):
-    """Assembly animation: parts fly in step by step, then the slab tilts onto the stand."""
+def animate(scene, tilted_scene, info, path_gif, size=(960, 630), frames_move=10, frames_hold=3,
+            gif_width=720):
+    """Assembly animation: parts fly in step by step, then the slab tilts onto the stand.
+
+    Writes an MP4 next to the GIF when ffmpeg is installed (sharper, smaller);
+    the GIF is downscaled so it plays inline on GitHub.
+    """
     import render
     from PIL import Image
     labels = scene.labels()
@@ -389,8 +394,23 @@ def animate(scene, tilted_scene, info, path_gif, size=(720, 470), frames_move=10
     final = tilted_scene.draw([lb for lb in tilted_scene.labels() if not lb.startswith("cable_")],
                               az=-62, el=20, size=size, ss=1, margin=0.12)
     frames += [final] * 12
-    frames[0].save(path_gif, save_all=True, append_images=frames[1:], duration=90, loop=0,
-                   optimize=True)
+    gh = round(size[1] * gif_width / size[0])
+    small = [f.resize((gif_width, gh), Image.LANCZOS) for f in frames]
+    small[0].save(path_gif, save_all=True, append_images=small[1:], duration=90, loop=0,
+                  optimize=True)
+    import shutil
+    import subprocess
+    if shutil.which("ffmpeg"):
+        mp4 = Path(path_gif).with_suffix(".mp4")
+        proc = subprocess.Popen(
+            ["ffmpeg", "-y", "-loglevel", "error", "-f", "rawvideo", "-pix_fmt", "rgb24",
+             "-s", f"{size[0]}x{size[1]}", "-r", "11", "-i", "-", "-c:v", "libx264",
+             "-pix_fmt", "yuv420p", "-crf", "20", "-movflags", "+faststart", str(mp4)],
+            stdin=subprocess.PIPE)
+        for f in frames:
+            proc.stdin.write(f.convert("RGB").tobytes())
+        proc.stdin.close()
+        proc.wait()
     return len(frames)
 
 
@@ -425,6 +445,8 @@ def write_guide(info, checks, shots, service):
         "> verified build. Expect the first real assembly to find problems the model can't.",
         "",
         "![Assembly animation](../cad/out/assembly/assembly.gif)",
+        "",
+        "Sharper version: [assembly.mp4](../cad/out/assembly/assembly.mp4).",
         "",
         "## Build checks",
         "",
