@@ -157,8 +157,9 @@ def switch(st: Stack) -> Part:
 def frame_pcb_sketch(rect: tuple[float, float, float, float],
                      key_xy: list[tuple[float, float]],
                      win_xy: list[tuple[float, float]],
-                     win_size: tuple[float, float]) -> Sketch:
-    """2D outline of the frame PCB: outer rectangle minus all windows.
+                     win_size: tuple[float, float],
+                     holes_xy: list[tuple[float, float]] = ()) -> Sketch:
+    """2D outline of the frame PCB: outer rectangle minus all windows and mount holes.
 
     rect = (xmin, xmax, ymin, ymax). Also exported as DXF for KiCad.
     """
@@ -171,12 +172,16 @@ def frame_pcb_sketch(rect: tuple[float, float, float, float],
             Rectangle(w, w, mode=Mode.SUBTRACT)
         with Locations(*win_xy):
             Rectangle(*win_size, mode=Mode.SUBTRACT)
+        if holes_xy:
+            with Locations(*holes_xy):
+                Circle(P.FRAME_MOUNT_HOLE_D / 2, mode=Mode.SUBTRACT)
     return sk.sketch
 
 
 def plate_sketch(outline: tuple[float, float, float, float], radius: float,
                  key_xy, win_xy, win_size, knob_xy,
-                 holes_xy=(), hole_d: float = 3.2) -> Sketch:
+                 holes_xy=(), hole_d: float = 3.2, small_holes_xy=(),
+                 small_hole_d: float = P.FRAME_MOUNT_HOLE_D) -> Sketch:
     x0, x1, y0, y1 = outline
     w = P.CAP_SIZE + 2 * P.CAP_CLEAR
     with BuildSketch() as sk:
@@ -191,6 +196,9 @@ def plate_sketch(outline: tuple[float, float, float, float], radius: float,
         if holes_xy:
             with Locations(*holes_xy):
                 Circle(hole_d / 2, mode=Mode.SUBTRACT)
+        if small_holes_xy:
+            with Locations(*small_holes_xy):
+                Circle(small_hole_d / 2, mode=Mode.SUBTRACT)
     return sk.sketch
 
 
@@ -617,7 +625,9 @@ def prototype() -> tuple[list[Item], Layout, dict]:
                     back_pcb=(P.P24_PCB[0], P.P24_PCB[1], P.P24_PCB_OFFSET_X))
 
     rect = (-aw / 2 - 2.5, aw / 2 + 2.5, -ah / 2 - 2.5, ah / 2 + 2.5)
-    fsk = frame_pcb_sketch(rect, keys, cut_xy, cut_size)
+    mx = rect[1] - P.FRAME_MOUNT_INSET
+    frame_holes = [(sx * mx, y) for sx in (-1, 1) for y in P.FRAME_MOUNT_Y]
+    fsk = frame_pcb_sketch(rect, keys, cut_xy, cut_size, frame_holes)
     frame = Pos(0, 0, st.pcb_bot) * extrude(fsk, amount=P.PCB_T)
     items.append(Item(frame, "frame_pcb", C_PCB, 2))
     sw = switch(st)
@@ -626,7 +636,11 @@ def prototype() -> tuple[list[Item], Layout, dict]:
         items.append(Item(Pos(x, y + SW_DY, 0) * sw, f"switch_{i}", C_SWITCH, 2))
         items.append(Item(Pos(x, y, 0) * cap, f"cap_{i}", C_CAP, 3))
 
-    psk = plate_sketch(outline, 3.0, keys, cut_xy, cut_size, knobs, corner_holes)
+    for i, (x, y) in enumerate(frame_holes):
+        items.append(Item(standoff(x, y, st.pcb_top, st.plate_bot, 3.2), f"frame_standoff_m2_{i}",
+                          C_STANDOFF, 3))
+    psk = plate_sketch(outline, 3.0, keys, cut_xy, cut_size, knobs, corner_holes,
+                       small_holes_xy=frame_holes)
     plate = Pos(0, 0, st.plate_bot) * extrude(psk, amount=P.PROTO_PLATE_T)
     items.append(Item(plate, "top_plate_acrylic", C_PLATE, 4))
     items += knob_windows(st, L, P.PROTO_PLATE_T)
@@ -640,6 +654,15 @@ def prototype() -> tuple[list[Item], Layout, dict]:
         "knob_board_sketch": ksk, "touch_bar_h": tb_h,
         "outer_mm": (round(x1 - x0, 1), round(y1 - y0, 1), round(st.plate_top, 1)),
         "stack": st, "frame_sketch": fsk, "plate_sketch": psk, "base_sketch": base_sk.sketch,
+        "frame_pcb": {
+            "outline": rect, "corner_r": 1.5,
+            "key_windows": [[x, y, P.CAP_SIZE + 2 * P.CAP_CLEAR, P.CAP_SIZE + 2 * P.CAP_CLEAR]
+                            for x, y in keys],
+            "other_windows": [[x, y, *cut_size] for x, y in cut_xy],
+            "switches": [[x, y + SW_DY] for x, y in keys],
+            "mount_holes": frame_holes, "mount_hole_d": P.FRAME_MOUNT_HOLE_D,
+            "thickness": P.PCB_T,
+        },
     }
     return items, L, info
 

@@ -128,6 +128,10 @@ INNER_CLEAR = 1.0
 PROTO_KEYS = 2
 PROTO_PLATE_T = 3.0        # 3 mm cast acrylic, top and base
 PROTO_STANDOFF_D = 6.0     # M3 hex standoff (drawn round)
+# The frame PCB hangs from the top plate on M2 standoffs at its side margins
+FRAME_MOUNT_INSET = 3.0    # hole center from the frame PCB's side edge
+FRAME_MOUNT_Y = (8.0, -12.0)
+FRAME_MOUNT_HOLE_D = 2.2   # M2 clearance
 
 # --- Drawing ----------------------------------------------------------------
 EXPLODE = 22.0

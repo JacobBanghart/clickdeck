@@ -10,12 +10,14 @@ Status: ❓ open · ⚠️ risk to watch · ✅ answered
 
 | | Question | How we answer it | Affects |
 |---|---|---|---|
-| ❓ | Is the 7B's 3-pin sensor connector GPIO6? (Inferred from a forum post, not from Waveshare's pin tables) | Waveshare 7B schematic, or a multimeter on the real board | Knob board reset line ([pcb.md](pcb.md)) |
+| ✅ | Is the 7B's 3-pin sensor connector GPIO6? **Yes**: J8 = 3V3, GND, GPIO6 (schematic, 2026-10-17) | — | [wiring.md](wiring.md) |
 | ❓ | Does the TMC6300 have built-in break-before-make, so one inverter can derive its low-side inputs (3-PWM plan A)? | TMC6300 datasheet; then test on the Rev 0 knob module | Driver choice, RP2350B pin budget |
 | ⚠️ | TMC6300 stock at JLC (an "extended" part, seen out of stock) | Check the JLC parts library right before each order | Plan A vs DRV8316 plan B |
 | ❓ | Mitoot 2204's real bolt pattern, height and KV (sellers disagree) | Calipers when the motor arrives | Knob board holes, `params.py` |
 | ❓ | Can an RP2350B bootloader update reliably over the UART link from the ESP32-S3? | Prototype firmware | Knob board flashing ([plan.md](plan.md)) |
-| ❓ | Read the USB-C current advertisement on the display board, or on our own board? | Waveshare 7B schematic (CC line wiring) | Power budget |
+| ✅ | Can we read the PC's USB-C current offer? **No**: the 7B's CC pins have fixed 5.1 kΩ pulldowns. Default 500 mA motor budget, user setting to raise it, brownout guard on the 5 V input ([wiring.md](wiring.md)) | — | Power budget |
+| ⚠️ | B3U-1000P (LCSC C231329) is marked "not recommended for new designs"; ~33k in stock (2026-10-17) | Check stock before ordering; find a same-size alternative before the full build | Key switches |
+| ❓ | Real thickness of the 7B (panel + standoffs + tallest part under its board). The model assumes 5.7 + 3 + 1.6 + 5 mm, leaving 1.3 mm above the case floor | Calipers on a real 7B | Case height (`params.py`) |
 
 ## Answered by the prototype
 

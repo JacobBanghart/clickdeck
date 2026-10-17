@@ -78,8 +78,9 @@ knob feel, the press, and Plan A (TMC6300 + inverter) driven by the ESP32-S3
 dev board.
 
 ### Rev A: prototype frame PCB
-Two key windows + one knob-display window, B3U switches.
-Outline: `proto_frame_pcb_outline.dxf`.
+Two key windows + one knob-display window, B3U switches. **Generated** from
+the CAD: see [hardware/README.md](../hardware/README.md) (DRC clean,
+untested).
 
 ## Workflow per board
 1. Schematic in KiCad; run ERC.

@@ -73,6 +73,9 @@ def main():
     export_dxf(pinfo["plate_sketch"], str(OUT / "proto_top_plate_3mm_acrylic.dxf"))
     export_dxf(pinfo["base_sketch"], str(OUT / "proto_base_plate_3mm_acrylic.dxf"))
     export_dxf(info["knob_board_sketch"], str(OUT / "full_knob_board_outline.dxf"))
+    # PCB geometry for the KiCad generators in hardware/ (mm, CAD coordinates, y up)
+    import json
+    (OUT / "proto_frame_pcb.json").write_text(json.dumps(pinfo["frame_pcb"], indent=1) + "\n")
     export_dxf(pinfo["knob_board_sketch"], str(OUT / "proto_knob_module_outline.dxf"))
 
     # Case parts as printable STLs (flat model: tray and plate print face-down/up as-is)
