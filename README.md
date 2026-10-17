@@ -4,7 +4,38 @@ A custom Stream Deck–style USB controller: per-key images, real clicky micro
 switches, and motor-driven knobs that switch between clicky and smooth in
 software.
 
-![Full device](cad/out/full_iso.png)
+![Full device](cad/out/freecad_three_quarter.png)
+
+## Why not just buy a Stream Deck + XL?
+
+What this adds:
+- **Programmable knobs.** Each knob switches per function between clicky,
+  smooth, a set number of clicks, or hard end stops, and can push back
+  (a tick at a preset, a nudge for attention). Stream Deck dials have one
+  fixed feel.
+- **Clicky keys.** Micro switches instead of soft rubber pads.
+- **Open and Linux-first.** Open hardware, open USB protocol, your own
+  firmware. No vendor app or account.
+
+What the + XL does better: it's polished and ready today, has a huge plugin
+library, 36 keys plus a touch strip, and costs about the same or less (see
+below). Build this for the knobs and the switch feel; if those don't matter,
+buy the + XL.
+
+## Cost (rough estimates)
+
+| | ~Cost |
+|---|---|
+| Prototype (2 keys + 1 knob) | $90–145 |
+| Full device (21 keys + 5 knobs) | $260–470 |
+| One PCB redo | $30–60 |
+| **All-in** | **$380–675** |
+| Stream Deck + XL, for comparison | ~$350 |
+
+Breakdown: [docs/cost.md](docs/cost.md). The prototype tests the two things
+that matter (knob feel, switch feel) before you spend the rest.
+
+## Design
 
 | Exploded | Key profile (cap, tab, switch) |
 |---|---|
@@ -16,6 +47,7 @@ Prototype (2 keys + 1 knob, laser-cut acrylic):
 
 - [docs/plan.md](docs/plan.md): goals, architecture, and the staged build plan
 - [docs/parts.md](docs/parts.md): prototype parts list with links
+- [docs/cost.md](docs/cost.md): cost breakdown
 - [docs/pcb.md](docs/pcb.md): how the PCBs get designed and ordered
 - [cad/](cad/): parametric CAD (build123d). STEP files for FreeCAD/Fusion 360 in `cad/out/`
 
