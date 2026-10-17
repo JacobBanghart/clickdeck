@@ -1,5 +1,15 @@
 # clickdeck
 
+> [!CAUTION]
+> **This is AI-generated and completely untested.** Nothing here has been
+> built, assembled, flashed or measured: not the CAD, not the PCBs, not the
+> parts list, not the costs. It was produced by an AI assistant
+> (Claude) during planning conversations, and it will contain mistakes.
+> Treat every dimension, part number, price and claim as a guess until it's
+> verified on real hardware. Don't order anything based on this without
+> checking it yourself.
+
+
 A custom Stream Deck–style USB controller: per-key images, real clicky micro
 switches, and motor-driven knobs that switch between clicky and smooth in
 software.
