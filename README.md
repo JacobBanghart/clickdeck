@@ -63,6 +63,10 @@ presses a switch underneath; motors lifted to show the tongues:
 - [docs/parts.md](docs/parts.md): prototype parts list with links
 - [docs/cost.md](docs/cost.md): cost breakdown
 - [docs/lessons.md](docs/lessons.md): lessons from related projects, so we don't relearn them
+- [docs/wiring.md](docs/wiring.md): power path, connector pinouts, key matrix, pin budget
+- [docs/knob-module.md](docs/knob-module.md): Rev 0 knob module netlist, parts and design notes
+- [docs/protocol.md](docs/protocol.md): USB protocol draft and the internal link
+- [hardware/](hardware/): KiCad boards generated from the CAD
 - [docs/open-questions.md](docs/open-questions.md): what's unverified, and how/when it gets answered
 - [docs/prototype-tests.md](docs/prototype-tests.md): pass/fail tests for the prototype
 - [docs/pcb.md](docs/pcb.md): how the PCBs get designed and ordered

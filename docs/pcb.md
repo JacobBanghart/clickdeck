@@ -75,7 +75,7 @@ together.
 One tongue of the knob board: MT6701, motor driver, B3U press switch, same
 tongue/hinge geometry. Outline: `proto_knob_module_outline.dxf`. It tests the
 knob feel, the press, and Plan A (TMC6300 + inverter) driven by the ESP32-S3
-dev board.
+dev board. Netlist, parts and design notes: [knob-module.md](knob-module.md).
 
 ### Rev A: prototype frame PCB
 Two key windows + one knob-display window, B3U switches. **Generated** from

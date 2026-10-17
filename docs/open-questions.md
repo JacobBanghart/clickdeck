@@ -11,7 +11,7 @@ Status: ❓ open · ⚠️ risk to watch · ✅ answered
 | | Question | How we answer it | Affects |
 |---|---|---|---|
 | ✅ | Is the 7B's 3-pin sensor connector GPIO6? **Yes**: J8 = 3V3, GND, GPIO6 (schematic, 2026-10-17) | — | [wiring.md](wiring.md) |
-| ❓ | Does the TMC6300 have built-in break-before-make, so one inverter can derive its low-side inputs (3-PWM plan A)? | TMC6300 datasheet; then test on the Rev 0 knob module | Driver choice, RP2350B pin budget |
+| ✅ | Does the TMC6300 have built-in break-before-make, so one inverter can derive its low-side inputs (3-PWM plan A)? **Yes** (datasheet: "Internal break-before-make (BBM) logic ensures that no cross-conduction occurs"). Catch: in standby no input may be high, so the inverter is powered from the standby pin ([knob-module.md](knob-module.md)). Still verify on the Rev 0 module | — | Driver choice |
 | ⚠️ | TMC6300 stock at JLC (an "extended" part, seen out of stock) | Check the JLC parts library right before each order | Plan A vs DRV8316 plan B |
 | ❓ | Mitoot 2204's real bolt pattern, height and KV (sellers disagree) | Calipers when the motor arrives | Knob board holes, `params.py` |
 | ❓ | Can an RP2350B bootloader update reliably over the UART link from the ESP32-S3? | Prototype firmware | Knob board flashing ([plan.md](plan.md)) |
