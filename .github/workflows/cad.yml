@@ -1,0 +1,33 @@
+name: CAD
+
+on:
+  push:
+    paths: ["cad/**", ".github/workflows/cad.yml"]
+  pull_request:
+    paths: ["cad/**", ".github/workflows/cad.yml"]
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          cache: pip
+          cache-dependency-path: cad/requirements.txt
+
+      - name: Install pinned CAD toolchain
+        run: pip install -r cad/requirements.txt
+
+      - name: Build models (fail on fit warnings)
+        run: python cad/build.py --no-render --strict
+
+      - name: Check committed outputs are up to date
+        # STEP/DXF files embed timestamps, so compare the deterministic summary.
+        run: |
+          git diff --exit-code cad/out/summary.md || {
+            echo "::error::cad/out/summary.md is stale. Run 'python cad/build.py' and commit cad/out/."
+            exit 1
+          }

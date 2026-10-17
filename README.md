@@ -53,11 +53,16 @@ presses a switch underneath; motors lifted to show the tongues:
 - [docs/parts.md](docs/parts.md): prototype parts list with links
 - [docs/cost.md](docs/cost.md): cost breakdown
 - [docs/lessons.md](docs/lessons.md): lessons from related projects, so we don't relearn them
+- [docs/open-questions.md](docs/open-questions.md): what's unverified, and how/when it gets answered
+- [docs/prototype-tests.md](docs/prototype-tests.md): pass/fail tests for the prototype
 - [docs/pcb.md](docs/pcb.md): how the PCBs get designed and ordered
 - [cad/](cad/): parametric CAD (build123d). STEP files for FreeCAD/Fusion 360 in `cad/out/`
 
-Status (2026-10-16): planning and CAD. Next step is reviewing the models,
-then ordering the prototype parts.
+Status (2026-10-17): design and CAD done for the prototype stage. Next:
+order the prototype parts ([docs/parts.md](docs/parts.md)), write the
+protocol spec and prototype firmware. Open items:
+[docs/open-questions.md](docs/open-questions.md); pass/fail criteria:
+[docs/prototype-tests.md](docs/prototype-tests.md).
 
 ## Related projects
 

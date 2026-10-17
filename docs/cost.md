@@ -36,19 +36,19 @@ PCB minimums, assembly setup fees and shipping get shared: the PCBs drop to
 roughly half per unit, and one shipment covers everyone. The display board,
 motors, caps and case stay about the same per unit.
 
-## Development cost (the designer's, not a builder's): ~$330–550
+## Development cost (the designer's, not a builder's): ~$340–570
 
 | | ~Cost |
 |---|---|
-| Prototype (2 keys + 1 knob, see below) | $95–150 |
+| Prototype (2 keys + 1 knob, see below) | $105–170 |
 | Full device | $205–340 |
 | One PCB redo | $30–60 |
 
-## Prototype (2 keys + 1 knob): ~$95–150
+## Prototype (2 keys + 1 knob): ~$105–170
 
 | Item | ~Cost |
 |---|---|
-| AliExpress order: ESP32-S3 board, 2.4" screen, 2× 2204 motors, magnets, switches, touch test kit, breadboard, calipers | $45–60 |
+| AliExpress order: ESP32-S3 board, 2.4" screen, 2× 2204 motors, magnets, switches, touch test kit, breadboard, test tools (calipers, USB power meter, scale) | $55–80 |
 | JLC knob module (MT6701 + TMC6300 + press switch, assembled) | $20–30 |
 | Laser-cut acrylic plates, frame PCB, clear caps (stage 4) | $30–60 |
 

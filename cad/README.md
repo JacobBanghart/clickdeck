@@ -56,3 +56,12 @@ xvfb-run -a -s "-screen 0 1920x1080x24" \
 
 Writes `freecad_three_quarter.png`, `freecad_front.png`, `freecad_side.png`.
 To open the model interactively: `~/Applications/freecad/squashfs-root/AppRun cad/out/clickdeck_full.step`.
+
+## Checks
+
+GitHub Actions ([`.github/workflows/cad.yml`](../.github/workflows/cad.yml))
+rebuilds the models on every change to `cad/` with the pinned toolchain in
+`requirements.txt`, and fails if:
+- any fit check warns (`--strict`), or a case part doesn't fit the print bed
+- `out/summary.md` doesn't match the committed one (outputs weren't rebuilt
+  and committed after a parameter change)

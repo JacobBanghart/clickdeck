@@ -2,6 +2,7 @@
 
     .venv/bin/python cad/build.py            # STEP + DXF + STL + previews
     .venv/bin/python cad/build.py --no-render
+    .venv/bin/python cad/build.py --no-render --strict   # fail on fit warnings (CI)
 
 Outputs go to cad/out/:
   *.step      full assemblies with colors; open in FreeCAD or Fusion 360
@@ -119,6 +120,11 @@ def main():
     lines += ["## Printing (case parts)", *print_lines, ""]
     (OUT / "summary.md").write_text("\n".join(lines))
     print("\n".join(lines))
+    problems = [w for lay in (L, PL) for w in lay.warnings]
+    problems += [p for p in print_lines if "DOES NOT FIT" in p]
+    if problems and "--strict" in sys.argv:
+        print(f"\n--strict: {len(problems)} problem(s), failing", file=sys.stderr)
+        sys.exit(1)
     print(f"exports done in {time.time() - t0:.1f}s")
 
     if render_on:

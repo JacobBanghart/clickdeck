@@ -368,7 +368,8 @@ def full_layout() -> Layout:
     strip_top = P.AA_H / 2 - P.KEY_ROWS * P.KEY_PITCH
     strip_bot = -P.AA_H / 2
     strip_h = strip_top - strip_bot
-    win = (min(P.KNOB_WIN[0], P.AA_W / P.KNOBS - 3), min(P.KNOB_WIN[1], strip_h - 4))
+    # Clamp so impossible layouts still build and report a warning instead of crashing
+    win = (min(P.KNOB_WIN[0], P.AA_W / P.KNOBS - 3), max(min(P.KNOB_WIN[1], strip_h - 4), 4.0))
     knob_pitch = P.AA_W / P.KNOBS
     win_y = (strip_top + strip_bot) / 2
     wins = [((k - (P.KNOBS - 1) / 2) * knob_pitch, win_y) for k in range(P.KNOBS)]
@@ -543,7 +544,7 @@ def prototype() -> tuple[list[Item], Layout, dict]:
     strip_top = ah / 2 - P.KEY_PITCH
     strip_bot = -ah / 2
     strip_h = strip_top - strip_bot
-    win = (P.KNOB_WIN[0], min(P.KNOB_WIN[1], strip_h - 3.7))
+    win = (P.KNOB_WIN[0], max(min(P.KNOB_WIN[1], strip_h - 3.7), 4.0))
     wins = [(0.0, (strip_top + strip_bot) / 2)]
     knob_y = min(-gh / 2 - P.INNER_CLEAR, touch_bar_floor(wins[0][1], win[1])) - P.MOTOR_D / 2
     knobs = [(0.0, knob_y)]

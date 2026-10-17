@@ -6,7 +6,7 @@ module, assembled). Prices are rough estimates from 2026-10-16; check
 listings before ordering. The AliExpress links below are searches. Pick a
 listing with good ratings and a clear pinout photo.
 
-## Order 1 — AliExpress (~$40–55)
+## Order 1 — AliExpress (~$55–80)
 
 | Qty | Part | ~Price | Search |
 |---|---|---|---|
@@ -20,6 +20,8 @@ listing with good ratings and a clear pinout photo.
 | 1 | Breadboard + jumper wire kit, machined female header strip | $4–6 | [breadboard jumper kit](https://www.aliexpress.us/w/wholesale-breadboard-jumper-wire-kit.html) |
 | 1 | MPR121 capacitive touch breakout (12 electrodes, I²C) + a roll of copper tape, to test the touch band: tape electrodes under the acrylic top plate | $3–6 | [mpr121 module](https://www.aliexpress.us/w/wholesale-mpr121-module.html), [copper foil tape](https://www.aliexpress.us/w/wholesale-copper-foil-tape.html) |
 | 1 | Digital calipers (to measure the motor bolt pattern) | $8–15 | [digital caliper](https://www.aliexpress.us/w/wholesale-digital-caliper.html) |
+| 1 | USB-C power meter (inline, shows volts/amps), to measure knob current for the power budget | $8–15 | [usb c power meter](https://www.aliexpress.us/w/wholesale-usb-c-power-meter.html) |
+| 1 | 0.1 g kitchen/jewelry scale, to measure press force on keys and knob | $5–10 | [0.1g digital scale](https://www.aliexpress.us/w/wholesale-0.1g-digital-scale.html) |
 
 Notes
 - Generic displays and ESP32 clones differ in pin order. Wire from the
@@ -32,7 +34,9 @@ Notes
 - Power the motor with short, thick leads straight from the supply, not
   through breadboard jumpers ([lessons.md](lessons.md) #2).
 - MT6701 breakouts often default to ABZ/I²C mode; set the mode pad for SSI.
-- Skip the breadboard/calipers if you already have them.
+- Skip the breadboard, calipers, power meter or scale if you already have
+  them. The meter and scale are for the pass/fail tests in
+  [prototype-tests.md](prototype-tests.md).
 
 ## Order 2 — JLCPCB knob module (~$20–30, after the motor arrives)
 
@@ -78,9 +82,10 @@ Add to a later JLC order so it ships together:
   local makerspace).
 
 ## Rough total
-AliExpress ~$40–55 + JLC knob module ~$20–30 ≈ **$60–85** for the working
-electronics, plus roughly $30–60 later for plates, frame PCB and caps
-(stage 4). Estimates; get real quotes from the generated files.
+AliExpress ~$55–80 (including test tools) + JLC knob module ~$20–30 ≈
+**$75–110** for the working electronics, plus roughly $30–60 later for
+plates, frame PCB and caps (stage 4). Estimates; get real quotes from the
+generated files.
 
 ## Sequence
 1. Order 1 now.
@@ -88,4 +93,5 @@ electronics, plus roughly $30–60 later for plates, frame PCB and caps
 3. Motor arrives → measure bolt pattern → finish knob PCB layout → Order 2.
 4. While the PCB is being made: screen + switches + USB working on the
    breadboard (stages 1–2).
-5. Knob module arrives → stage 3 (clicky/smooth/stops).
+5. Knob module arrives → stage 3 (clicky/smooth/stops, press, current).
+6. Run the tests in [prototype-tests.md](prototype-tests.md) and decide.

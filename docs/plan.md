@@ -150,7 +150,7 @@ band 10 mm tall.
 ## Stages (test board: 2 keys + 1 knob)
 
 1. **Images over USB:** a Python script sends an image to a key area on the
-   2" screen.
+   2.4" screen.
 2. **Switches:** a press sends an HID event; the PC reacts by changing that
    key's image.
 3. **Knob:** on the Rev 0 knob module (MT6701 + TMC6300 + press switch on
