@@ -24,33 +24,43 @@ What this adds:
   (a tick at a preset, a nudge for attention). They also press to click.
   Stream Deck dials have one fixed feel.
 - **Clicky keys.** Micro switches instead of soft rubber pads.
+- **Set up in the browser, works anywhere.** A VIA-style web configurator
+  (Chrome/Edge, over WebUSB) sets the key layout, shortcuts and macros,
+  knob feel, images and firmware, and stores everything on the device. After
+  that it works on any computer with no software installed. A small
+  optional daemon adds live integrations: changing images, app state,
+  scripts ([docs/configurator.md](docs/configurator.md)).
 - **Open and Linux-first.** Open hardware, open USB protocol, your own
-  firmware. Works with [OpenDeck](https://github.com/nekename/OpenDeck),
-  which runs Stream Deck plugins, so you aren't starting from zero.
+  firmware, and an easy way back to factory
+  ([docs/recovery.md](docs/recovery.md)).
 
 Like the + XL, it has a touch band under the knob displays for taps and
 swipes.
 
-What the + XL does better: it's polished and ready today, has 36 keys, its
-plugins all just work (some won't through OpenDeck), and it costs about the
-same or less (see below). Build this for the knobs and the switch feel; if
-those don't matter, buy the + XL.
+What the + XL does better: it's polished and ready today, has 36 keys and
+6 dials, has a big plugin library (clickdeck has none; OpenDeck or
+Companion clients may come later), and it **costs less** (see below).
+Build this for the knobs and the switch feel; if those don't matter, buy
+the + XL.
 
 ## Cost (rough estimates)
 
 | | ~Cost |
 |---|---|
-| **Build one, with your own 3D printer** | **$300–450** |
-| Build one, case ordered from JLC3DP | $330–525 |
-| Per unit, 5 people ordering together | $195–370 |
+| **Build one, with your own 3D printer** | **$375–575** |
+| Build one, case ordered from JLC3DP | $410–650 |
+| Per unit, 5 people ordering together | $250–475 |
 | Stream Deck + XL (36 keys, 6 dials), for comparison | ~$350 |
 
-Covers parts, PCBs (JLC's 5-board minimum and 2-board assembly minimum
-included), prints, ready-made internal cables and shipping, in two orders:
-JLC (all PCBs in one panel, plus prints) and AliExpress/Waveshare. No
-soldering or crimping: JLC fits every part, and every cable inside plugs in.
-After the display, the biggest costs are the motors, JLC's fees and the
-motor drivers (10 chips, since JLC assembles at least 2 knob boards).
+**A single build costs more than a Stream Deck + XL.** Cost isn't what this
+project optimizes, but the numbers try to be honest. They cover parts, PCBs
+(JLC's 5-board minimum and 2-board assembly minimum included), prints,
+ready-made internal cables, shipping and **US import duty** (the de minimis
+exemption is gone; JLC's DDP duty is about 35% typical), in two orders:
+JLC (all PCBs in one panel, plus prints) and AliExpress/Waveshare. Get a
+real JLC quote before ordering. No crimping, and the goal is no soldering:
+JLC fits every part, and every cable inside plugs in. The biggest costs
+are the display board, the motors, JLC's fees and the duty.
 Breakdown: [docs/cost.md](docs/cost.md); every part: [docs/bom.md](docs/bom.md).
 
 ## Design
@@ -76,20 +86,23 @@ in ([docs/wiring.md](docs/wiring.md)):
 
 ![Cabling](cad/out/cabling.png)
 
-Knob board (one PCB, five knobs). Each knob sits on a hinged tongue that
-presses a switch underneath; motors lifted to show the tongues:
+Knob board (one PCB, five knobs, every part on the top side). Each knob
+sits on a hinged tongue; pressing it pushes an arm on the motor spacer onto
+a switch on the board's front border. Motors lifted to show the tongues:
 
 ![Knob board](cad/out/knob_board_detail.png)
 
 - [docs/assembly.md](docs/assembly.md): assembly and service guide, with pictures and an animation (generated from the CAD)
 - [docs/plan.md](docs/plan.md): goals, architecture, and the staged build plan
-- [docs/parts.md](docs/parts.md): prototype parts list with links
+- [docs/parts.md](docs/parts.md): prototype parts list with links (prototype on the real 7B)
 - [docs/cost.md](docs/cost.md): cost breakdown
 - [docs/bom.md](docs/bom.md): full-build bill of materials (generated from the CAD)
 - [docs/lessons.md](docs/lessons.md): lessons from related projects, so we don't relearn them
 - [docs/wiring.md](docs/wiring.md): power path, cables and connectors, strain relief, key matrix, pin budget
 - [docs/knob-module.md](docs/knob-module.md): Rev 0 knob module netlist, parts and design notes
-- [docs/protocol.md](docs/protocol.md): USB protocol draft (two USB devices behind a hub)
+- [docs/configurator.md](docs/configurator.md): web configurator, optional host daemon, Linux udev rule
+- [docs/recovery.md](docs/recovery.md): recovery and factory reset (start here if something's stuck)
+- [docs/protocol.md](docs/protocol.md): USB protocol draft (two USB devices behind a hub, WebUSB)
 - [hardware/](hardware/): KiCad boards generated from the CAD
 - [docs/open-questions.md](docs/open-questions.md): what's unverified, and how/when it gets answered
 - [docs/prototype-tests.md](docs/prototype-tests.md): pass/fail tests for the prototype
@@ -99,8 +112,11 @@ presses a switch underneath; motors lifted to show the tongues:
 Status (2026-10-17): design stage, nothing built. Done on paper: CAD for
 the full device and prototype (real Waveshare 7B dimensions), prototype
 frame PCB (generated, DRC clean), Rev 0 knob module spec, wiring/power spec
-(internal USB hub, plug-in cables only), USB protocol draft. Next: order prototype parts ([docs/parts.md](docs/parts.md)),
-draw the knob module schematic, prototype firmware. Open items:
+(internal USB hub, plug-in cables only), USB protocol draft, design review
+with the owner's decisions ([docs/design-review.md](docs/design-review.md)).
+Next: order prototype parts ([docs/parts.md](docs/parts.md)), draw the knob
+module and Rev 0.5 test board schematics, prototype firmware and the web
+configurator. Open items:
 [docs/open-questions.md](docs/open-questions.md); pass/fail criteria:
 [docs/prototype-tests.md](docs/prototype-tests.md).
 
@@ -118,8 +134,10 @@ These cover parts of it:
 | Elgato Stream Deck Module 6/15/32 | rubber pads | ✓ | ✗ | Commercial LCD-key component, for comparison |
 | [HAW Hamburg thesis (2026)](https://reposit.haw-hamburg.de/bitstream/20.500.12738/19952/1/BA_Entwicklung_eines_haptischen_Controllers.pdf) | Stream Deck module | ✓ | potentiometers | Similar goal, no haptics |
 
-Software it builds on: [OpenDeck](https://github.com/nekename/OpenDeck) (runs
-Stream Deck plugins), [SimpleFOC](https://simplefoc.com) (motor control).
+Software it builds on: [SimpleFOC](https://simplefoc.com) (motor control),
+[esptool-js](https://github.com/espressif/esptool-js) (flashing the ESP32-S3
+from the browser). The configurator follows the idea of
+[VIA](https://www.caniusevia.com/) for keyboards.
 
 ## License
 

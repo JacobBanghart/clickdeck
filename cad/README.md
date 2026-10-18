@@ -19,20 +19,22 @@ the motor diameter.
 | File | Use |
 |---|---|
 | `clickdeck_full.step` | Full device, every part named and colored. Open in FreeCAD or Fusion 360 |
-| `clickdeck_proto.step` | 2-key + 1-knob prototype |
+| `clickdeck_proto.step` | 2-key + 1-knob prototype on the real 7B, with the Rev 0.5 test board's outline |
 | `key_cutaway.step` | One key cut in half, to inspect the cap/tab/switch stack |
 | `*_frame_pcb_outline.dxf` | Board outline with key windows. KiCad: File → Import → Graphics, layer Edge.Cuts |
 | `full_knob_board_outline.dxf`, `proto_knob_module_outline.dxf` | Knob board outlines with the tongue slots |
 | `full_usb_board_outline.dxf` | USB board (hub) outline |
 | `full_touch_band_outline.dxf` | Touch band outline (stops short of the frame PCB's ZIF) |
+| `proto_rev05_board_outline.dxf` | Rev 0.5 test board outline (RP2350B + CH334F + touch + connectors; no layout yet) |
 | `cabling.png` | Top view of the internal cabling, display and top plate removed |
-| `print_case_tray.stl`, `print_top_plate.stl`, `print_stand.stl` | Case parts for a home printer (fit a 256 mm bed) or JLC3DP, in print orientation (plate face-down). PETG or ASA |
+| `print_case_tray.stl`, `print_top_plate.stl`, `print_stand.stl` | Case parts for a home printer (fit a 256 mm bed) or JLC3DP, in print orientation (plate face-down). PETG; M3 heat-set inserts in the plate's posts |
 | `print_plate_prop.stl` | Tool: two of these hold the top plate 40 mm up while its cables are plugged in |
 | `print_fit_coupon.stl` | Print first: cap hole, magnet pocket and hub bore at -0.1/0/+0.1 mm; set `HOLE_COMP` from it |
 | `proto_*_plate_3mm_acrylic.dxf` | Laser-cut plates for the prototype (SendCutSend/Ponoko) |
 | `full_top_plate.dxf` | Top plate outline for the full device |
-| `key_cap_clear_resin.stl`, `knob_window.stl` | Clear resin (SLA) parts: key caps, knob-window covers (JLC3DP) |
-| `knob.stl`, `knob_hub.stl`, `motor_spacer.stl` | Knob cap, hub (screws to the bell), motor spacer ring |
+| `key_cap_clear_resin.stl`, `knob_window.stl` | Clear resin (SLA) parts: key caps (one nub; rails and lugs underneath are the down-stop), knob-window covers (JLC3DP) |
+| `key_cap_two_nub_clear_resin.stl` | Prototype cap with a nub at both ends, for the two-switch test (D8) |
+| `knob.stl`, `knob_hub.stl`, `motor_spacer.stl` | Knob cap, hub (screws to the bell), motor spacer ring (its arm carries the press striker) |
 | `full_side.png`, `full_face.png` | Side profile and straight-on view of the angled device |
 | `*.png` | Quick previews from a small CPU renderer (`render.py`) |
 
@@ -42,6 +44,8 @@ the motor diameter.
 - `model.py`: parts and assemblies. The vertical stack is derived from the knob motor height,
   and the key stack hangs from the top plate (`make_stack`).
 - `build.py`: exports and previews.
+- `keystack.py`: key stack checks (D8): the worst cap drop for any press (a small linear
+  program over the cap's tilt) and the frame PCB's flex at each switch (a grillage model).
 - `render.py`: preview renderer (no GPU needed).
 
 ## Coordinates
@@ -72,7 +76,9 @@ tips), minimum gaps between mating parts, nothing floating, nothing hitting the
 stand or below the desk in the tilted model, every screw reachable
 with a straight screwdriver at its step, the top plate, display and knob
 board lift out in order, a paperclip reaches the display board's
-BOOT/RESET through the back wall, every plug (modeled at full size,
+BOOT/RESET through the back wall and the knob board's BOOTSEL through the
+floor, every cap's down-stop lands on the frame PCB and no press (plus the
+frame's flex at 3 N) brings a cap within 0.1 mm of the glass, every plug (modeled at full size,
 overmolds included) slides straight into its socket at the step that
 connects it, cables don't run through parts, and the top plate's cables
 reach with the plate lifted 40 mm. Cable bends below the minimum radius are

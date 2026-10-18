@@ -16,6 +16,9 @@ Checks:
   step that installs it
 - service: the top plate, display and knob board lift out in that order;
   a paperclip reaches the display board's BOOT/RESET through the back wall
+  and the knob board's BOOTSEL through the floor
+- key stack (D8): every cap's down-stop lands on the frame PCB, and the worst
+  cap drop plus the frame PCB's flex at a firm press stays short of the glass
 - plug insertion: every plug has a straight path into its socket at the step
   that connects it (like the screwdriver check)
 - cables: no cable runs through a part (motor bells included); the cables
@@ -66,7 +69,8 @@ class Step:
     fixed: tuple = ()                  # labels (prefixes) that are new but don't move
 
 
-KNOB_SUB = starts("knob_board_pcb", "knob_board_rp2040", "knob_board_conn", "cable_motor")
+KNOB_SUB = starts("knob_board_pcb", "knob_board_rp2350b", "knob_board_conn", "knob_board_bootsel",
+                  "cable_motor")
 
 
 def knob_sub(lb):
@@ -75,22 +79,25 @@ def knob_sub(lb):
 
 
 GH_LINK = starts("plug_usb_board_gh", "plug_knob_gh", "cable_usb_knob_gh")
-DISPLAY_CABLE = starts("plug_display_usb", "plug_usb_board_display", "cable_usb_display")
+DISPLAY_CABLE = starts("plug_display_usb", "plug_usb_board_display", "cable_usb_display",
+                       "plug_display_j8", "plug_knob_hy", "cable_hy_link")
 TOP_SUB = starts("top_plate", "cap_", "frame_pcb", "switch_", "touch_bar", "knob_window",
                  "cable_keys", "cable_touch", "plug_ffc", "plug_touch_band", "plug_knob_touch")
 # Plugs that stay on the knob board when the top plate lifts (their cable comes with the plate)
 KNOB_SIDE = ("plug_ffc_knob", "plug_knob_touch")
 
 STEPS = [
-    Step("tray", "Print the case; fit magnets, feet and press strikers",
-         "Print the tray, top plate and stand (all fit a 256 mm bed) in PETG or ASA, 4 walls, "
+    Step("tray", "Print the case; fit magnets, feet and inserts",
+         "Print the tray, top plate and stand (all fit a 256 mm bed) in PETG, 4 walls, "
          "≥25% infill (100% over the touch band area of the top plate; no carbon- or "
-         "metal-filled filament). Glue the four tray magnets into the pockets underneath. "
-         "Stick the two rubber feet near the front edge (for flat use; on the stand they sit "
-         "in pockets). Thread an M2×3 set screw up through each of the five holes under the "
-         "knob press switches until its tip stands ~0.4 mm above the floor: these are the "
-         "press strikers, set finally during calibration (step 4).",
-         starts("case_tray", "magnet_tray", "foot_front", "striker"), move=(0, 0, -25), view=(-60, -30),
+         "metal-filled filament). PLA softens in the case's ~2.3 W of heat. Glue the four "
+         "tray magnets into the pockets underneath. Stick the two rubber feet near the front "
+         "edge (for flat use; on the stand they sit in pockets). With a soldering iron "
+         "(insert tip, ~240 °C), press an M3 heat-set insert "
+         f"({P.INSERT_M3[0]:g} mm hole, {P.INSERT_M3[1]:g} mm long) into the bottom end of "
+         "each of the top plate's four posts, flush with the end: the case screws go into "
+         "these, so they survive being undone for every service.",
+         starts("case_tray", "magnet_tray", "foot_front"), move=(0, 0, -25), view=(-60, -30),
          fixed=("case_tray",)),
     Step("usb_board", "Screw in the USB board",
          "Lower the USB board into the back-left corner, external USB-C socket first: the "
@@ -105,12 +112,15 @@ STEPS = [
          "the motor, so the magnet sits within 0.3 mm of the sensor axis), put the motor on it "
          "with its lead pointing back, and drive four M2×8 screws up from under the tongue into "
          "the motor base. Never use longer screws: a tip past the base's thread can short a "
-         "winding. Screw a printed hub onto each bell with four M2×3 countersunk screws (its "
-         "spigot centers it in the shaft bore). Plug each motor's 3-pin plug onto the header behind "
-         "its tongue (any way round: the firmware finds the phase order), coil the spare "
-         "lead flat on the back strip and strap it through the two slots with a hook-and-loop "
-         "tie. Keep the lead clear of the bell. Calibrate each knob now, before it's buried "
-         "in the case.",
+         "winding. The spacer's arm reaches forward over the slot to above the knob's press "
+         "switch on the board's front border: thread an M2×3 set screw (the striker) down "
+         "through the arm's tip. Screw a printed hub onto each bell with four M2×3 countersunk "
+         "screws (its spigot centers it in the shaft bore). Plug each motor's 3-pin plug onto "
+         "the header behind its tongue (any way round: the firmware finds the phase order), coil "
+         "the spare lead flat on the back strip and strap it through the two slots with a "
+         "hook-and-loop tie. Keep the lead clear of the bell. Calibrate each knob now, before "
+         "it's buried in the case: turn its striker until the knob clicks after a light press "
+         "on the hub, then back it off a quarter turn.",
          knob_sub, move=(0, 0, 35), bench=True, view=(120, 40)),
     Step("knob_board", "Screw the knob board into the tray; plug in the USB link",
          "With the PC unplugged: lower the knob board in with its back strip resting on the "
@@ -118,8 +128,8 @@ STEPS = [
          "floor bosses (thread-forming, don't overtighten). Before the first power-up, check "
          "the JST-GH cable pin 1 to pin 1 with a meter. Plug it into the knob board's "
          "back-left corner and into the USB board (both click), and press it into its floor "
-         "clip. To set the press strikers, turn each set screw from below until the knob "
-         "clicks after a light press, then back it off a quarter turn.",
+         "clip. The BOOTSEL button on the board's left end sits over the small hole in the "
+         "floor (for recovery).",
          lambda lb: knob_sub(lb) or GH_LINK(lb), move=(0, 0, 40), view=(-60, 40),
          screw_view=(-60, 45)),
     Step("display", "Mount the display; plug in its USB cable",
@@ -130,7 +140,10 @@ STEPS = [
          "face, short of the LCD's back sheet: don't substitute longer screws). Plug the right-angle "
          "end of the USB-C cable into the display board's USB port (the one nearer the back; "
          "the cable points forward), loop it round in the bay and plug the straight end into "
-         "the USB board. Press the cable into its two floor clips, clear of the knob board.",
+         "the USB board. Press the cable into its two floor clips, clear of the knob board. "
+         "Optional GPIO6 link: before laying the panel down, plug the HY2.0 3-pin lead into the "
+         "3-pin header on the knob board's back edge, then into J8 on the display board's right "
+         "edge (check the silkscreen: J8 is the GPIO6 port).",
          lambda lb: lb.startswith(("display_board", "panel7")) or DISPLAY_CABLE(lb),
          move=(0, 0, 45), view=(-60, 35), screw_view=(-60, -35)),
     Step("top_plate_sub", "Build the top plate (on the bench)",
@@ -140,7 +153,10 @@ STEPS = [
          "tabs toward the front edge. Plug the key cable (FFC) into the frame PCB's ZIF "
          "connector (flip the latch up, slide the cable in, latch down), then fit the frame "
          "PCB over the plate's two locating pins (switches facing the caps) and screw it to "
-         "the bosses. Stick the touch band into its pocket under the plate, below the knob "
+         "the bosses: pan-head screws along the back and left edges (off the glass), "
+         "countersunk ones everywhere else (flush underneath, so nothing touches the glass). "
+         "Every key should click and none read pressed at rest: if one does, add a 0.1 mm "
+         "shim washer between the nearest bosses and the PCB. Stick the touch band into its pocket under the plate, below the knob "
          "display windows, with full-coverage 3M 467MP/468MP transfer tape (no air "
          "gaps), and plug the touch cable into it.",
          TOP_SUB, move=(0, 0, -35), bench=True, view=(-60, -40), screw_view=(-60, -40)),
@@ -152,7 +168,7 @@ STEPS = [
          "cable folds into the gap by the right wall, outside the fence next to knob 4. Take "
          "the props out and lower the top plate over the knob hubs (its tabs register it inside "
          "the walls). With the tray still on its blocks, drive the four M3 screws up from "
-         "underneath into its posts.",
+         "underneath into the inserts in its posts.",
          TOP_SUB, move=(0, 0, 50), view=(-60, 35), screw_view=(-60, -35)),
     Step("knobs", "Press on the knob caps",
          "Press each knob cap onto its hub. They pull straight off for service.",
@@ -194,9 +210,21 @@ def vol(a, b, _retry=True):
         v = r.volume if r is not None else 0.0
     except Exception:
         return 0.0
-    if v > 1e-6 and _retry and v > min(a.volume, b.volume) * 1.001 + 1e-6:
-        # OCC boolean glitch on a multi-solid part (seen on moved cables): retry solid by solid
-        return sum(vol(sa, b, False) for sa in a.solids())
+    if v > 1e-6 and _retry and (v > min(a.volume, b.volume) * 1.001 + 1e-6
+                                or any(sa.volume <= 0 for sa in a.solids())):
+        # OCC boolean glitch on a multi-solid part (seen on moved cables, and on the
+        # inverted slivers a cable fuse can leave at tight bends): retry solid by
+        # solid, skipping slivers with no positive volume
+        return sum(vol(sa, b, False) for sa in a.solids() if sa.volume > 1e-6)
+    if v > 1e-6 and not (a.is_valid and b.is_valid):
+        # Booleans on an invalid solid (a cable fuse can make one) can report volume for
+        # parts that don't even touch; confirm with the minimum distance. (Only for invalid
+        # shapes: for a solid nested inside another, distance_to measures between surfaces.)
+        try:
+            if a.distance_to(b) > 1e-3:
+                return 0.0
+        except Exception:
+            pass
     return v
 
 
@@ -294,13 +322,15 @@ GAPS = [
      "knob hubs (flange, column) ↔ top plate"),
     (("knob0_knob", "knob1_knob", "knob2_knob", "knob3_knob", "knob4_knob"), ("top_plate", "knob_window"),
      0.5, "knob caps ↔ top plate"),
-    (("knob0_press", "knob1_press", "knob2_press", "knob3_press", "knob4_press"), ("striker_",),
+    (tuple(f"knob{n}_press" for n in range(P.KNOBS)), tuple(f"knob{n}_striker" for n in range(P.KNOBS)),
      P.KNOB_PRESS_GAP - 0.05, "knob press switches ↔ strikers (set at calibration)"),
-    (("frame_pcb",), ("panel7_module",), P.GLASS_GAP - 0.01, "frame PCB ↔ glass (see D8)"),
-    (("cap_",), ("panel7_module",), P.GLASS_GAP - 0.01, "key caps ↔ glass (see D8)"),
-    (("touch_bar_pcb",), ("frame_pcb_zif", "frame_pcb"), 0.3, "touch band ↔ frame PCB and its ZIF"),
-    (("touch_bar_pcb",), ("knob0_motor", "knob1_motor", "knob2_motor", "knob3_motor", "knob4_motor"),
-     0.5, "touch band ↔ motor bells"),
+    (("frame_pcb",), ("panel7_module",), P.GLASS_GAP - 0.01, "frame PCB ↔ glass (D8)"),
+    (("cap_",), ("panel7_module",), P.GLASS_GAP - 0.01, "key caps ↔ glass, at rest (D8)"),
+    (("screw_frame_csk",), ("panel7_module",), P.GLASS_GAP - 0.01, "countersunk frame screws ↔ glass"),
+    (("screw_frame_pan",), ("panel7_module",), 0.5, "pan-head frame screws ↔ panel edge (off the glass)"),
+    *([(("touch_bar_pcb",), ("frame_pcb_zif", "frame_pcb"), 0.3, "touch band ↔ frame PCB and its ZIF"),
+       (("touch_bar_pcb",), ("knob0_motor", "knob1_motor", "knob2_motor", "knob3_motor", "knob4_motor"),
+        0.5, "touch band ↔ motor bells")] if P.TOUCH_BAR else []),
     (("display_board",), ("usb_board",), 0.5, "display board ↔ USB board"),
     (("display_board",), ("knob_board",), 0.5, "display board ↔ knob board"),
 ]
@@ -418,21 +448,75 @@ def check_lift(items, moving, staying, name, dz=(0.5, 2, 5, 10, 20, 40)):
 
 
 def check_pinholes(items, info):
+    """A 1 mm paperclip, straight in from outside the case, reaches each button
+    without touching anything else (back wall: BOOT/RESET; floor: BOOTSEL)."""
     by = {it.label: it for it in items}
     probs = []
-    for x, wall_y, z, name in info["pinholes"]:
-        oy1 = info["outer"][3]
-        reach = by["display_board_buttons"].part.bounding_box().max.Y
-        clip = Pos(x, (oy1 + 15 + reach) / 2, z) * Rot(X=90) * Cylinder(0.5, oy1 + 15 - reach)
+    for x, y, z, name, d, target, start in info["pinholes"]:
+        tb = by[target].part.bounding_box()
+        if d == (0, -1, 0):
+            end = tb.max.Y
+            clip = Pos(x, (start + end) / 2, z) * Rot(X=90) * Cylinder(0.5, start - end)
+        else:
+            end = tb.min.Z
+            clip = Pos(x, y, (start + end) / 2) * Cylinder(0.5, end - start)
         hits = [lb for lb, it in by.items()
-                if not lb.startswith(OVERLAYS + ("cable_",)) and lb != "display_board_buttons"
+                if not lb.startswith(OVERLAYS + ("cable_",)) and lb != target
                 and bbox_overlap(clip.bounding_box(), it.part.bounding_box())
                 and vol(clip, it.part) > 0.001]
         if hits:
             probs.append(f"paperclip to {name} blocked by {', '.join(hits)}")
-        if vol(Pos(0, -1.0, 0) * clip, by["display_board_buttons"].part) <= 0:
+        if vol(Pos(*d) * clip, by[target].part) <= 0:
             probs.append(f"paperclip through the {name} hole doesn't reach the button")
     return probs
+
+
+def check_keystack(items, info, nubs=1):
+    """D8: the cap's down-stop lands on the frame PCB after the switch trips, and no
+    press (any point, any tilt the plate allows) brings a cap within KEY_GLASS_MARGIN
+    of the glass, counting the frame PCB's flex at KEY_PRESS_DESIGN_N (grillage)."""
+    import keystack
+    from build123d import Rectangle
+    by = {it.label: it for it in items}
+    st, kf = info["stack"], info["key_frame"]
+    g = model.key_stop_geometry(nubs)
+    probs = []
+    drop = keystack.cap_max_drop(g)
+    defl = keystack.frame_deflection(kf["rect"], kf["key_xy"], model.PCB_WIN, kf["supports"], kf["loads"],
+                                     kf["knob_wins"], kf["knob_size"])
+    n_keys = len(kf["key_xy"])
+    per_key = [max(defl[i::n_keys]) for i in range(n_keys)]       # a key's worst switch (2-switch proto)
+    cap0, (kx0, ky0) = by["cap_0"].part, kf["key_xy"][0]
+    glass_gap = cap0.bounding_box().min.Z - st.glass
+    sk = info["frame_sketch"]
+    gaps = []
+    for x0, x1, y0, y1 in g["feet_boxes"]:
+        col = Pos(kx0 + (x0 + x1) / 2, ky0 + (y0 + y1) / 2, st.pcb_top) * Box(
+            x1 - x0 - 0.02, y1 - y0 - 0.02, st.flange_bot - st.pcb_top, align=model.MIN)
+        c = cap0 & col
+        gaps.append(c.bounding_box().min.Z - st.pcb_top if c is not None and c.volume > 1e-4 else None)
+        for i, (kx, ky) in enumerate(kf["key_xy"]):
+            foot = Pos(kx + (x0 + x1) / 2, ky + (y0 + y1) / 2) * Rectangle(x1 - x0, y1 - y0)
+            over = foot & sk
+            if over is None or over.area < 0.99 * (x1 - x0) * (y1 - y0):
+                probs.append(f"key {i}: a down-stop foot isn't fully over the frame PCB")
+                break
+    if any(gp is None or abs(gp - P.KEY_STOP_GAP) > 0.02 for gp in gaps):
+        probs.append(f"cap down-stop gap in the model is {gaps}, expected {P.KEY_STOP_GAP}")
+    if P.KEY_STOP_GAP < P.SW_TRAVEL_MAX + 0.1:
+        probs.append(f"down-stop gap {P.KEY_STOP_GAP} mm may stop the cap before the switch trips "
+                     f"(travel up to {P.SW_TRAVEL_MAX} mm)")
+    F = P.KEY_PRESS_DESIGN_N
+    worst = max(range(n_keys), key=lambda i: per_key[i])
+    need = drop + per_key[worst] * F
+    if need > glass_gap - P.KEY_GLASS_MARGIN + 1e-6:
+        probs.append(f"key {worst}: cap can drop {drop:.2f} mm + frame flex {per_key[worst] * F:.2f} mm "
+                     f"at {F:g} N = {need:.2f} mm, glass is {glass_gap:.2f} mm below "
+                     f"(margin {P.KEY_GLASS_MARGIN} mm)")
+    rows = dict(drop=drop, glass_gap=glass_gap, stop_gap=min(g_ for g_ in gaps if g_ is not None),
+                defl_max=per_key[worst], worst_key=worst, force=F, need=need,
+                clearance=glass_gap - need, defl_5n=drop + per_key[worst] * 5.0)
+    return probs, rows
 
 
 def swept(part, d, dist):
@@ -509,7 +593,7 @@ def check_cables(items, info):
     return probs
 
 
-def run_checks(items, info, tilted=None, tinfo=None):
+def run_checks(items, info, tilted=None, tinfo=None, proto=None):
     screws = info["screws"]
     labels = {it.label for it in items}
     t = time.time()
@@ -536,8 +620,14 @@ def run_checks(items, info, tilted=None, tinfo=None):
     rest3 = [lb for lb in rest2 if lb not in knobs and not lb.startswith("screw_knobboard")]
     res["service"] += check_lift(items, knobs, rest3, "knob board lift-out")
     res["pinholes"] = check_pinholes(items, info)
+    res["keystack"], res["keystack_rows"] = check_keystack(items, info)
+    if proto is not None:
+        p_items, p_info = proto
+        pk, res["keystack_proto"] = check_keystack(p_items, p_info, nubs=2 if P.PROTO_SECOND_SWITCH else 1)
+        res["keystack"] += [f"prototype: {m}" for m in pk]
     res["problems"] = (res["interference"] + res["screws"] + res["gaps"] + res["floating"] + res["tilted"]
-                       + res["access"] + res["insertion"] + res["cables"] + res["service"] + res["pinholes"])
+                       + res["access"] + res["insertion"] + res["cables"] + res["service"] + res["pinholes"]
+                       + res["keystack"])
     res["seconds"] = time.time() - t
     return res
 
@@ -606,6 +696,10 @@ def service_pictures(scene, items, info, size=(1400, 900)):
     scene.draw([lb for lb in labels if not lb.startswith(OVERLAYS)], az=90, el=12, size=size,
                fit_labels=["case_tray"], margin=0.04).save(OUT / "service_pinholes.png")
     pics["pinholes"] = "service_pinholes.png"
+    # BOOTSEL hole in the floor, seen from below
+    scene.draw([lb for lb in labels if not lb.startswith(OVERLAYS)], az=-120, el=-55, size=size,
+               fit_labels=["case_tray"], margin=0.04).save(OUT / "service_bootsel.png")
+    pics["bootsel"] = "service_bootsel.png"
     return pics
 
 
@@ -707,9 +801,12 @@ CABLES = {   # name: (type, connects)
                        "frame PCB ↔ knob board"),
     "cable_touch": ("JST-SH 1.0 mm 6-pin, plugs both ends, pin 1 to pin 1",
                     "touch band ↔ knob board"),
+    "cable_hy_link": ("HY2.0 (2.0 mm) 3-pin, plugs both ends, pin 1 to pin 1 (optional)",
+                      "knob board ↔ display board J8 (GPIO6 link)"),
 }
 STEP_OF_CABLE = {"cable_usb_display": "display", "cable_usb_knob_gh": "knob_board",
-                 "cable_keys_ffc": "top_plate_sub", "cable_touch": "top_plate_sub"}
+                 "cable_keys_ffc": "top_plate_sub", "cable_touch": "top_plate_sub",
+                 "cable_hy_link": "display"}
 
 
 def screw_name(sc):
@@ -722,7 +819,8 @@ def screw_table(rows):
     for sc, e in rows:
         into = "motor (base)" if sc.label.startswith("screw_motor") else (
             "motor (bell)" if sc.label.startswith("screw_hub") else
-            {"panel7_module": "panel tab (metal)", "case_tray": "tray boss", "top_plate": "top plate boss/post"
+            "heat-set insert (top plate post)" if sc.target.startswith("top_plate_insert") else
+            {"panel7_module": "panel tab (metal)", "case_tray": "tray boss", "top_plate": "top plate boss"
              }.get(sc.target, sc.target))
         lim = f"{sc.engage[0]:g}–{sc.engage[1]:g} mm" if sc.engage[1] is not None else f"≥ {sc.engage[0]:g} mm"
         row = f"| {screw_name(sc)} | {into} | {e:.1f} mm | {lim} |"
@@ -732,8 +830,31 @@ def screw_table(rows):
     return out
 
 
+def keystack_lines(checks):
+    k, kp = checks["keystack_rows"], checks.get("keystack_proto")
+    out = [
+        "Key stack (D8), from `cad/keystack.py`:",
+        "",
+        "| | Full build | Prototype |",
+        "|---|---|---|",
+    ]
+
+    def col(f):
+        return f"| {f(k)} | {f(kp) if kp else '—'} |"
+    out += [
+        "| Cap bottom ↔ glass at rest " + col(lambda r: f"{r['glass_gap']:.2f} mm"),
+        "| Down-stop gap (cap feet ↔ frame PCB) " + col(lambda r: f"{r['stop_gap']:.2f} mm"),
+        "| Worst cap-edge drop, any press, PCB rigid " + col(lambda r: f"{r['drop']:.2f} mm"),
+        "| Frame PCB flex at the worst switch (grillage) " + col(lambda r: f"{r['defl_max']:.3f} mm/N"),
+        f"| Cap drop + flex at {P.KEY_PRESS_DESIGN_N:g} N " + col(lambda r: f"{r['need']:.2f} mm"),
+        "| Same at a hard 5 N press " + col(lambda r: f"{r['defl_5n']:.2f} mm"),
+    ]
+    return out
+
+
 def write_guide(info, checks, shots, service):
     screws = info["screws"]
+    n_frame = sum(1 for sc in screws if sc.label.startswith("screw_frame"))
     counts = {}
     for sc in screws:
         kind = screw_name(sc)
@@ -792,8 +913,13 @@ def write_guide(info, checks, shots, service):
         f"{status(checks['cables'], 'all clear')} |",
         f"| Service: top plate, then display, then knob board lift straight out | "
         f"{status(checks['service'], 'all three lift out')} |",
-        f"| A paperclip reaches BOOT and RESET through the back wall | "
-        f"{status(checks['pinholes'], 'both reachable')} |",
+        f"| A paperclip reaches BOOT and RESET through the back wall, and BOOTSEL through the floor | "
+        f"{status(checks['pinholes'], 'all three reachable')} |",
+        f"| Key stack (D8): every cap's down-stop lands on the frame PCB, and the worst cap drop plus "
+        f"the frame's flex at a {P.KEY_PRESS_DESIGN_N:g} N press stays {P.KEY_GLASS_MARGIN:g} mm off the glass | "
+        f"{status(checks['keystack'], 'clear of the glass (full build and prototype)')} |",
+        "",
+        *keystack_lines(checks),
         "",
         "Minimum gaps (nominal, from the model):",
         "",
@@ -817,11 +943,14 @@ def write_guide(info, checks, shots, service):
         f"| Magnets {P.MAGNET_TRAY[0]:g}×{P.MAGNET_TRAY[1]:g} mm (tray) | 4 | {num['tray']} |",
         f"| Magnets {P.MAGNET_STAND[0]:g}×{P.MAGNET_STAND[1]:g} mm (stand) | 4 | {num['stand']} |",
         f"| Rubber feet {P.FOOT[0]:g}×{P.FOOT[1]:g} mm | 6 | {num['tray']}, {num['stand']} |",
-        f"| M2×{P.STRIKER_LEN:g} set screws (press strikers) | 5 | {num['tray']} |",
+        f"| M2×{P.STRIKER_LEN:g} set screws (press strikers, in the spacer arms) | 5 | {num['knob_sub']} |",
+        f"| M3 heat-set inserts, {P.INSERT_M3[0]:g} mm hole × {P.INSERT_M3[1]:g} mm long | 4 | {num['tray']} |",
+        f"| M2 shim washers 0.1 / 0.2 mm (tune the key stack at the frame bosses) | a few | {num['top_plate_sub']} |",
         f"| Epoxy | — | magnets |",
         "",
         "Thread-forming screws go into printed plastic (PT/WN 1411-style K30, K20, or ST2.9/ST2.2",
-        "DIN 7981 pan heads): drive them slowly and stop when snug.",
+        "DIN 7981 pan heads): drive them slowly and stop when snug. The four case screws go into",
+        "brass heat-set inserts, so they can be undone for every service.",
         "Panel screws thread into the display's metal tabs (check the thread on the real",
         "board; the drawing says M3).",
         "",
@@ -842,6 +971,9 @@ def write_guide(info, checks, shots, service):
         "",
         "Pinouts and the strain-relief measures: [wiring.md](wiring.md). Every part with",
         "sources: [bom.md](bom.md).",
+        "",
+        "The HY2.0 lead is optional (the GPIO6 link: page and wake signals to the display board",
+        "without a host). Its header footprint is always on the knob board.",
         "",
         "## Assembly",
         "",
@@ -867,26 +999,32 @@ def write_guide(info, checks, shots, service):
         "",
         "### Swap a key cap or switch",
         "",
-        "With the top plate off and face down, undo the frame PCB's screws, lift the PCB",
-        "and replace the cap or switch.",
+        f"With the top plate off and face down, undo the frame PCB's {n_frame} screws, lift the PCB",
+        "and replace the cap or switch. Keep any shim washers with their bosses.",
         "",
-        "### Recover the display board's firmware",
+        "### Recovery (factory reset)",
         "",
-        "No need to open the case: unplug the USB cable, hold BOOT through its hole in the back",
-        "wall with a paperclip, and plug the cable back in; the board comes up in its ROM",
-        "bootloader on the native port. (RESET alone doesn't reset the board's IO expander;",
-        "firmware must never drive EXIO5 high, which switches the native USB port to CAN.)",
+        "Full steps: [recovery.md](recovery.md). Nothing needs the case opened:",
+        "",
+        "1. **Always first: unplug for 10 s.** The 7B's I/O expander isn't reset by an ESP32",
+        "   reset, so a stuck USB/CAN switch (EXIO5) only clears on power-off.",
+        "2. **Settings reset** (firmware kept): hold the top-left key while plugging in.",
+        "3. **Factory firmware:** the web configurator's \"Restore factory firmware\" flashes the",
+        "   pinned release builds to both chips through their ROM bootloaders.",
+        "4. **If a chip doesn't answer,** start its bootloader by hand with a paperclip: BOOT (and",
+        "   RESET) for the display board through the two holes in the back wall; BOOTSEL for the",
+        "   knob board through the hole in the floor under its left end (pull the slab off the",
+        "   stand first). Hold the button while plugging in. Checked in the model: a straight",
+        "   1 mm clip reaches each button and touches nothing else.",
+        "5. **Never burn ESP32 eFuses or RP2350 OTP** (secure boot, flash encryption, disabling",
+        "   download mode or BOOTSEL). That is the only brick a pinhole can't undo.",
+        "",
         "Don't fit a battery to the 7B's J3, and unplug the back cable before using the",
         "7B's UART port: either one would feed 5 V back into the hub and the PC.",
         "",
         f"![Back wall pinholes](../cad/out/assembly/{service['pinholes']})",
         "",
-        "### Recover the knob board's firmware",
-        "",
-        "The knob board has its own USB connection through the hub, so the host app reboots",
-        "it into the RP2350B's built-in bootloader and copies a UF2 file. If the firmware is",
-        "too broken for that, open the case, hold the BOOTSEL button on the knob board and",
-        "unplug/replug the USB cable at the back: it shows up as a USB drive.",
+        f"![BOOTSEL pinhole in the floor](../cad/out/assembly/{service['bootsel']})",
         "",
         "### Replace a motor or the knob board",
         "",
@@ -916,8 +1054,11 @@ def lcsc(c):
 BOM_JLC_BOARDS = [
     # qty, part, spec, source, ~price, used in
     ("1 panel", "PCBs: knob board, frame PCB, touch band, USB board, panelized",
-     "2-layer FR-4 1.6 mm, ENIG or HASL; outlines from `cad/out/*.dxf`. JLC makes 5 panels "
-     "and assembles at least 2", "JLCPCB", "in the board lines of cost.md", "all boards"),
+     "2-layer FR-4 1.6 mm, ENIG or HASL; outlines from `cad/out/*.dxf`. Every part on one side of "
+     "each board (D6), so JLC's single-side assembly covers them. The frame PCB has "
+     "countersunk M2 holes (JLC countersink option, V: fee) so its screws sit flush over the glass. "
+     "JLC makes 5 panels and assembles at least 2", "JLCPCB", "in the board lines of cost.md",
+     "all boards"),
 ]
 BOM_JLC_PARTS = [
     # Knob board
@@ -932,23 +1073,32 @@ BOM_JLC_PARTS = [
      lcsc("C3003196") + " (V: JLC stock)", "~$5", "knob board"),
     ("5", "SN74LVC3G04DCTR", "triple inverter (3-PWM drive), SM8 (DCT) package", lcsc("C139324"), "~$1",
      "knob board"),
-    ("5", "B3U-1000P", "knob press switch (underside of each tongue)", lcsc("C231329"), "~$2", "knob board"),
+    ("5", "B3U-1000P", "knob press switch, top side on the board's front border (the motor spacer's arm "
+     "presses it)", lcsc("C231329"), "~$2", "knob board"),
     ("5", "1N4148W", "SOD-123 diodes for the knob press switches (in the key matrix)", "JLC basic part",
      "~$0.1", "knob board"),
-    ("5", "1×3 right-angle pin header, 2.54 mm", "motor plug sockets (must match the motor's plug; prefer a "
-     "shrouded/keyed one so the plug can't go on offset)", lcsc("C2886703") + " (V: confirm male pins)",
-     "~$0.5", "knob board"),
+    ("5", "1×3 right-angle pin header, 2.54 mm, SMD", "motor plug sockets, top side (D6: no through-hole "
+     "pins); must match the motor's plug; prefer a shrouded/keyed one so the plug can't go on offset",
+     "LCSC (V: SMD right-angle part not chosen; THT fallback " + lcsc("C2886703") + ")", "~$0.5",
+     "knob board"),
     ("1", "JST SM08B-GHS-TB", "8-pin GH header, side entry, latching (USB link)", lcsc("C265111"), "~$0.5",
      "knob board"),
     ("1", "FFC/FPC connector, 12-pin 1.0 mm, flip-lock ZIF, right angle",
      "e.g. XUNPU FPC-1.0FX-12PWCR-H20 (V: contact side, height)", lcsc("C19269355"), "~$0.2", "knob board"),
-    ("1", "JST BM06B-SRSS-TB", "6-pin SH header, top entry (touch cable)", lcsc("C160392"), "~$0.2",
+    ("1", "JST BM06B-SRSS-TB", "6-pin SH header, top entry (touch cable; leave off without the band)",
+     lcsc("C160392"), "~$0.2", "knob board"),
+    ("1 (optional)", "HY2.0 3-pin header, 2.0 mm, SMD side entry", "GPIO6 link to the 7B's J8 (D5); the "
+     "footprint is always on the board, fit it if you use the link", "LCSC (V: part not chosen)", "~$0.1",
      "knob board"),
+    ("1", "BOOTSEL button", "reverse-mount SMD tact switch (plunger through the board, pressed through the "
+     "floor pinhole). If none is found: a plain SMD tact switch on the bottom side, the board's only "
+     "bottom-side part", "LCSC (V: part not chosen)", "~$0.1", "knob board"),
     ("1", "ESD/TVS arrays", "on the key-matrix lines at the ZIF and the touch lines at the SH header, "
      "with series resistors (part not chosen)", "LCSC (V)", "~$0.5", "knob board"),
     ("1 set", "Knob board passives", "2 × 22 µF 0805 per driver; 10 kΩ pull-downs on NSTDBY and every PWM "
      "net; ~1 kΩ series on the high-side inputs; 0 Ω/shunt on each driver's BRUV/BRW; load switch "
-     "(soft start, motor rail only); ~470 µF bulk; decoupling; BOOTSEL button; CC sense filters; "
+     "(soft start, motor rail only); ~470 µF bulk; decoupling; 1 kΩ BOOTSEL resistor at the MCU end; "
+     "CC sense filters; "
      "I²C pull-ups for the touch band", "JLC basic parts", "$3–5", "knob board"),
     # Frame PCB
     ("21", "B3U-1000P", "key switches (buy spares and sort by feel)", lcsc("C231329"), "~$8", "frame PCB"),
@@ -957,8 +1107,10 @@ BOM_JLC_PARTS = [
     ("1", "FFC/FPC connector, 12-pin 1.0 mm, flip-lock ZIF", "same as on the knob board",
      lcsc("C19269355"), "~$0.2", "frame PCB"),
     # Touch band
-    ("1", "Touch controller", "capacitive slider controller, I²C (part not chosen yet)", "LCSC (V)",
-     "$0.5–2", "touch band"),
+    ("1", "Touch controller: AT42QT2120 (or none)", "capacitive slider controller, I²C, on the band's "
+     "parts side. Optional (D12): if it's expensive or out of stock, drop the band "
+     "(`TOUCH_BAR = False` in params.py removes the band, its cable and the knob board's SH header)",
+     lcsc("C614938") + " (V: stock)", "$0.5–2", "touch band"),
     ("1", "JST SM06B-SRSS-TB", "6-pin SH header, side entry", "JLC C160405", "~$0.2", "touch band"),
     ("1 set", "Touch band passives", "1–10 kΩ in series with each electrode; ferrite bead + 10 µF on 3V3",
      "JLC basic parts", "~$0.2", "touch band"),
@@ -981,6 +1133,9 @@ BOM_JLC_PARTS = [
      "~$0.5", "USB board"),
     ("1", "USBLC6-2SC6", "USB ESD protection, external port, in line between the socket and the hub",
      lcsc("C7519"), "~$0.1", "USB board"),
+    ("1 (optional, not fitted)", "USB-PD sink, CH224-class (e.g. CH224K)", "D9: footprint beside the external "
+     "port on its CC lines, to ask a PD charger for 5 V / 3 A. Not fitted by default; the policy is a "
+     "1.5 A+ C-to-C port", "LCSC (V: part and stock)", "~$0.5 + extended fee", "USB board"),
     ("1", "VBUS TVS", "5–5.5 V standoff, clamping below the load switches' 6 V absolute max",
      "LCSC (V: not chosen)", "~$0.1", "USB board"),
     ("1 set", "USB board passives", "5.1 kΩ CC pull-downs ×2, 56 kΩ CC pull-ups ×2 (display port), "
@@ -989,23 +1144,24 @@ BOM_JLC_PARTS = [
      "JLC basic parts", "~$1", "USB board"),
 ]
 BOM_PRINTS = [
-    ("21", "Clear key caps", "`cad/out/key_cap_clear_resin.stl`, clear resin (SLA)", "JLC3DP", "$20–40",
-     "Build the top plate"),
+    ("21", "Clear key caps", "`cad/out/key_cap_clear_resin.stl`, clear resin (SLA), one standard clear "
+     "finish (D15; revisit after seeing it). The rails and lugs underneath are the down-stop", "JLC3DP",
+     "$20–40", "Build the top plate"),
     ("5", "Knob-window covers", "`cad/out/knob_window.stl`, clear resin (SLA), same order as the caps; "
      "sit on a ledge in the top plate", "JLC3DP", "$3–6", "Build the top plate"),
-    ("1", "Case tray", "`cad/out/print_case_tray.stl`; the cable clips are part of it. PETG or ASA, "
+    ("1", "Case tray", "`cad/out/print_case_tray.stl`; the cable clips are part of it. PETG, "
      "4 walls, ≥25% infill", "home printer or JLC3DP", "$4–6 / $20–40", "Print the case"),
-    ("1", "Top plate", "`cad/out/print_top_plate.stl` (exported face-down); PETG or ASA, 100% infill over "
-     "the touch band, no CF/metal-filled filament", "home printer or JLC3DP", "$3–5 / $15–30",
-     "Print the case"),
-    ("1", "Stand", "`cad/out/print_stand.stl` (a shell, open underneath, with ribs)", "home printer or "
-     "JLC3DP (get a quote)", "$2–4 / $10–25", "Put it on the stand"),
-    ("5", "Knob caps", "`cad/out/knob.stl` (D-bore with crush ribs)", "home printer or JLC3DP", "$1–5",
+    ("1", "Top plate", "`cad/out/print_top_plate.stl` (exported face-down); PETG, 100% infill over "
+     "the touch band, no CF/metal-filled filament; M3 heat-set inserts in its four posts",
+     "home printer or JLC3DP", "$3–5 / $15–30", "Print the case"),
+    ("1", "Stand", "`cad/out/print_stand.stl` (a shell, open underneath, with ribs); PETG",
+     "home printer or JLC3DP (get a quote)", "$2–4 / $10–25", "Put it on the stand"),
+    ("5", "Knob caps", "`cad/out/knob.stl` (D-bore with crush ribs); PETG", "home printer or JLC3DP", "$1–5",
      "Press on the knob caps"),
-    ("5", "Knob hubs", "`cad/out/knob_hub.stl`: D-flat column, flange screwed to the bell",
+    ("5", "Knob hubs", "`cad/out/knob_hub.stl`: D-flat column, flange screwed to the bell; PETG",
      "home printer or JLC3DP", "<$1", "Build the knob board"),
-    ("5", "Motor spacer rings", "`cad/out/motor_spacer.stl`: set the sensor gap, center the magnet",
-     "home printer or JLC3DP", "<$1", "Build the knob board"),
+    ("5", "Motor spacer rings", "`cad/out/motor_spacer.stl`: set the sensor gap, center the magnet; the arm "
+     "carries the press striker. PETG", "home printer or JLC3DP", "<$1", "Build the knob board"),
     ("2", "Plate props (tool)", "`cad/out/print_plate_prop.stl`: hold the top plate 40 mm up while you "
      "plug its cables in", "home printer", "<$1", "Close the case"),
     ("1", "Fit coupon (optional)", "`cad/out/print_fit_coupon.stl`: cap holes, magnet pocket and hub fit "
@@ -1029,7 +1185,37 @@ BOM_EXTERNAL = [
 ]
 
 
-def write_bom(info):
+def proto_bom_lines(pinfo):
+    """Prototype (D3) parts that come from the model; the full list is docs/parts.md."""
+    if pinfo is None:
+        return []
+    fp = pinfo["frame_pcb"]
+    x0, x1, y0, y1 = fp["outline"]
+    n_sw = len(fp["switches"]) + len(fp["switches_b"])
+    rw, rh = P.REV05_PCB
+    so = "; ".join(f"{k}: **{v:.1f} mm**" for k, v in pinfo["standoffs"].items())
+    rows = [
+        ("1", "Prototype frame PCB, rev C", f"{x1 - x0:.1f} × {y1 - y0:.1f} mm, the full build's two top-left "
+         f"keys on the 7B; {n_sw} B3U footprints (a second switch above each key for the D8 force test), "
+         f"{len(fp['mount_holes_pan'])} M2 holes off the glass, {len(fp['mount_holes_csk'])} countersunk over it, "
+         "solder pads off the glass. `hardware/proto-frame/`", "JLCPCB (assembled)", "", "prototype"),
+        ("2 + 2", "Key caps: one nub and two nubs", "`cad/out/key_cap_clear_resin.stl` (one switch) and "
+         "`cad/out/key_cap_two_nub_clear_resin.stl` (two switches), clear resin, one standard finish",
+         "JLC3DP", "$4–8", "prototype"),
+        ("1", "Rev 0.5 test board (outline only, no layout yet)", f"{rw:g} × {rh:g} mm (EST), "
+         "`cad/out/proto_rev05_board_outline.dxf`: RP2350B, CH334F, AT42QT2120, PD sink area, 2 × USB-C, "
+         "JST-GH pair, ZIF, JST-SH, HY2.0, knob module header", "JLCPCB (assembled)", "", "prototype"),
+        ("1 set", "Standoffs (model lengths; round to stock, shim the rest)", so, "hardware kit", "",
+         "prototype"),
+    ]
+    out = ["## Prototype parts from the model (D3)", "",
+           "The rest of the prototype list is in [parts.md](parts.md).", ""]
+    out += ["| Qty | Part | Spec | Source / LCSC # | ~Price | Used in |", "|---|---|---|---|---|---|"]
+    out += [f"| {q} | {p_} | {sp} | {src} | {pr} | {u} |" for q, p_, sp, src, pr, u in rows]
+    return out
+
+
+def write_bom(info, proto_info=None):
     screws = info["screws"]
     num = {s.key: s.title for s in STEPS}
     counts = {}
@@ -1038,7 +1224,7 @@ def write_bom(info):
         counts.setdefault(kind, {})
         counts[kind][sc.step] = counts[kind].get(sc.step, 0) + 1
     price = {"cable_usb_display": "$2–4", "cable_usb_knob_gh": "$1–2 (26 AWG)", "cable_keys_ffc": "$0.5–1",
-             "cable_touch": "$0.5–1"}
+             "cable_touch": "$0.5–1", "cable_hy_link": "~$0.5 (optional)"}
 
     def table(rows):
         out = ["| Qty | Part | Spec | Source / LCSC # | ~Price | Used in |", "|---|---|---|---|---|---|"]
@@ -1061,8 +1247,12 @@ def write_bom(info):
          f"{num['tray']}, {num['stand']}"),
         ("5", "Hook-and-loop cable ties", "~10 mm wide, reusable; strap the motor lead coils",
          "AliExpress", "~$1", num["knob_sub"]),
-        ("5", f"M2×{P.STRIKER_LEN:g} set screws", "press strikers, threaded up through the floor", "hardware kit",
-         "", num["tray"]),
+        ("5", f"M2×{P.STRIKER_LEN:g} set screws", "press strikers, threaded into the motor spacers' arms",
+         "hardware kit", "", num["knob_sub"]),
+        ("4", f"M3 heat-set inserts, {P.INSERT_M3[0]:g} mm hole × {P.INSERT_M3[1]:g} mm", "top plate posts "
+         "(e.g. Ruthex RX-M3x5.7 or CNC Kitchen M3 short)", "AliExpress / Amazon", "~$1", num["tray"]),
+        ("1 set", "M2 shim washers, 0.1 and 0.2 mm", "between the frame PCB and its bosses, to tune the key "
+         "stack", "AliExpress", "~$1", num["top_plate_sub"]),
         ("1", "3M 467MP or 468MP transfer tape", "full coverage under the touch band (no air gaps)",
          "AliExpress / DigiKey", "~$3", num["top_plate_sub"]),
         ("—", "Epoxy", "magnets", "any", "~$3", f"{num['knob_sub']}, {num['tray']}"),
@@ -1113,7 +1303,7 @@ def write_bom(info):
         "Search terms that find them: \"USB C to USB C 90 degree 10cm\" (pick a side-angle "
         "(left/right) plug for the display end, not up/down); \"JST GH 1.25 8 pin double head "
         "cable 10cm\" (same direction, 26 AWG); \"FFC 12 pin 1.0mm 80mm\" (reverse/opposite side); "
-        "\"JST SH 1.0 6 pin double head 8cm\".",
+        "\"JST SH 1.0 6 pin double head 8cm\"; optional: \"HY2.0 3 pin double head 5cm\" (GPIO6 link).",
         "",
         "### Hardware",
         "",
@@ -1122,6 +1312,8 @@ def write_bom(info):
         "## Not in the kit",
         "",
         *table(BOM_EXTERNAL),
+        "",
+        *proto_bom_lines(proto_info),
         "",
         "## Totals",
         "",
@@ -1139,7 +1331,8 @@ def main():
     t0 = time.time()
     flat, L, info = model.full_device(tilt=False)
     tilted, _, tinfo = model.full_device(tilt=True)
-    checks = run_checks(flat, info, tilted, tinfo)
+    proto, _, pinfo = model.prototype()
+    checks = run_checks(flat, info, tilted, tinfo, proto=(proto, pinfo))
     problems = checks["problems"]
     print(f"checks ({checks['seconds']:.0f}s): {len(problems)} problem(s)")
     for p in problems:
@@ -1150,10 +1343,13 @@ def main():
         if c["buy"]:
             print(f"  {name}: route {c['length']:.0f} mm"
                   + (f", lift needs {c['lift']:.0f} mm" if c["lift"] else "") + f" -> {c['buy']} mm")
+    k = checks["keystack_rows"]
+    print(f"  key stack: cap drop {k['drop']:.2f} + frame {k['defl_max']:.3f} mm/N x {k['force']:g} N = "
+          f"{k['need']:.2f} mm of {k['glass_gap']:.2f} mm to the glass")
     if check_only:
         sys.exit(1 if problems else 0)
     if "--bom" in sys.argv:
-        write_bom(info)
+        write_bom(info, pinfo)
         sys.exit(0)
 
     import render
@@ -1163,7 +1359,7 @@ def main():
     shots = step_pictures(scene, flat, info, tscene)
     service = service_pictures(scene, flat, info)
     write_guide(info, checks, shots, service)
-    write_bom(info)
+    write_bom(info, pinfo)
     print(f"pictures + guide in {time.time() - t0:.0f}s")
     if "--animate" in sys.argv:
         t1 = time.time()

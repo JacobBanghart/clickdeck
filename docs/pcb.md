@@ -23,10 +23,27 @@ boards, all connectors fitted by JLC (cabling: [wiring.md](wiring.md)):
 ### Knob board
 - One PCB for all five knobs. Each knob sits on a **tongue**: a U-shaped
   slot cuts it free on three sides, and the uncut neck at the back is the
-  hinge. Pressing the knob flexes the tongue ~0.15 mm onto a **B3U switch on
-  the underside** of its front tip, which presses against the case floor.
-  The MT6701 rides on the tongue, so it stays aligned with the motor's
-  magnet.
+  hinge. The **B3U press switch sits on the top side, on the board's fixed
+  5 mm front border** in front of each tongue. An arm on the printed motor
+  spacer reaches forward over the slot; an M2×3 set screw in the arm is the
+  striker. Pressing the knob flexes the tongue down and the striker presses
+  the switch. Each knob's press gap is set on the bench by turning its set
+  screw, before the top plate goes on (the model uses a 0.2 mm gap). The
+  MT6701 rides on the tongue, so it stays aligned with the motor's magnet,
+  and only its traces cross the hinge.
+- **Hinge (D10):** after the scrap-FR-4 test, Rev 0 gets a tunable hinge
+  (perforations that can be opened up to soften it). If sideways force
+  causes false clicks, switch to a parallel-guided flexure.
+- **Floorplan (D16):** each TMC6300 sits on the 19 mm back strip next to
+  its motor header, off the tongues. Do a
+  floorplan with real footprints (RP2350B QFN-80, TMC6300 QFN-20,
+  connectors) before the full order, and mirror it on Rev 0.
+- **Top side only (D6, resolved: feasible):** every part is on the top
+  side, so JLC's single-side assembly covers the board. That needs the
+  press switch on the front border (above), SMD right-angle motor headers
+  (part not chosen; a THT header is the fallback) and a reverse-mount
+  BOOTSEL tact switch (part not chosen; a plain tact switch on the bottom
+  side, the board's only bottom part, is the fallback).
 - **Microcontroller: RP2350B** (48 GPIO, 24 PWM channels). An RP2040 isn't
   enough: 16 PWM channels, 30 GPIO.
 - **Motor drivers: 3 PWM signals per motor** (15 total).
@@ -37,9 +54,11 @@ boards, all connectors fitted by JLC (cabling: [wiring.md](wiring.md)):
     2 × 22 µF per driver.
   - Plan B: DRV8316 in its native 3x PWM mode. Its 4.5 V minimum is close
     to USB 5 V under motor load, so it's the fallback.
-- **Driver stock:** JLC lists the TMC6300 as an "extended" part; LCSC had
-  59 of the -LA-T on 2026-10-17. Check before ordering; keep the DRV8316
-  fallback drawn in the schematic.
+- **Driver sourcing (D2):** LCSC had only 59 of the TMC6300-LA-T on
+  2026-10-17 ($5.93). Source it through JLC Global Sourcing or consign it
+  from DigiKey (~$2.44, ~4,100 in stock). Once Rev 0 passes, reserve the
+  full-build quantity in JLC's parts library. Keep the DRV8316 fallback
+  drawn in the schematic.
 - **Sensor:** MT6701CT-STD (SOP-8) in SSI mode, MODE tied high. One shared
   CS and CLK, five separate DO lines read together by PIO.
 - **Reset safety:** specify RP2350B stepping A4. 10 kΩ pull-downs on each
@@ -54,17 +73,24 @@ boards, all connectors fitted by JLC (cabling: [wiring.md](wiring.md)):
   [knob-module.md](knob-module.md).
 - **USB and flashing:** the RP2350B's native USB goes to the USB board's
   hub over the JST-GH cable (5 V and GND on two contacts each). Firmware
-  updates use the RP2350's built-in UF2 bootloader; a BOOTSEL button and USB
-  test pads are the recovery path. Silkscreen "unplug GH first" by the
-  pads.
+  updates use the RP2350's built-in UF2 bootloader, from the web
+  configurator. The BOOTSEL button is a reverse-mount tact switch on the
+  board's left border; its plunger reaches through the board to a pinhole
+  in the case floor, 11 mm from the left edge and 30.5 mm from the front
+  ([recovery.md](recovery.md)). USB test pads are the bench fallback.
+  Silkscreen "unplug GH first" by the pads.
+- **Display link (D5):** an HY2.0 3-pin footprint for the optional
+  one-wire link to the 7B's GPIO6 (J8), 3V3 pin left open, 1 kΩ in series
+  ([wiring.md](wiring.md)). Footprint always; fitting optional.
 - **Power:** the two CC sense lines from the USB board go to ADC pins
   through 10–22 kΩ series resistors, so firmware sets the motor budget from
   the PC's advertised current ([wiring.md](wiring.md)). The soft-start
   switch feeds the motor rail only.
 - **ESD:** series resistors and a TVS array at the ZIF and the JST-SH.
-- **Motor connectors:** a right-angle 1×3 2.54 mm header behind each
-  tongue, plus two slots per knob for a strap around the coiled lead.
-- Pin budget: 43 of 48 GPIO ([wiring.md](wiring.md)). Map the 15 PWM
+- **Motor connectors:** an SMD right-angle 1×3 2.54 mm header behind each
+  tongue, plus two slots per knob for a strap around the coiled lead
+  (the spare lead coils in a ~20 mm long loop on the back strip).
+- Pin budget: 44 of 48 GPIO ([wiring.md](wiring.md)). Map the 15 PWM
   signals to distinct PWM channels in the schematic.
 
 ### Frame PCB
@@ -96,8 +122,12 @@ boards, all connectors fitted by JLC (cabling: [wiring.md](wiring.md)):
   branches go through current-limited switches that block reverse current
   while enabled (~1 A display, ~1.8 A knob board). VBUS TVS clamps below
   6 V ([wiring.md](wiring.md)).
-- Board top is 7.1 mm above the floor and the panel sits at 13.35 mm, so
-  parts on top stay under ~3.5 mm (a top-mount USB-C is 3.3 mm).
+- Optional footprint for a CH224-class USB-PD sink on the upstream port,
+  not fitted by default (power policy D9 in [plan.md](plan.md)).
+- Board top is 7.1 mm above the case bottom (4.1 mm above the floor). The
+  arm under the display board meets its bottom-side parts at 10.9 mm (the
+  ESP32-S3 module), so parts on top stay under ~3.5 mm (a top-mount USB-C
+  is 3.3 mm).
 
 ### Touch band
 - Thin PCB, ~160 × 11 mm, 10–12 interleaved chevron segments at 13–15 mm
@@ -108,9 +138,11 @@ boards, all connectors fitted by JLC (cabling: [wiring.md](wiring.md)):
 - Grounded guard trace along the motor-side edge, hatched ground (~25%) on
   the bottom layer. Firmware ignores touches for 300 ms around knob motion
   or a knob press.
-- Touch controller on the band (exact part TBD, must be in JLC stock; the
-  MPR121 is discontinued, NXP PCN16772, though distributor stock remains),
-  I²C to the knob board.
+- Touch controller on the band: **AT42QT2120** (SOIC-20, LCSC C614938,
+  $1.89, 69 in stock on 2026-10-17), I²C to the knob board. All 12 channels
+  as keys; firmware interpolates the position from their signal levels
+  (the built-in slider is only 3 channels). The MPR121 is out: discontinued
+  (NXP PCN16772).
 - Senses through the 2 mm top plate. The band area of the plate is a
   sensing surface: 100% solid infill there, a flat recess, full-coverage
   3M 467MP/468MP transfer tape, and no carbon-fiber or metal-filled
@@ -130,13 +162,33 @@ together.
 ### Rev 0: knob module
 One tongue of the knob board: MT6701, motor driver, B3U press switch, same
 tongue/hinge geometry. Outline: `proto_knob_module_outline.dxf`. It tests the
-knob feel, the press, and Plan A (TMC6300 + inverter) driven by the RP2350B
-core board (or the ESP32-S3 dev board). Netlist, parts and design notes: [knob-module.md](knob-module.md).
+knob feel, the press (tunable hinge, set-screw striker), and Plan A
+(TMC6300 + inverter) driven by the Rev 0.5 board (or an RP2350B core board
+before it arrives). Current-shunt footprints on this board only.
+Netlist, parts and design notes: [knob-module.md](knob-module.md).
 
-### Rev A: prototype frame PCB
-Two key windows + one knob-display window, B3U switches. **Generated** from
-the CAD: see [hardware/README.md](../hardware/README.md) (DRC clean,
-untested).
+### Rev 0.5: USB and controller test board
+Everything the full build adds that the knob module doesn't test, on one
+small board (D3): RP2350B (QFN-80, stepping A4) with its support parts
+(flash, crystal, SMPS inductor, regulator), the CH334F hub with its crystal
+and 0 Ω options, the external USB-C socket, the downstream USB-C to the
+7B, both reverse-blocking power switches, CC sensing, a JST-GH link pair
+(hub side to RP2350B side through a real cable), a 12-pin ZIF for the key
+FFC, a JST-SH to the touch electrodes with the AT42QT2120, the GPIO6 link
+header, BOOTSEL, and a J1-compatible header for the Rev 0 knob module. The
+touch electrodes are a full-length strip (copper tape, 10–12 segments)
+under a printed-plate offcut. A wrong footprint here costs one small
+board, not a respin of the four-board panel.
+
+### Rev C: prototype frame PCB
+The full build's two top-left keys at the same place on the 7B, 58.3 ×
+30.7 mm, four B3U footprints (SW1/SW2 under the keys, SW3/SW4 the optional
+second switches for the D8 force test). Pan-head screws and pads sit off
+the glass; over the glass it uses two countersunk M2 screws. **Generated** from the CAD: see
+[hardware/README.md](../hardware/README.md) (untested).
+
+All three go in one JLC order with the caps and knob prints (one shipping
+and duty charge).
 
 ## Workflow per board
 1. Schematic in KiCad; run ERC.

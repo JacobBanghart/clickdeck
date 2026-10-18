@@ -2,67 +2,82 @@
 
 How the PC talks to clickdeck. A draft for the prototype firmware; untested. Built on the lessons
 from Stream32's documented protocol and Elgato's published HID docs
-([lessons.md](lessons.md) #11–16, #20).
+([lessons.md](lessons.md) #11–16, #20). What the software does with it:
+[configurator.md](configurator.md).
 
 ## Two USB devices behind a hub
 
 The device has a USB 2.0 hub inside ([wiring.md](wiring.md)), so the PC sees
-two devices. They never talk to each other directly; the host app talks to
-both.
+two devices. Over USB they never talk to each other; the web configurator
+and the optional host daemon open both. An optional one-wire link inside
+the case (below) carries a few things from the knob board to the display.
 
 | Device | Chip | Does |
 |---|---|---|
-| **Inputs** | RP2350B on the knob board | Keys, knob turns and presses, touch band, haptics, motor power budget |
-| **Display** | ESP32-S3 on the Waveshare board | Key images, knob display areas, brightness, idle blanking |
+| **Inputs** | RP2350B on the knob board | Keys, knob turns and presses, touch band, haptics, motor power budget, keymap and macros |
+| **Display** | ESP32-S3 on the Waveshare board | Key images and pages, knob display areas, brightness, idle blanking |
 
-Interfaces:
+Interfaces per chip:
 
 | Device | Interface | Purpose |
 |---|---|---|
-| Inputs | **HID keyboard + consumer control** (two HID interfaces: a boot keyboard and a consumer-control one) | Fallback: works with no host software. Keys send their stored shortcut; knobs send volume up/down (or arrow keys); knob press sends mute/enter. Standard boot keyboard, no driver. |
-| Inputs | **Data channel** (USB CDC) | Input events to the host app; knob settings, haptics, power settings from it. Low bandwidth |
-| Display | **Data channel** | Images, display settings. Prototype: USB CDC (serial, no driver anywhere). Later, if needed: vendor bulk with WinUSB descriptors for speed |
+| Inputs | **HID keyboard** (boot protocol) | Keys, macros and knobs send their stored shortcuts. Works with no software on any OS |
+| Inputs | **HID consumer control** | Media keys: volume, mute, play/pause |
+| Inputs | **Vendor bulk (WebUSB)** | Data channel: keymap, knob settings, haptics, power settings, events for "host" actions. Low bandwidth |
+| Display | **Vendor bulk (WebUSB)** | Data channel: images, pages, display settings |
 
+- **Why bulk, not HID, for data:** WebHID moves 64-byte reports, one per
+  1 ms frame at full speed, so about 64 KB/s; one raw key image would take
+  over half a second. A vendor bulk interface is reachable from the browser
+  through WebUSB and from the daemon through libusb. The inputs device uses
+  the same kind of interface so the page and the daemon need one code path.
+- **Descriptors:** both devices carry a WebUSB platform capability in their
+  BOS descriptor and Microsoft OS 2.0 descriptors, so Windows binds WinUSB
+  to the vendor interface with no driver install. macOS needs nothing.
+  Linux needs a udev rule ([configurator.md](configurator.md)).
 - **IDs:** the display device uses Espressif's vendor ID 0x303A (free
   product IDs for open-source projects via the espressif/usb-pids repo); the
   inputs device uses Raspberry Pi's 0x2E8A (free product IDs via the
   raspberrypi/usb-pid repo). Until assigned, the development PIDs, which
   collide with every Pico and ESP32 board: apply for real PIDs before the
-  first release, and have the host probe only ports whose USB product
+  first release, and have the software open only devices whose USB product
   string matches. USB serial numbers come from each chip's unique ID.
 - **Power descriptor:** both devices declare bMaxPower ≤ 100 mA. They sit
   behind a bus-powered hub, and Linux refuses configurations above 100 mA
   there (Arduino-ESP32 defaults to 500 mA, the Pico SDK to 250 mA).
-- **Mode switch:** after the host app's `HELLO`, the inputs device stops
-  sending HID keystrokes and sends events on its data channel instead. If the
-  app disconnects (no `PING` for 3 s), it falls back to HID keyboard mode.
-  On every mode switch it releases all HID keys first, so nothing stays held.
-  The display device has the same `PING` timeout (overlay expiry depends on
-  it).
+- **Standalone first:** the inputs device always acts on its stored keymap.
+  A key set to a shortcut or macro sends HID, whether or not any software
+  is running. A key set to a "host" action sends a `KEY` event on the data
+  channel instead, and does nothing if no host is listening. There's no
+  mode switch. On every page switch, and when a host connects or goes away,
+  it releases all HID keys first, so nothing stays held.
+- **Host gone:** each device treats 3 s without a `PING` as "host gone".
+  Overlays expire 30 s after that.
 - **USB suspend** (PC asleep): the display blanks the backlight and stops
-  the panel scan; the inputs device puts every driver in standby. After
-  resume, the 3 s timeout must not fire stored HID shortcuts.
-- **Linux:** ship a udev rule that sets `ID_MM_DEVICE_IGNORE=1` (so
-  ModemManager doesn't probe the CDC ports) and grants access through
-  `uaccess`.
+  the panel scan; the inputs device puts every driver in standby. Stored
+  shortcuts don't fire on resume.
+- **One program at a time:** a vendor interface can be claimed by one
+  program only. The daemon releases it when the configurator asks
+  ([configurator.md](configurator.md)).
 
 ### Pairing the two devices
 
-A host may have more than one clickdeck, so the app has to know which
+A host may have more than one clickdeck, so the software has to know which
 display goes with which knob board:
 
-1. **Hub topology** (first choice): both devices hang off the same hub, the
+1. **Pairing ID** (first choice): on first contact the configurator writes
+   a random 64-bit pairing ID to both devices (`PAIR`), stored in flash.
+   Both report it in `HELLO_ACK`. This works in the browser, which can't
+   see the USB topology, and through another hub or USB/IP. First pairing
+   is interactive: the display shows a short code and the user presses a
+   key, so the page can't pair the wrong display with the wrong knob board.
+2. **Hub topology** (daemon check): both devices hang off the same hub, the
    CH334F (WCH vendor ID 0x1A86), on ports 1 (inputs) and 2 (display). On
-   Linux the sysfs path shows it (`…-1.1` and `…-1.2` under the same parent);
-   Windows and macOS expose the same location info.
-2. **Pairing ID** (fallback and check): on first contact the app writes a
-   random 64-bit pairing ID to both devices (`PAIR`), stored in flash.
-   Both report it in `HELLO_ACK`, so the pair is found again even through
-   another hub or a USB/IP setup. First pairing is interactive: the display
-   shows a short code and the user presses a key, so the app can't pair the
-   wrong display with the wrong knob board.
+   Linux the sysfs path shows it (`…-1.1` and `…-1.2` under the same
+   parent); Windows and macOS expose the same location info. The daemon
+   uses it to sanity-check the pairing ID.
 
-The app treats the pair as one device: it renders images for the display
+The software treats the pair as one device: it sends images to the display
 device and maps events from the inputs device onto the same keys.
 
 ## Framing (data channel)
@@ -76,7 +91,9 @@ COBS( type u8 | seq u16 | len u16 | payload (len bytes) | crc16 u16 ) 0x00
 - **COBS framing:** each frame is COBS-encoded and ends with a 0x00 byte,
   which never appears inside an encoded frame. A receiver that loses sync
   drops bytes up to the next 0x00 and starts again. (A single magic byte
-  can also appear inside payloads, so it can't resync.)
+  can also appear inside payloads, so it can't resync.) Bulk transfers can
+  split or merge frames, so the framing stays even though USB itself is
+  packet-based.
 - Little-endian. `crc16` is CRC-16/CCITT over the whole frame before
   encoding (type..payload). A frame with a bad CRC or length is dropped and
   answered with `ERROR(bad-frame)` if its `seq` is readable.
@@ -96,20 +113,22 @@ COBS( type u8 | seq u16 | len u16 | payload (len bytes) | crc16 u16 ) 0x00
 | 2 | `bad-frame` | CRC or length wrong |
 | 3 | `bad-args` | Payload doesn't parse or a value is out of range |
 | 4 | `busy` | Try again later (e.g. a flash write is running) |
-| 5 | `no-space` | Image cache full and nothing can be evicted |
+| 5 | `no-space` | Image storage full and nothing can be evicted |
 | 6 | `version` | Protocol major version outside the supported range |
 | 7 | `internal` | Firmware fault |
+| 8 | `not-confirmed` | A change that needs the 3 s knob hold wasn't confirmed in time |
 
 - **One codec:** a single C framing library for both firmwares, plus a
-  Python twin for the host, checked against shared golden test vectors and
-  a malformed-frame fuzz test.
+  TypeScript twin for the configurator and a Python twin for the daemon,
+  all checked against shared golden test vectors and a malformed-frame
+  fuzz test.
 
 ## Handshake
 
 | Dir | Type | Payload |
 |---|---|---|
-| host → dev | `HELLO` | supported protocol version range (min, max), host app name/version |
-| dev → host | `HELLO_ACK` | protocol version chosen (or `ERROR(version)` if the ranges don't overlap), role (`inputs` / `display`), firmware version, board ID, device ID, pairing ID, **feature list** (strings, e.g. `image-rle`, `image-jpeg`, `knob-haptics`, `touch-band`, `brightness`), key grid (cols, rows); display: **key image size in px**, knob display size in px; inputs: knob count, advertised USB current |
+| host → dev | `HELLO` | supported protocol version range (min, max), host kind (`configurator` / `daemon` / other) and version |
+| dev → host | `HELLO_ACK` | protocol version chosen (or `ERROR(version)` if the ranges don't overlap), role (`inputs` / `display`), firmware version, board ID, device ID, pairing ID, **feature list** (strings, e.g. `image-rle`, `image-jpeg`, `knob-haptics`, `touch-band`, `brightness`, `link`), key grid (cols, rows); display: **key image size in px**, knob display size in px, free image storage; inputs: knob count, advertised USB current |
 | host → dev | `PAIR` | pairing ID (both devices) |
 
 - The host only uses features in the list (additive versioning: new features
@@ -117,49 +136,92 @@ COBS( type u8 | seq u16 | len u16 | payload (len bytes) | crc16 u16 ) 0x00
 - The device reports key and knob-display sizes in pixels; the host renders
   artwork at exactly that size.
 
-## Images (display device)
+## Confirmation (3 s knob hold)
+
+Changes that could make clickdeck type something unexpected, or replace its
+firmware, need a physical OK: `KEYMAP` (when saved), `SAVE` of a keymap, and
+`REBOOT_BOOTLOADER`.
+
+1. The host sends the request. The inputs device answers `PENDING`, gives
+   a short haptic tick, and the configurator shows "Hold any knob pressed
+   for 3 s".
+2. The user holds a knob pressed for 3 s. The device applies the change and
+   answers `OK`.
+3. No hold within 30 s: `ERROR(not-confirmed)`, nothing changes.
+
+The display chip can't see the knobs. With the GPIO6 link fitted, the knob
+board passes the confirmation over it, so the display's
+`REBOOT_BOOTLOADER` is confirmed the same way. Without the link the
+display can't see the hold, so by default it refuses `REBOOT_BOOTLOADER`
+(`ERROR(not-confirmed)`) and the configurator asks for the BOOT pinhole
+instead (see Open points).
+
+## Pages and images (display device)
+
+Pages, their images and the display settings are stored on the device, so
+the screen shows the right page with no host.
 
 | Dir | Type | Payload |
 |---|---|---|
-| host → dev | `LAYOUT` | page number, for each key: image CRC32 |
-| dev → host | `LAYOUT_ACK` | list of keys whose image isn't in the device's cache |
-| host → dev | `IMAGE` | target (key n / knob display n / full strip), CRC32, encoding (`raw565`, `rle565`, `jpeg`), chunk index/count, data |
-| dev → host | `IMAGE_ACK` | target, chunk index (host may have up to 4 chunks in flight) |
-| host → dev | `OVERLAY` | temporary image or label for a key or knob display, kept in RAM only, expires 30 s after the host disconnects |
-| host → dev | `PERSIST` | save the current page, its images and the display settings to flash (batched, at the next blank or idle moment) |
+| host → dev | `LAYOUT` | page number, for each key and knob display: image CRC32 |
+| dev → host | `LAYOUT_ACK` | list of images the device doesn't have |
+| host → dev | `IMAGE` | CRC32, size, encoding (`raw565`, `rle565`, `jpeg`), chunk index/count, data |
+| dev → host | `IMAGE_ACK` | CRC32, chunk index (host may have up to 4 chunks in flight) |
+| host → dev | `PAGE` | show page n now |
+| host → dev | `OVERLAY` | temporary image or label for a key or knob display, kept in RAM only, expires 30 s after the host goes away |
+| host → dev | `PERSIST` | save pages, their images and the display settings to flash |
 
 - **Flash writes glitch the panel.** The 7B drives an RGB panel from a
   PSRAM framebuffer, and ESP-IDF says the LCD can't work while the external
   memory cache is disabled, which happens during every flash write. A
   missed bounce-buffer refill can also shift the image until reboot. So:
-  - Framebuffer in PSRAM; bounce buffers (≥ 10 lines) in internal SRAM;
+  - ESP-IDF 5.x (esp_lcd + esp_tinyusb), pinned. Framebuffer in PSRAM;
+    bounce buffers (≥ 10 lines) in internal SRAM;
     `CONFIG_SPIRAM_XIP_FROM_PSRAM` (code runs from PSRAM, not flash);
-    `LCD_RGB_RESTART_IN_VSYNC` as a backstop; PCLK ≤ 30 MHz. These are
-    ESP-IDF sdkconfig settings, which a precompiled Arduino-ESP32 core
-    can't change (toolchain choice: [open-questions.md](open-questions.md)).
+    `LCD_RGB_RESTART_IN_VSYNC` as a backstop; PCLK ≤ 30 MHz.
   - Two framebuffers swapped at VSYNC, and dirty-rect redraws only.
-- **Cache by CRC:** images are cached in PSRAM keyed by CRC32 of the raw
-  pixels, with LRU eviction. On reconnect, `LAYOUT_ACK` asks only for
-  missing ones, usually none.
-- **Saved pages persist only on `PERSIST`:** flash is written lazily, in
-  one batch, when the host says so, and only while the screen is blanked or
-  idle. Then the last page shows without a host. Anything the host updates
-  more than about once a minute should be an overlay. Switching pages
-  offline needs a link between the chips (see Open points).
-- **Overlays** are for live state (mic muted, current volume) and never
-  touch flash.
+  - `PERSIST` writes in one batch with the backlight off ("Saving…" shown
+    in the configurator), then redraws.
+- **Images by CRC:** images are stored keyed by CRC32 of the raw pixels and
+  shared between pages. Working copies sit in PSRAM with LRU eviction. On
+  reconnect, `LAYOUT_ACK` asks only for missing ones, usually none.
+- **Storage:** no OTA slots ([configurator.md](configurator.md)), so all
+  flash past the one app partition holds images and settings. `HELLO_ACK`
+  reports what's free.
+- **Overlays** are for live state from the daemon (mic muted, current
+  volume) and never touch flash.
 - **Encoding:** RLE or JPEG by default, raw only as a fallback. The host
   picks the smallest encoding the device supports; flat icons compress ~99%
   with RLE.
-- **Throughput:** plan on ~0.5 MB/s over full-speed CDC (Espressif's own
-  figure). One raw 146×146 key (42.6 KB) then takes ~85 ms and a raw full
-  page ~1.8 s; compressed is much faster.
+- **Throughput:** plan on ~0.5 MB/s over full-speed USB (Espressif's own
+  figure for its USB stack) until measured on a 7B. One raw 146×146 key
+  (42.6 KB) then takes ~85 ms and a raw full page ~1.8 s; compressed is
+  much faster. Target: a full page in under 300 ms.
+
+## Link inside the case (optional)
+
+A one-wire UART from a spare RP2350B pin to the 7B's GPIO6 connector (J8),
+on a bought 3-pin HY2.0 lead ([wiring.md](wiring.md)). One way, knob board
+to display. Short binary messages, same CRC:
+
+| Message | Meaning |
+|---|---|
+| `page n` | A page-switch key was pressed: show page n |
+| `activity` | A key, knob or touch was used: reset the idle timer, wake |
+| `confirm` | The 3 s knob hold happened (for the display's bootloader request) |
+| `reset-settings` | Settings reset at power-up ([recovery.md](recovery.md)) |
+
+Without the link, page switching and idle blanking need a host, and the
+display never idle-blanks on its own.
 
 ## Input events (inputs device → host)
 
+Sent for keys and knobs set to "host" actions, or for everything if the
+host subscribes (`SUBSCRIBE all`).
+
 | Type | Payload |
 |---|---|
-| `KEY` | key index, `down` / `up` / `long` (long-press threshold set by host) |
+| `KEY` | key index, page, `down` / `up` / `long` (long-press threshold in the keymap) |
 | `KNOB` | knob index, timestamp, position (detent index or raw angle), delta since last event, velocity. Sent at most 200 times a second |
 | `KNOB_PRESS` | knob index, `down` / `up` / `long` |
 | `TOUCH` | position along the band (0–1), segment (which knob's area), `tap` / `long` / `swipe_start` / `swipe` / `swipe_end` |
@@ -168,12 +230,25 @@ COBS( type u8 | seq u16 | len u16 | payload (len bytes) | crc16 u16 ) 0x00
 Key down and key up are separate events, so push-to-talk and held
 modifiers work (lessons.md #20).
 
+## Keymap (host → inputs device)
+
+`KEYMAP` sets, per page, what each key, knob turn, knob press and touch
+gesture does:
+
+| Action | Does |
+|---|---|
+| `hid` | A shortcut: modifiers + key, or a consumer code |
+| `macro` | A sequence of key downs/ups and delays |
+| `page` | Switch page (keymap and knob feel at once; images too if the link is fitted or a host is running) |
+| `host` | Send an event to the daemon |
+| `none` | Nothing |
+
 ## Knob configuration (host → inputs device)
 
-`KNOB_CONFIG` per knob, applied immediately and kept in RAM (the host
-resends it on each page switch). Flash writes stall the RP2350's FOC loop,
-so configs reach flash only on an explicit `SAVE`, and only while every
-motor is asleep. The FOC loop runs from RAM (`__not_in_flash_func`).
+`KNOB_CONFIG` per knob and page. Applied at once and kept in RAM for every
+page, so page switches don't touch flash. Flash writes stall the RP2350's
+FOC loop, so configs reach flash only on an explicit `SAVE`, and only while
+every motor is asleep. The FOC loop runs from RAM (`__not_in_flash_func`).
 Fields:
 
 | Field | Meaning |
@@ -195,45 +270,44 @@ apply).
 | Type | Payload |
 |---|---|
 | `DISPLAY` (display) | brightness 0–100, idle timeout (s), `blank_now`, `wake` |
-| `POWER` (inputs) | motor current budget (mA); default comes from the port's advertised current (500 / 1000 / 1500) |
-| `HID_MAP` (inputs) | the shortcut each key and knob sends in fallback HID mode |
-| `SAVE` (inputs) | write knob configs, `POWER` and `HID_MAP` to flash, once every motor is asleep |
+| `POWER` (inputs) | motor current budget (mA); the default comes from the port's advertised current ([wiring.md](wiring.md)) |
+| `SAVE` (inputs) | write the keymap, knob configs and `POWER` to flash, once every motor is asleep |
+| `RESET_SETTINGS` (both) | back to defaults; knob calibration kept |
+| `REBOOT_BOOTLOADER` (both) | reboot into the ROM bootloader (needs the 3 s knob hold) |
 
-The app forwards activity (a key press, a knob turn) to the display device
-as `DISPLAY wake`, since idle blanking lives on the display side and the
-display can't see the inputs itself.
+The daemon forwards activity (a key press, a knob turn) to the display
+device as `DISPLAY wake`, since idle blanking lives on the display side.
+With no host and no link, the display never idle-blanks.
 
-These apply at once and stay in RAM. They reach flash (outside the
-firmware partition, so firmware updates don't erase them) only on `SAVE`
-(inputs) or `PERSIST` (display).
+Settings live in flash outside the firmware, so updates don't erase them.
+Each settings block has a version and a checksum; a bad one boots defaults
+without overwriting it ([recovery.md](recovery.md)).
 
 ## Firmware updates
 
-- **Display (ESP32-S3):** standard ESP32 USB flashing (esptool) over its
-  own USB connection; the host app can trigger the reboot into the
-  bootloader.
-- **Inputs (RP2350B):** `REBOOT_BOOTLOADER` puts it into the RP2350's
-  built-in USB bootloader; the app (or the user, drag and drop) copies a UF2
-  file. Recovery: hold the BOOTSEL button on the knob board while plugging
-  in; make it reachable through a pinhole, or use the RP2350's A/B
-  partitions with rollback so a bad UF2 can't brick it.
-- **Toolchains:** pin every version for both firmwares and build them in
-  CI (lessons.md #7).
+Through each chip's ROM bootloader, from the web configurator
+([configurator.md](configurator.md)). No OTA slots, no custom bootloader.
 
-There's no internal link between the two chips any more (the earlier draft
-relayed the knob board's events and firmware over a UART).
+- **Display (ESP32-S3):** `REBOOT_BOOTLOADER` sets the force-download flag
+  and restarts; the chip comes back as Espressif's USB serial/JTAG device
+  (303A:1001), and esptool-js flashes it over Web Serial. Plain esptool
+  works too. Recovery: the BOOT pinhole.
+- **Inputs (RP2350B):** `REBOOT_BOOTLOADER` restarts into the RP2350's ROM
+  UF2 bootloader (2E8A:000F); the page writes the image over WebUSB
+  (PICOBOOT interface, as picotool does), or the user drags a UF2 file onto
+  the drive. Recovery: the BOOTSEL pinhole.
+- **Toolchains:** ESP-IDF 5.x for the display; arduino-pico + SimpleFOC for
+  the RP2350B. Pin every version for both firmwares and build them in CI
+  (lessons.md #7). Releases carry SHA-256 hashes.
+- Never burn eFuses or OTP ([recovery.md](recovery.md)).
 
 ## Open points
 
-- **Offline page switching.** Without the host app the keys still work as a
-  keyboard (stored shortcuts) and the display shows its last saved page, but
-  a "go to page N" key can't change the images: the two chips can't reach
-  each other without the host. Fix if wanted: a 3-wire lead from the display
-  board's GPIO6 connector (J8) to a header on the knob board, carrying a page
-  number. See [open-questions.md](open-questions.md).
-- CDC vs vendor bulk: measure image throughput first (plan: ~0.5 MB/s;
-  target: a full page in under 300 ms with compression). Vendor bulk with
-  WinUSB is the fallback.
-- Exact HID report descriptors and the default fallback key map.
-- Whether OpenDeck's device-plugin interface needs anything extra from the
-  device (check when writing the plugin).
+- The display's `REBOOT_BOOTLOADER` is only confirmed by the knob hold when
+  the GPIO6 link is fitted. Default without the link: display reflashes
+  need the BOOT pinhole. Revisit once the link is tested.
+- Measure image throughput on a 7B over the vendor bulk interface (plan:
+  ~0.5 MB/s; target: a full page in under 300 ms with compression).
+- Exact HID report descriptors and the default keymap.
+- Daemon API (local socket, Python library) and how OpenDeck or Companion
+  Satellite clients would sit on it.

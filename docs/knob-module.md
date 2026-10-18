@@ -1,16 +1,15 @@
 # Rev 0 knob module (prototype)
 
 One knob's section of the full knob board: MT6701 sensor, TMC6300 driver
-with 3-PWM drive, B3U press switch on a hinged tongue. It plugs into the
-RP2350B core board (the chip the full build uses) with jumper wires; the
-ESP32-S3 dev board works too. This is the netlist-level spec to draw the
-KiCad schematic from. Untested.
+with 3-PWM drive, B3U press switch, motor and sensor on a hinged tongue. It plugs into the
+Rev 0.5 test board (RP2350B + hub, same JLC order; [pcb.md](pcb.md)), or
+into an RP2350B core board with jumper wires before that arrives. This is
+the netlist-level spec to draw the KiCad schematic from. Untested.
 
 In the full build the knobs run on the knob board's RP2350B, which has its
-own USB connection through an internal hub ([wiring.md](wiring.md)). Rev 0
-is unaffected: its J1 header is plain 3.3 V signals, so it works from the
-ESP32-S3 dev board or from an RP2350 board (closer to the final firmware;
-see [parts.md](parts.md)).
+own USB connection through an internal hub ([wiring.md](wiring.md)). Rev 0's
+J1 header is plain 3.3 V signals, so any 3.3 V controller can drive it
+([parts.md](parts.md)).
 
 Outline (with the tongue slots): `cad/out/proto_knob_module_outline.dxf`.
 **Layout waits on measuring the 2204 motor** (bolt pattern, base height).
@@ -19,10 +18,10 @@ Outline (with the tongue slots): `cad/out/proto_knob_module_outline.dxf`.
 
 | Ref | Part | Package | LCSC | Notes |
 |---|---|---|---|---|
-| U1 | TMC6300-LA-T | QFN-20 3×3 | C5274455 (59 in stock at LCSC, $5.93, checked 2026-10-17; DigiKey lists ~4,100 at ~$2.44); C5196961 is out of stock | Extended part; JLC assembles it |
+| U1 | TMC6300-LA-T | QFN-20 3×3 | C5274455 (59 in stock at LCSC, $5.93, checked 2026-10-17); C5196961 is out of stock | Extended part; JLC assembles it. Source through JLC Global Sourcing or consign from DigiKey (~$2.44, ~4,100 in stock); reserve the full-build quantity once Rev 0 passes |
 | U2 | MT6701CT-STD | SOP-8 | C3003196 (JLC, extended; check JLC stock on layout day) | Magnetic angle sensor, SSI mode. Not the MT6701**QT** (C2913974): that's a 3×3 QFN-16, and it was out of stock at LCSC on 2026-10-17. The package sets the sensor height and so the magnet gap |
 | U3 | SN74LVC3G04DCTR | SM8 (DCT, SSOP-8 class; not VSSOP) | C139324 | Triple inverter, derives low-side inputs. Check the footprint |
-| SW1 | B3U-1000P | SMD | C231329 | Press switch, **bottom side**, under the tongue tip |
+| SW1 | B3U-1000P | SMD | C231329 | Press switch, **top side**, on the board's fixed front border in front of the tongue. An arm on the printed motor spacer reaches over the slot; an M2×3 set screw in the arm is the adjustable striker. Same as the full knob board ([pcb.md](pcb.md)) |
 | C1, C2 | 22 µF 10 V X5R | 0805 | (basic part) | VS bulk, at U1 |
 | C3 | 220 µF 10 V electrolytic | footprint only | — | Optional extra bulk; fit if motor current dips the 5 V |
 | C4 | 100 nF | 0402 | (basic) | VS high-frequency, at U1 |
@@ -34,7 +33,7 @@ Outline (with the tongue slots): `cad/out/proto_knob_module_outline.dxf`.
 | R1 | 10 kΩ | 0402 | (basic) | U2 CSN pull-up (keeps the sensor idle when unwired) |
 | R2–R5 | 10 kΩ | 0402 | (basic) | Pull-downs on `NSTDBY`, `PWM_U`, `PWM_V`, `PWM_W`, so the driver stays off during reset, BOOTSEL or a crash (RP2350 erratum E9 makes the internal pull-downs unreliable) |
 | R6–R8 | 1 kΩ | 0402 | (basic) | Series resistors on UH, VH, WH (limit current if a PWM pin is high while the driver is in standby) |
-| RS1, RS2 | 0 Ω (or a ~0.1 Ω shunt) | 1206 | (basic) | BRUV and BRW (low-side foot points) to GND. Fit 0 Ω; swap in a shunt to measure motor current |
+| RS1, RS2 | 0 Ω (or a ~0.1 Ω shunt) | 1206 | (basic) | BRUV and BRW (low-side foot points) to GND. Fit 0 Ω; swap in a shunt to measure motor current. Rev 0 only: the full board ties them straight to GND |
 | Q1 | P-FET (or a Schottky) | SOT-23 / SMA | TBD | Reverse-polarity protection on the 5 V input |
 | D1 | SMBJ6.0A TVS | SMB | TBD | Across VS, clamps bench-supply mistakes |
 | JP1–JP3 | Solder jumpers, 3-pad | — | — | Low-side source: inverter (default) or header pin (6-PWM mode) |
@@ -50,7 +49,7 @@ extended-part fee. Confirm everything in JLC's parts library when ordering.
 **Power**
 - `+5V`: J2 → Q1 (reverse-polarity protection) → U1 VS (pins per
   datasheet), C1–C4, D1 (SMBJ6.0A) to GND.
-- `+3V3`: J1 (from the dev board's 3.3 V) → U2 VDD, R1, C8.
+- `+3V3`: J1 (from the controller board's 3.3 V) → U2 VDD, R1, C8.
 - `GND`: everything, plus U1's exposed pad (thermal: stitch vias under it)
   and U1 pins 8 and 9.
 
@@ -113,11 +112,22 @@ never next to GND, so a jumper shifted by one pin can't short the rail.
   10 µF ceramic derates to ~4–5 µF at 5 V, so use 2 × 22 µF 0805 per driver,
   here and on the full board. Keep the VS/GND loop tight; stitching vias
   under the exposed pad.
-- **Tongue:** the motor, U2 and SW1 are on the tongue; U1, U3 and the
-  connectors on the fixed part, so the hinge only flexes thin traces (route
-  them straight across the hinge, no vias on it). Make the hinge traces
+- **Tongue:** the motor and U2 are on the tongue; U1, U3, SW1 and the
+  connectors are on the fixed part, so only the sensor's traces cross the
+  hinge (route them straight across, no vias on it). Make the hinge traces
   wide, put them on the neutral axis (mid-width of the neck), and give the
-  slot ends large radii, so fatigue doesn't crack them.
+  slot ends large radii, so fatigue doesn't crack them. The full board
+  keeps this split: drivers off the tongue (design review D16).
+- **Hinge stiffness (D10):** a plain 8 × 1.6 mm FR-4 neck likely needs
+  8–27 N at the knob, against a 1.5–4 N target. Before ordering, saw a
+  tongue into scrap FR-4 and load it on the kitchen scale. Rev 0's hinge has
+  perforations that can be drilled or cut open to soften it, so one board
+  can be tuned instead of reordered. If side force on the knob causes false
+  clicks, the next revision uses a parallel-guided flexure.
+- **Press gap:** an M2×3 set screw in the motor spacer's arm, above the
+  switch, acts as an adjustable striker, so each knob's gap is set on the
+  bench instead of relying on printed or cut parts to a tenth of a
+  millimeter.
 - **Motor holes:** NPTH, with a 1 mm copper keep-out and no pour under the
   motor base. Maximum screw length = board thickness + the motor base's
   thread depth − 0.5 mm; a longer screw can reach the windings and short a

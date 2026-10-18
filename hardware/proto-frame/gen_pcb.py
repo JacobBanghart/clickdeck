@@ -1,19 +1,30 @@
-"""Generate the prototype frame PCB (2 keys) from the CAD geometry.
+"""Generate the prototype frame PCB (rev C, 2 keys on the Waveshare 7B) from the CAD geometry.
 
     .venv/bin/python cad/build.py --no-render       # writes cad/out/proto_frame_pcb.json
     /usr/bin/python3 hardware/proto-frame/gen_pcb.py
 
 Runs with the system Python that KiCad's `pcbnew` module is installed for
-(KiCad 9). The board is fully defined here (no schematic): two B3U switches,
-three through-hole wire pads (GND, K1, K2) for hand-wiring to the ESP32-S3
-dev board, and four M2 holes to hang it from the top plate. The board is
-wider than the 2.4" glass so the screw heads and the pads' solder tails sit
-off the glass (checked below).
+(KiCad 9). The board is fully defined here (no schematic): the full build's
+two top-left keys, cut out of the full frame PCB at the 7B's top-left corner.
+
+- Four B3U footprints: SW1/SW2 under the key windows (the full build's
+  switches), SW3/SW4 above them, the second-switch option for the D8 force
+  test (one switch vs two per key). Each switch has its own pad.
+- Five through-hole wire pads (K1, GND, K1B, K2B, K2) on the back margin,
+  off the glass, for hand-wiring to the Rev 0.5 board.
+- M2 holes: pan-head screws only where the head is off the glass (left and
+  back edges); countersunk holes (JLC countersink option, 90°) over the
+  glass, so those heads sit flush with the underside. One of them is at the
+  strip crossing between the keys, like the full build's interior supports.
+
+The board refuses to build if a pan-head hole or a pad's solder tail lands
+over the glass, and keeps copper off the countersinks.
 
 UNTESTED. Run DRC and check everything before ordering.
 """
 
 import json
+import math
 from pathlib import Path
 
 import pcbnew
@@ -25,9 +36,11 @@ GEOM = json.loads((ROOT / "cad/out/proto_frame_pcb.json").read_text())
 OUT = HERE / "proto-frame.kicad_pcb"
 FP_LIB = Path("/usr/share/kicad/footprints")
 
-ORIGIN = (100.0, 100.0)   # KiCad page position of CAD (0, 0)
+ORIGIN = (200.0, 150.0)   # KiCad page position of CAD (0, 0); the board sits at the 7B's top-left
 TRACK_W = 0.3
 VIA_D, VIA_DRILL = 0.6, 0.3
+PAN_HEAD_D = 3.8          # M2 pan head, bears on the underside
+CSK_KEEPOUT = GEOM["csk_head"][0] / 2 + 0.3     # copper stays off the countersink (both layers)
 
 
 def pt(x, y):
@@ -86,7 +99,7 @@ for cx, cy, w, h in GEOM["key_windows"] + GEOM["other_windows"]:
 
 # --- Nets
 nets = {}
-for name in ("GND", "K1", "K2"):
+for name in ("GND", "K1", "K2", "K1B", "K2B"):
     n = pcbnew.NETINFO_ITEM(board, name)
     board.Add(n)
     nets[name] = n
@@ -120,6 +133,11 @@ def track(a, b, net, layer=pcbnew.F_Cu, width=TRACK_W):
     board.Add(t)
 
 
+def path(points, net, layer=pcbnew.F_Cu):
+    for a, b in zip(points, points[1:]):
+        track(a, b, net, layer)
+
+
 def via(at, net):
     v = pcbnew.PCB_VIA(board)
     v.SetPosition(pt(*at))
@@ -129,71 +147,127 @@ def via(at, net):
     board.Add(v)
 
 
-# --- Switches. SW1 is turned 180° so its signal pad (2) faces left.
+def keepout(cx, cy, r, layers):
+    """Rule area (no tracks, vias or pour) around a hole: countersinks, screw heads."""
+    z = pcbnew.ZONE(board)
+    z.SetIsRuleArea(True)
+    z.SetDoNotAllowTracks(True)
+    z.SetDoNotAllowVias(True)
+    z.SetDoNotAllowCopperPour(True)
+    z.SetDoNotAllowPads(False)
+    z.SetDoNotAllowFootprints(False)
+    ls = pcbnew.LSET()
+    for layer in layers:
+        ls.AddLayer(layer)
+    z.SetLayerSet(ls)
+    poly = z.Outline()
+    poly.NewOutline()
+    for k in range(24):
+        a = 2 * math.pi * k / 24
+        poly.Append(pt(cx + r * math.cos(a), cy + r * math.sin(a)))
+    board.Add(z)
+
+
+# --- Switches: SW1/SW2 under the windows (the full build's), SW3/SW4 above them
+# (second-switch option). The left one of each pair is turned 180° so its
+# signal pad (2) faces left.
 (s1x, s1y), (s2x, s2y) = GEOM["switches"]
-sw1 = place("Button_Switch_SMD", "SW_SPST_B3U-1000P", "SW1", "B3U-1000P", s1x, s1y, 180, "C231329")
-sw2 = place("Button_Switch_SMD", "SW_SPST_B3U-1000P", "SW2", "B3U-1000P", s2x, s2y, 0, "C231329")
-pad(sw1, 1).SetNet(nets["GND"])
-pad(sw1, 2).SetNet(nets["K1"])
-pad(sw2, 1).SetNet(nets["GND"])
-pad(sw2, 2).SetNet(nets["K2"])
+sw = [place("Button_Switch_SMD", "SW_SPST_B3U-1000P", "SW1", "B3U-1000P", s1x, s1y, 180, "C231329"),
+      place("Button_Switch_SMD", "SW_SPST_B3U-1000P", "SW2", "B3U-1000P", s2x, s2y, 0, "C231329")]
+sig = ["K1", "K2"]
+if GEOM.get("switches_b"):
+    (s3x, s3y), (s4x, s4y) = GEOM["switches_b"]
+    sw += [place("Button_Switch_SMD", "SW_SPST_B3U-1000P", "SW3", "B3U-1000P", s3x, s3y, 180, "C231329"),
+           place("Button_Switch_SMD", "SW_SPST_B3U-1000P", "SW4", "B3U-1000P", s4x, s4y, 0, "C231329")]
+    sig += ["K1B", "K2B"]
+for fp, s in zip(sw, sig):
+    pad(fp, 1).SetNet(nets["GND"])
+    pad(fp, 2).SetNet(nets[s])
 
-# --- Wire pads (through-hole, so wires solder from either side)
-mx = x1 - 3.0
+# --- Wire pads (through-hole, so wires solder from either side), off the glass
 tp = "TestPoint_THTPad_D1.5mm_Drill0.7mm"
-p_k1 = place("TestPoint", tp, "TP1", "K1", -mx, s1y)
-p_gnd = place("TestPoint", tp, "TP2", "GND", -mx, 2.0)
-p_k2 = place("TestPoint", tp, "TP3", "K2", mx, s2y)
-pad(p_k1, 1).SetNet(nets["K1"])
-pad(p_gnd, 1).SetNet(nets["GND"])
-pad(p_k2, 1).SetNet(nets["K2"])
+tps = {}
+for i, (name, (px, py)) in enumerate(GEOM["pads"].items()):
+    if name not in nets:
+        continue
+    if name in ("K1B", "K2B") and not GEOM.get("switches_b"):
+        continue
+    tps[name] = place("TestPoint", tp, f"TP{i + 1}", name, px, py)
+    pad(tps[name], 1).SetNet(nets[name])
 
-# --- Mounting holes (M2, non-plated)
-for i, (hx, hy) in enumerate(GEOM["mount_holes"]):
-    place("MountingHole", "MountingHole_2.2mm_M2", f"H{i + 1}", "M2", hx, hy)
+# --- Mounting holes (M2, non-plated): pan-head off the glass, countersunk over it
+holes = [(h, False) for h in GEOM["mount_holes_pan"]] + [(h, True) for h in GEOM["mount_holes_csk"]]
+for i, ((hx, hy), csk) in enumerate(holes):
+    place("MountingHole", "MountingHole_2.2mm_M2", f"H{i + 1}", "M2 countersunk 90°" if csk else "M2", hx, hy)
+    if csk:
+        keepout(hx, hy, CSK_KEEPOUT, (pcbnew.F_Cu, pcbnew.B_Cu))
+    else:
+        keepout(hx, hy, PAN_HEAD_D / 2 + 0.2, (pcbnew.B_Cu,))
 
-# Nothing that sticks out under the board (screw heads, solder tails) may sit over the glass
-gx, gy = GEOM.get("glass_half", (0.0, 0.0))
-for name, (px, py), rad in ([(f"H{i + 1}", h, 3.8 / 2) for i, h in enumerate(GEOM["mount_holes"])]
-                            + [("TP1", (-mx, s1y), 0.75), ("TP2", (-mx, 2.0), 0.75), ("TP3", (mx, s2y), 0.75)]):
-    if abs(px) - rad < gx + 0.3 and abs(py) - rad < gy + 0.3:
-        raise SystemExit(f"{name} at ({px:.2f}, {py:.2f}) is over the glass (+-{gx:.2f} x +-{gy:.2f})")
+# Nothing that sticks out under the board (pan screw heads, solder tails) may sit over the glass
+gx0, gx1, gy0, gy1 = GEOM["glass_rect"]
+check = ([(f"H{i + 1}", h, PAN_HEAD_D / 2) for i, (h, csk) in enumerate(holes) if not csk]
+         + [(n, GEOM["pads"][n], 0.75) for n in tps])
+for name, (px, py), rad in check:
+    if gx0 - 0.3 < px + rad and px - rad < gx1 + 0.3 and gy0 - 0.3 < py + rad and py - rad < gy1 + 0.3:
+        raise SystemExit(f"{name} at ({px:.2f}, {py:.2f}) is over the glass {GEOM['glass_rect']}")
 
-# --- Routing. The strip between the key windows and the knob-display
-# window is the only channel, so: K1/K2 run out along it on the top layer,
-# GND joins the two switches on top and leaves on the bottom layer.
+
 def pos(p):
     v = p.GetPosition()
     return (pcbnew.ToMM(v.x) - ORIGIN[0], ORIGIN[1] - pcbnew.ToMM(v.y))
 
 
-track(pos(pad(sw1, 2)), pos(pad(p_k1, 1)), nets["K1"])
-track(pos(pad(sw2, 2)), pos(pad(p_k2, 1)), nets["K2"])
-track(pos(pad(sw1, 1)), pos(pad(sw2, 1)), nets["GND"])
-gv = (pos(pad(sw1, 1))[0] + 1.6, s1y)
-via(gv, nets["GND"])
-corner_x = -(x1 - 5.5)
-gnd_pad = pos(pad(p_gnd, 1))
-track(gv, (corner_x, s1y), nets["GND"], pcbnew.B_Cu)
-track((corner_x, s1y), (corner_x, gnd_pad[1]), nets["GND"], pcbnew.B_Cu)
-track((corner_x, gnd_pad[1]), gnd_pad, nets["GND"], pcbnew.B_Cu)
+# --- Routing. The countersink at the strip crossing between the keys blocks the
+# front strip, so each key's signal and ground leave on its own side: key 1
+# (left) along the left margin, key 2 along the right margin. Signals on top,
+# ground on the bottom layer, joined by a bus along the back margin.
+pad_y = GEOM["pads"]["K1"][1]
+bus_y = pad_y - 2.45                       # GND bus (bottom), between the second switches and the pads
+k1x = GEOM["pads"]["K1"][0]
+right_x = x1 - 1.3                         # signal channel inside the right edge (top layer)
+gnd_rx = right_x - 0.6                     # ground riser beside it (bottom layer)
+gnd_lx = k1x - 1.5                         # ground riser on the left margin (bottom layer)
+path([pos(pad(sw[0], 2)), (k1x, s1y), pos(pad(tps["K1"], 1))], nets["K1"])
+k2 = pos(pad(tps["K2"], 1))
+path([pos(pad(sw[1], 2)), (right_x, s2y), (right_x, bus_y + 1.0), (k2[0], bus_y + 1.0), k2], nets["K2"])
+gl = (pos(pad(sw[0], 1))[0] + 1.7, s1y)    # vias just outside each front switch's ground pad
+gr = (pos(pad(sw[1], 1))[0] - 1.7, s2y)
+track(pos(pad(sw[0], 1)), gl, nets["GND"])
+track(pos(pad(sw[1], 1)), gr, nets["GND"])
+via(gl, nets["GND"])
+via(gr, nets["GND"])
+path([gl, (gnd_lx, s1y), (gnd_lx, bus_y), (gnd_rx, bus_y), (gnd_rx, s2y), gr], nets["GND"], pcbnew.B_Cu)
+g_pad = pos(pad(tps["GND"], 1))
+track((g_pad[0], bus_y), g_pad, nets["GND"], pcbnew.B_Cu)
+if GEOM.get("switches_b"):
+    for fp, name in ((sw[2], "K1B"), (sw[3], "K2B")):
+        a = pos(pad(fp, 2))
+        track(a, (a[0], pad_y), nets[name])
+        g = pos(pad(fp, 1))
+        track(g, (g[0], bus_y), nets["GND"])
+        via((g[0], bus_y), nets["GND"])
+
 
 # --- Silkscreen
-def text(s, x, y, size=1.0, layer=pcbnew.F_SilkS):
+def text(s, x, y, size=1.0, layer=pcbnew.F_SilkS, rot=0.0):
     t = pcbnew.PCB_TEXT(board)
     t.SetText(s)
     t.SetPosition(pt(x, y))
     t.SetLayer(layer)
     t.SetTextSize(VECTOR2I(FromMM(size), FromMM(size)))
     t.SetTextThickness(FromMM(size * 0.15))
+    t.SetTextAngleDegrees(rot)
     board.Add(t)
 
 
-text("clickdeck proto frame", 0, y0 + 1.6, 0.9)
-text("rev B  UNTESTED", 0, y1 - 1.6, 0.9)
-text("K1", -mx, s1y - 1.8, 0.8)
-text("GND", -mx, 2.0 + 1.8, 0.8)
-text("K2", mx, s2y - 1.8, 0.8)
+ky = GEOM["key_windows"][0][1]
+text("clickdeck proto frame rev C  UNTESTED", (x0 + GEOM["key_windows"][0][0] - 9.3) / 2, ky, 0.8, rot=90)
+for name in tps:
+    px, py = GEOM["pads"][name]
+    text(name, px, py + 1.5, 0.8)
+if GEOM.get("switches_b"):
+    text("SW3/SW4: 2nd switch option", (s3x + s4x) / 2, s3y + 2.0, 0.8)
 
 board.Save(str(OUT))
 print("wrote", OUT)

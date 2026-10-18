@@ -24,7 +24,7 @@ jobs:
       - name: Build models (fail on fit warnings)
         run: python cad/build.py --no-render --strict
 
-      - name: Assembly checks (interference, screwdriver access, service, pinholes)
+      - name: Assembly checks (interference, screwdriver access, service, pinholes, key stack)
         run: python cad/assembly.py --check
 
       - name: Check committed outputs are up to date

@@ -18,15 +18,27 @@ pass here means "the model is consistent", not "it will build".
 | Check | Result |
 |---|---|
 | Parts don't overlap in the finished device (screws only into their target; knob caps on their hubs only by the crush ribs' interference) | ✅ no overlaps |
-| Screws: thread engagement within limits, tips stay inside their target, pilot holes run past the tips | ✅ 68 screws OK |
+| Screws: thread engagement within limits, tips stay inside their target, pilot holes run past the tips | ✅ 77 screws OK |
 | Minimum gaps between mating parts (table below) | ✅ all met |
 | Nothing floats: every part touches a chain of parts down to the tray | ✅ all supported |
 | On the stand: nothing hits the stand, every foot is on the desk | ✅ clear |
-| Every screw reachable with a straight screwdriver at its step | ✅ 68 of 68 screws reachable |
-| Every plug slides straight into its socket at its step (plug bodies modeled at full size: USB-C overmold 12.5×6.5 mm) | ✅ 14 of 14 plugs |
+| Every screw reachable with a straight screwdriver at its step | ✅ 77 of 77 screws reachable |
+| Every plug slides straight into its socket at its step (plug bodies modeled at full size: USB-C overmold 12.5×6.5 mm) | ✅ 16 of 16 plugs |
 | Cables clear every part (motor bells included); bends ≥ 10 mm on the USB-C cable; plate cables reach with the plate lifted 40 mm | ✅ all clear |
 | Service: top plate, then display, then knob board lift straight out | ✅ all three lift out |
-| A paperclip reaches BOOT and RESET through the back wall | ✅ both reachable |
+| A paperclip reaches BOOT and RESET through the back wall, and BOOTSEL through the floor | ✅ all three reachable |
+| Key stack (D8): every cap's down-stop lands on the frame PCB, and the worst cap drop plus the frame's flex at a 3 N press stays 0.1 mm off the glass | ✅ clear of the glass (full build and prototype) |
+
+Key stack (D8), from `cad/keystack.py`:
+
+| | Full build | Prototype |
+|---|---|---|
+| Cap bottom ↔ glass at rest | 0.80 mm | 0.80 mm |
+| Down-stop gap (cap feet ↔ frame PCB) | 0.50 mm | 0.50 mm |
+| Worst cap-edge drop, any press, PCB rigid | 0.52 mm | 0.52 mm |
+| Frame PCB flex at the worst switch (grillage) | 0.046 mm/N | 0.009 mm/N |
+| Cap drop + flex at 3 N | 0.66 mm | 0.55 mm |
+| Same at a hard 5 N press | 0.75 mm | 0.57 mm |
 
 Minimum gaps (nominal, from the model):
 
@@ -36,20 +48,23 @@ Minimum gaps (nominal, from the model):
 | knob hubs (flange, column) ↔ top plate | 0.50 mm | 0.40 mm |
 | knob caps ↔ top plate | 1.00 mm | 0.50 mm |
 | knob press switches ↔ strikers (set at calibration) | 0.20 mm | 0.15 mm |
-| frame PCB ↔ glass (see D8) | 0.20 mm | 0.19 mm |
-| key caps ↔ glass (see D8) | 0.20 mm | 0.19 mm |
+| frame PCB ↔ glass (D8) | 0.80 mm | 0.79 mm |
+| key caps ↔ glass, at rest (D8) | 0.80 mm | 0.79 mm |
+| countersunk frame screws ↔ glass | 0.80 mm | 0.79 mm |
+| pan-head frame screws ↔ panel edge (off the glass) | 0.60 mm | 0.50 mm |
 | touch band ↔ frame PCB and its ZIF | 1.03 mm | 0.30 mm |
 | touch band ↔ motor bells | 2.53 mm | 0.50 mm |
-| display board ↔ USB board | > 3 mm | 0.50 mm |
-| display board ↔ knob board | > 3 mm | 0.50 mm |
+| display board ↔ USB board | 2.94 mm | 0.50 mm |
+| display board ↔ knob board | 9.12 mm | 0.50 mm |
 
 Screw engagement (thread length in the part it screws into):
 
 | Screw | Into | Engaged | Allowed |
 |---|---|---|---|
-| M3x16 machine | panel tab (metal) | 1.7 mm | 1.5–2.2 mm |
-| M2x5 thread-forming | top plate boss/post | 3.4 mm | ≥ 3 mm |
-| M3x10 thread-forming | top plate boss/post | 8.8 mm | ≥ 6 mm |
+| M3x14 machine | panel tab (metal) | 1.7 mm | 1.5–2.2 mm |
+| M2x5 thread-forming | top plate boss | 3.4 mm | ≥ 3 mm |
+| M2x5 countersunk thread-forming | top plate boss | 3.4 mm | ≥ 3 mm |
+| M3x6 machine | heat-set insert (top plate post) | 4.8 mm | 3–5.4 mm |
 | M2x8 machine | motor (base) | 1.4 mm | 1.2–2.5 mm |
 | M2x3 countersunk machine | motor (bell) | 1.0 mm | 0.8–1.2 mm |
 | M2x6 thread-forming | tray boss | 4.4 mm | ≥ 3 mm |
@@ -62,18 +77,22 @@ Screw engagement (thread length in the part it screws into):
 | M2x8 machine | 20 | 3. Build the knob board (on the bench) |
 | M2x3 countersunk machine | 20 | 3. Build the knob board (on the bench) |
 | M2x6 thread-forming | 11 | 4. Screw the knob board into the tray; plug in the USB link |
-| M3x16 machine | 4 | 5. Mount the display; plug in its USB cable |
+| M3x14 machine | 4 | 5. Mount the display; plug in its USB cable |
 | M2x5 thread-forming | 5 | 6. Build the top plate (on the bench) |
-| M3x10 thread-forming | 4 | 7. Close the case |
+| M2x5 countersunk thread-forming | 9 | 6. Build the top plate (on the bench) |
+| M3x6 machine | 4 | 7. Close the case |
 | Hook-and-loop cable ties, ~10 mm wide (strap each motor lead coil through its two slots) | 5 | 3. Build the knob board (on the bench) |
-| Magnets 8×1.5 mm (tray) | 4 | 1. Print the case; fit magnets, feet and press strikers |
+| Magnets 8×1.5 mm (tray) | 4 | 1. Print the case; fit magnets, feet and inserts |
 | Magnets 8×3 mm (stand) | 4 | 9. Put it on the stand |
-| Rubber feet 10×1.5 mm | 6 | 1. Print the case; fit magnets, feet and press strikers, 9. Put it on the stand |
-| M2×3 set screws (press strikers) | 5 | 1. Print the case; fit magnets, feet and press strikers |
+| Rubber feet 10×1.5 mm | 6 | 1. Print the case; fit magnets, feet and inserts, 9. Put it on the stand |
+| M2×3 set screws (press strikers, in the spacer arms) | 5 | 3. Build the knob board (on the bench) |
+| M3 heat-set inserts, 4 mm hole × 5.7 mm long | 4 | 1. Print the case; fit magnets, feet and inserts |
+| M2 shim washers 0.1 / 0.2 mm (tune the key stack at the frame bosses) | a few | 6. Build the top plate (on the bench) |
 | Epoxy | — | magnets |
 
 Thread-forming screws go into printed plastic (PT/WN 1411-style K30, K20, or ST2.9/ST2.2
-DIN 7981 pan heads): drive them slowly and stop when snug.
+DIN 7981 pan heads): drive them slowly and stop when snug. The four case screws go into
+brass heat-set inserts, so they can be undone for every service.
 Panel screws thread into the display's metal tabs (check the thread on the real
 board; the drawing says M3).
 
@@ -87,21 +106,25 @@ plate lifted. The display cable's loop is sized for 100 mm; 95-110 mm cables fit
 | Cable | Connects | Buy | Route in the model | Step |
 |---|---|---|---|---|
 | USB-C to USB-C, USB 2.0 (3 A), one 90° side-exit end + one straight end | display board USB port ↔ USB board | **100 mm** | 98 mm | 5. Mount the display; plug in its USB cable |
-| JST-GH 1.25 mm 8-pin, plugs both ends, pin 1 to pin 1 ("same direction"), 26 AWG | USB board ↔ knob board | **100 mm** | 74 mm | 4. Screw the knob board into the tray; plug in the USB link |
+| JST-GH 1.25 mm 8-pin, plugs both ends, pin 1 to pin 1 ("same direction"), 26 AWG | USB board ↔ knob board | **100 mm** | 73 mm | 4. Screw the knob board into the tray; plug in the USB link |
 | FFC, 12-pin, 1.0 mm pitch, contacts on opposite sides (type B) | frame PCB ↔ knob board | **80 mm** | 24 mm; 70 mm with the plate lifted 40 mm | 6. Build the top plate (on the bench) |
 | JST-SH 1.0 mm 6-pin, plugs both ends, pin 1 to pin 1 | touch band ↔ knob board | **80 mm** | 37 mm; 69 mm with the plate lifted 40 mm | 6. Build the top plate (on the bench) |
-| Motor leads (on the motors) | motor ↔ knob board header | 300 mm assumed | ~37 mm routed; the rest coils on the back strip (6.6 mm high, 11.7 mm room) | 3. Build the knob board (on the bench) |
+| HY2.0 (2.0 mm) 3-pin, plugs both ends, pin 1 to pin 1 (optional) | knob board ↔ display board J8 (GPIO6 link) | **50 mm** | 27 mm | 5. Mount the display; plug in its USB cable |
+| Motor leads (on the motors) | motor ↔ knob board header | 300 mm assumed | ~38 mm routed; the rest coils on the back strip (6.6 mm high, 11.1 mm room) | 3. Build the knob board (on the bench) |
 
 Pinouts and the strain-relief measures: [wiring.md](wiring.md). Every part with
 sources: [bom.md](bom.md).
 
+The HY2.0 lead is optional (the GPIO6 link: page and wake signals to the display board
+without a host). Its header footprint is always on the knob board.
+
 ## Assembly
 
-### 1. Print the case; fit magnets, feet and press strikers
+### 1. Print the case; fit magnets, feet and inserts
 
-Print the tray, top plate and stand (all fit a 256 mm bed) in PETG or ASA, 4 walls, ≥25% infill (100% over the touch band area of the top plate; no carbon- or metal-filled filament). Glue the four tray magnets into the pockets underneath. Stick the two rubber feet near the front edge (for flat use; on the stand they sit in pockets). Thread an M2×3 set screw up through each of the five holes under the knob press switches until its tip stands ~0.4 mm above the floor: these are the press strikers, set finally during calibration (step 4).
+Print the tray, top plate and stand (all fit a 256 mm bed) in PETG, 4 walls, ≥25% infill (100% over the touch band area of the top plate; no carbon- or metal-filled filament). PLA softens in the case's ~2.3 W of heat. Glue the four tray magnets into the pockets underneath. Stick the two rubber feet near the front edge (for flat use; on the stand they sit in pockets). With a soldering iron (insert tip, ~240 °C), press an M3 heat-set insert (4 mm hole, 5.7 mm long) into the bottom end of each of the top plate's four posts, flush with the end: the case screws go into these, so they survive being undone for every service.
 
-![Print the case; fit magnets, feet and press strikers](../cad/out/assembly/step1_tray.png)
+![Print the case; fit magnets, feet and inserts](../cad/out/assembly/step1_tray.png)
 
 ### 2. Screw in the USB board
 
@@ -113,7 +136,7 @@ Lower the USB board into the back-left corner, external USB-C socket first: the 
 
 ### 3. Build the knob board (on the bench)
 
-Glue a diametric magnet to the bottom end of each motor shaft. Set a printed spacer ring on each tongue (its two pins drop into the holes beside the MT6701 and center the motor, so the magnet sits within 0.3 mm of the sensor axis), put the motor on it with its lead pointing back, and drive four M2×8 screws up from under the tongue into the motor base. Never use longer screws: a tip past the base's thread can short a winding. Screw a printed hub onto each bell with four M2×3 countersunk screws (its spigot centers it in the shaft bore). Plug each motor's 3-pin plug onto the header behind its tongue (any way round: the firmware finds the phase order), coil the spare lead flat on the back strip and strap it through the two slots with a hook-and-loop tie. Keep the lead clear of the bell. Calibrate each knob now, before it's buried in the case.
+Glue a diametric magnet to the bottom end of each motor shaft. Set a printed spacer ring on each tongue (its two pins drop into the holes beside the MT6701 and center the motor, so the magnet sits within 0.3 mm of the sensor axis), put the motor on it with its lead pointing back, and drive four M2×8 screws up from under the tongue into the motor base. Never use longer screws: a tip past the base's thread can short a winding. The spacer's arm reaches forward over the slot to above the knob's press switch on the board's front border: thread an M2×3 set screw (the striker) down through the arm's tip. Screw a printed hub onto each bell with four M2×3 countersunk screws (its spigot centers it in the shaft bore). Plug each motor's 3-pin plug onto the header behind its tongue (any way round: the firmware finds the phase order), coil the spare lead flat on the back strip and strap it through the two slots with a hook-and-loop tie. Keep the lead clear of the bell. Calibrate each knob now, before it's buried in the case: turn its striker until the knob clicks after a light press on the hub, then back it off a quarter turn.
 
 ![Build the knob board (on the bench)](../cad/out/assembly/step3_knob_sub.png)
 
@@ -121,7 +144,7 @@ Glue a diametric magnet to the bottom end of each motor shaft. Set a printed spa
 
 ### 4. Screw the knob board into the tray; plug in the USB link
 
-With the PC unplugged: lower the knob board in with its back strip resting on the floor ribs, and screw it down along its front edge and behind each hinge into the floor bosses (thread-forming, don't overtighten). Before the first power-up, check the JST-GH cable pin 1 to pin 1 with a meter. Plug it into the knob board's back-left corner and into the USB board (both click), and press it into its floor clip. To set the press strikers, turn each set screw from below until the knob clicks after a light press, then back it off a quarter turn.
+With the PC unplugged: lower the knob board in with its back strip resting on the floor ribs, and screw it down along its front edge and behind each hinge into the floor bosses (thread-forming, don't overtighten). Before the first power-up, check the JST-GH cable pin 1 to pin 1 with a meter. Plug it into the knob board's back-left corner and into the USB board (both click), and press it into its floor clip. The BOOTSEL button on the board's left end sits over the small hole in the floor (for recovery).
 
 ![Screw the knob board into the tray; plug in the USB link](../cad/out/assembly/step4_knob_board.png)
 
@@ -129,7 +152,7 @@ With the PC unplugged: lower the knob board in with its back strip resting on th
 
 ### 5. Mount the display; plug in its USB cable
 
-Stand the tray upright on two blocks (~50 mm high) under its left and right walls, so screws can go in from below without turning it over. Lay the panel face up on its four posts, against the three printed stops behind and beside it, and drive the four M3 screws up from underneath into the panel's tabs (the tip ends ~2 mm past the tab face, short of the LCD's back sheet: don't substitute longer screws). Plug the right-angle end of the USB-C cable into the display board's USB port (the one nearer the back; the cable points forward), loop it round in the bay and plug the straight end into the USB board. Press the cable into its two floor clips, clear of the knob board.
+Stand the tray upright on two blocks (~50 mm high) under its left and right walls, so screws can go in from below without turning it over. Lay the panel face up on its four posts, against the three printed stops behind and beside it, and drive the four M3 screws up from underneath into the panel's tabs (the tip ends ~2 mm past the tab face, short of the LCD's back sheet: don't substitute longer screws). Plug the right-angle end of the USB-C cable into the display board's USB port (the one nearer the back; the cable points forward), loop it round in the bay and plug the straight end into the USB board. Press the cable into its two floor clips, clear of the knob board. Optional GPIO6 link: before laying the panel down, plug the HY2.0 3-pin lead into the 3-pin header on the knob board's back edge, then into J8 on the display board's right edge (check the silkscreen: J8 is the GPIO6 port).
 
 ![Mount the display; plug in its USB cable](../cad/out/assembly/step5_display.png)
 
@@ -137,7 +160,7 @@ Stand the tray upright on two blocks (~50 mm high) under its left and right wall
 
 ### 6. Build the top plate (on the bench)
 
-With the top plate face up, drop the five clear knob-window covers into their pockets (they rest on a ledge) and fix each with a little clear UV glue or clear tape on the ledge. Lay the plate face down. Drop the clear caps into their holes, tabs toward the front edge. Plug the key cable (FFC) into the frame PCB's ZIF connector (flip the latch up, slide the cable in, latch down), then fit the frame PCB over the plate's two locating pins (switches facing the caps) and screw it to the bosses. Stick the touch band into its pocket under the plate, below the knob display windows, with full-coverage 3M 467MP/468MP transfer tape (no air gaps), and plug the touch cable into it.
+With the top plate face up, drop the five clear knob-window covers into their pockets (they rest on a ledge) and fix each with a little clear UV glue or clear tape on the ledge. Lay the plate face down. Drop the clear caps into their holes, tabs toward the front edge. Plug the key cable (FFC) into the frame PCB's ZIF connector (flip the latch up, slide the cable in, latch down), then fit the frame PCB over the plate's two locating pins (switches facing the caps) and screw it to the bosses: pan-head screws along the back and left edges (off the glass), countersunk ones everywhere else (flush underneath, so nothing touches the glass). Every key should click and none read pressed at rest: if one does, add a 0.1 mm shim washer between the nearest bosses and the PCB. Stick the touch band into its pocket under the plate, below the knob display windows, with full-coverage 3M 467MP/468MP transfer tape (no air gaps), and plug the touch cable into it.
 
 ![Build the top plate (on the bench)](../cad/out/assembly/step6_top_plate_sub.png)
 
@@ -145,7 +168,7 @@ With the top plate face up, drop the five clear knob-window covers into their po
 
 ### 7. Close the case
 
-With the PC unplugged: shake out any loose screws or debris. Rest the top plate on the two printed props (`print_plate_prop.stl`) on the tray's walls, which hold it ~40 mm up with its cables plugged in. Plug the key cable into the knob board's ZIF connector at its right end and the touch cable into the header beside it; the spare cable folds into the gap by the right wall, outside the fence next to knob 4. Take the props out and lower the top plate over the knob hubs (its tabs register it inside the walls). With the tray still on its blocks, drive the four M3 screws up from underneath into its posts.
+With the PC unplugged: shake out any loose screws or debris. Rest the top plate on the two printed props (`print_plate_prop.stl`) on the tray's walls, which hold it ~40 mm up with its cables plugged in. Plug the key cable into the knob board's ZIF connector at its right end and the touch cable into the header beside it; the spare cable folds into the gap by the right wall, outside the fence next to knob 4. Take the props out and lower the top plate over the knob hubs (its tabs register it inside the walls). With the tray still on its blocks, drive the four M3 screws up from underneath into the inserts in its posts.
 
 ![Close the case](../cad/out/assembly/step7_close.png)
 
@@ -185,26 +208,32 @@ Plug a USB-C cable from the computer into the port in the back wall. A C-to-C ca
 
 ### Swap a key cap or switch
 
-With the top plate off and face down, undo the frame PCB's screws, lift the PCB
-and replace the cap or switch.
+With the top plate off and face down, undo the frame PCB's 14 screws, lift the PCB
+and replace the cap or switch. Keep any shim washers with their bosses.
 
-### Recover the display board's firmware
+### Recovery (factory reset)
 
-No need to open the case: unplug the USB cable, hold BOOT through its hole in the back
-wall with a paperclip, and plug the cable back in; the board comes up in its ROM
-bootloader on the native port. (RESET alone doesn't reset the board's IO expander;
-firmware must never drive EXIO5 high, which switches the native USB port to CAN.)
+Full steps: [recovery.md](recovery.md). Nothing needs the case opened:
+
+1. **Always first: unplug for 10 s.** The 7B's I/O expander isn't reset by an ESP32
+   reset, so a stuck USB/CAN switch (EXIO5) only clears on power-off.
+2. **Settings reset** (firmware kept): hold the top-left key while plugging in.
+3. **Factory firmware:** the web configurator's "Restore factory firmware" flashes the
+   pinned release builds to both chips through their ROM bootloaders.
+4. **If a chip doesn't answer,** start its bootloader by hand with a paperclip: BOOT (and
+   RESET) for the display board through the two holes in the back wall; BOOTSEL for the
+   knob board through the hole in the floor under its left end (pull the slab off the
+   stand first). Hold the button while plugging in. Checked in the model: a straight
+   1 mm clip reaches each button and touches nothing else.
+5. **Never burn ESP32 eFuses or RP2350 OTP** (secure boot, flash encryption, disabling
+   download mode or BOOTSEL). That is the only brick a pinhole can't undo.
+
 Don't fit a battery to the 7B's J3, and unplug the back cable before using the
 7B's UART port: either one would feed 5 V back into the hub and the PC.
 
 ![Back wall pinholes](../cad/out/assembly/service_pinholes.png)
 
-### Recover the knob board's firmware
-
-The knob board has its own USB connection through the hub, so the host app reboots
-it into the RP2350B's built-in bootloader and copies a UF2 file. If the firmware is
-too broken for that, open the case, hold the BOOTSEL button on the knob board and
-unplug/replug the USB cable at the back: it shows up as a USB drive.
+![BOOTSEL pinhole in the floor](../cad/out/assembly/service_bootsel.png)
 
 ### Replace a motor or the knob board
 

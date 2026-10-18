@@ -19,14 +19,16 @@ repo.
 
  knob board (RP2350B) ◄── 12-pin FFC ── frame PCB (21 key switches + diodes)
         ├──── JST-SH 6-pin cable ────► touch band (touch controller, I²C)
-        └──── 3-pin plug ×5 ─────────► 2204 motors
+        ├──── 3-pin plug ×5 ─────────► 2204 motors
+        └┄┄┄┄ HY2.0 3-pin lead (optional) ┄┄► Waveshare 7B J8 (GPIO6): page, wake
 ```
 
 The PC sees two USB devices behind a hub: the display board (ESP32-S3:
 images, display settings) and the knob board (RP2350B: keys, knobs, touch,
-haptics). The host software pairs them ([protocol.md](protocol.md)). Each
-chip updates over its own USB connection; there's no link between the two
-chips inside the case.
+haptics). The web configurator and the optional daemon pair them
+([protocol.md](protocol.md)). Each chip updates over its own USB
+connection. The only link between the chips inside the case is the
+optional one-wire lead (see "Link to the display board").
 
 ![Cabling, top view with the display and top plate removed](../cad/out/cabling.png)
 
@@ -48,15 +50,21 @@ arm runs along the back wall to the external socket. Options considered:
 **External port 16 mm left of center**, not dead center: the center of the
 back wall has the two pinholes for the display board's BOOT and RESET
 buttons. The opening is 3 mm from the nearest pinhole, and a plugged-in cable
-still leaves the pinholes free (checked in the model).
+still leaves the pinholes free (checked in the model). A third pinhole, in
+the case floor under the knob board's left end (11 mm from the left edge,
+30.5 mm from the front), reaches the knob board's BOOTSEL button, so both
+chips can be put into their bootloaders from outside; lift the slab off
+the stand to use it ([recovery.md](recovery.md); pictures in
+[assembly.md](assembly.md)).
 
 **Display board cable.** Waveshare's board has two USB-C ports on its left
 edge (facing left, about 26 mm in from the panel frame's left edge, from the
 STEP model): the native USB port, 36 mm from the board's back edge, and the
 USB-to-UART port 15 mm in front of it. The schematic confirms Type_C2
 ("USB") is native (Type_C2 → R65/R66 → U9 → GPIO19/20); its position comes
-from Waveshare's PCB view: **check the silkscreen on the real board.** The port is
-only 8.8 mm above the floor with the panel 4.6 mm above it, so the cable's
+from Waveshare's PCB view: **check the silkscreen on the real board.** The
+port's center is only 12.8 mm above the case bottom and 9.0 mm below the
+glass (the board sits 2.7 mm above the floor, with no floor pocket), so the cable's
 display end is a **90° side-exit plug** (cable leaves sideways in the plane
 of the plug's wide face, here toward the front). USB-C is reversible, so a
 "left-angle" plug flipped over is a "right-angle" one; "up/down-angle" plugs
@@ -92,11 +100,13 @@ coiled flat on the back strip and strapped through two slots. See
   selected by expander pin EXIO5 with a 10 kΩ pull-down (low = USB). The
   display firmware must **never drive EXIO5 high**, or USB disappears. An
   ESP32 reset doesn't reset the CH32V003 expander, so recovery from that is
-  "unplug, hold BOOT, plug in".
+  "unplug for 10 s, hold BOOT, plug in" ([recovery.md](recovery.md)).
 - **Port position:** center 1.22 mm below the board's underside, face flush
   with the board's left edge (STEP; an earlier figure of 2.97 mm was wrong).
-- **H3 UART2, J8 GPIO6, J9 POWER, H1 I2C (HY2.0):** no longer used. The
-  UART1/UART2 slide switch position doesn't matter.
+- **J8 GPIO6 (HY2.0 3-pin: 3V3, GND, GPIO6):** the optional link from the
+  knob board (see "Link to the display board").
+- **H3 UART2, J9 POWER, H1 I2C (HY2.0):** not used. The UART1/UART2 slide
+  switch position doesn't matter.
 - **I/O expander:** a CH32V003 with a PWM output for the backlight, so
   brightness is adjustable. Which dimming resistors are fitted is unknown
   until a real board is probed.
@@ -159,15 +169,22 @@ connects sits at (USB Type-C spec, voltage across the 5.1 kΩ):
 
 | PC advertises | CC voltage | Motor budget (default) |
 |---|---|---|
-| Default USB power (or an A-to-C cable) | 0.25–0.61 V | 500 mA |
-| 1.5 A | 0.70–1.16 V | 1.0 A |
+| Default USB power (or an A-to-C cable) | 0.25–0.61 V | Haptics nearly off: faint detents and ticks only |
+| 1.5 A | 0.70–1.16 V | ~0.8 A (until real current is measured) |
 | 3.0 A | 1.31–2.04 V | 1.5 A |
 
-- The defaults keep the whole device under the offer: display board
-  350 mA, hub ~50 mA, knob board logic ~120 mA (each MT6701 draws
-  10–14 mA), plus motors. With default USB power the total (~1 A) goes
-  past the USB 2.0 500 mA figure, as the earlier plan already did; most
-  ports allow it, and the brownout guard catches the ones that don't.
+- **Policy (design review D9): full haptics need a C-to-C cable from a
+  port offering 1.5 A or more.** The rest of the device already uses about
+  0.5 A: display board 350 mA, hub ~50 mA, knob board logic ~120 mA (each
+  MT6701 draws 10–14 mA). So on a default 500 mA port (or any A-to-C
+  cable) there's next to nothing left for motors, and the configurator
+  tells the user why the knobs feel weak.
+- **Start-up:** the motor rail stays off and the backlight starts low until
+  the knob board has read CC and been configured over USB. Firmware polls
+  CC all the time, so a cable change takes effect at once.
+- **Optional PD sink:** a footprint on the USB board for a CH224-class
+  USB-PD sink, not fitted by default, so a PD charger can be asked for 5 V
+  at 3 A when its CC advertisement says less.
 - **Cap from the cable:** the JST-GH link carries 5 V on two contacts rated
   1 A each (JST's rating at 26 AWG; buy a 26 AWG cable, since cheap ones are
   28–30 AWG), so the knob board takes at most ~1.8 A whatever the PC offers
@@ -195,10 +212,12 @@ All on the boards, fitted by JLC. Part numbers: [bom.md](bom.md).
 | USB board | USB-C, top mount, 4 through-hole shell legs (TYPE-C-31-M-12) | Display cable, straight end | Faces forward |
 | USB board | JST-GH 8-pin, side entry (SM08B-GHS-TB) | USB link cable | Faces forward; positive latch |
 | Knob board | JST-GH 8-pin, side entry | USB link cable | Back-left corner, faces back |
-| Knob board | 1×3 2.54 mm right-angle header ×5 | Motor plugs | Behind each tongue, pins point left. Shrouded or keyed if the motor plug has a key |
+| Knob board | 1×3 2.54 mm right-angle header ×5, SMD (part not chosen; THT fallback) | Motor plugs | Behind each tongue, pins point left. Shrouded or keyed if the motor plug has a key |
 | Knob board | 12-pin 1.0 mm flip-lock ZIF | Key FFC | Right end, on a small tab. Series resistors and a TVS array on the key lines |
 | Knob board | JST-SH 6-pin, top entry (BM06B-SRSS-TB) | Touch cable | Right end, front. TVS array on the lines |
-| Knob board | USB test pads + BOOTSEL button | — | Recovery only. Silkscreen "unplug GH first" (the pads would back-feed with the cable in) |
+| Knob board | HY2.0 3-pin, footprint always, fitting optional | Link lead to the 7B's J8 | GPIO6 link (see below) |
+| Knob board | BOOTSEL button: reverse-mount tact switch (part not chosen), plunger through the board, reached through a pinhole in the case floor | — | Recovery ([recovery.md](recovery.md)) |
+| Knob board | USB test pads | — | Bench recovery only. Silkscreen "unplug GH first" (the pads would back-feed with the cable in) |
 | Frame PCB | 12-pin 1.0 mm flip-lock ZIF, top side | Key FFC | Right edge; the frame PCB's edge is about 1.2 mm inside the panel's metal edge (model) |
 | Touch band | JST-SH 6-pin, side entry (SM06B-SRSS-TB), underside | Touch cable | Right end, past the last motor |
 
@@ -227,6 +246,16 @@ reverse-power the touch chip. There's no interrupt line: firmware polls the
 controller. I²C pull-ups sit on the knob board; the band has a ferrite bead
 plus 10 µF on its 3V3.
 
+**Link to the display board, HY2.0 3-pin** (matches the 7B's J8:
+`3V3 · GND · GPIO6`): only GND and the signal connect on the knob board.
+Its 3V3 pin is left open, so the two boards' 3.3 V rails never meet. A
+spare RP2350B pin sends a one-way UART to the ESP32-S3's GPIO6 through a
+1 kΩ series resistor: page switches, activity (wake), the 3 s knob-hold
+confirmation and settings reset ([protocol.md](protocol.md)). The knob
+board always has the footprint; fitting the connector and buying the lead
+is optional. Without it, the device still works standalone, but pages
+don't change images and the display never idle-blanks without a host.
+
 **Motors, 1×3 header:** phases U, V, W. The plug goes on either way round,
 which changes the phase order. Calibration finds the order once; at the
 first wake after power-up the firmware runs a small open-loop direction check and throws
@@ -239,10 +268,11 @@ Bought ready-made; lengths from the model (`cad/assembly.py`, table in
 
 | Cable | Buy | Why that length |
 |---|---|---|
-| USB-C to USB-C, USB 2.0, one 90° side-exit plug + one straight plug | 100 mm | Loop sized for it (route 97 mm) |
-| JST-GH 1.25 mm 8-pin, both ends, pin 1 to pin 1, 26 AWG | 100 mm | Route 74 mm, the rest as a gentle S. Check pin-1-to-pin-1 continuity on arrival |
-| FFC 12-pin 1.0 mm, contacts on opposite sides (type B) | 80 mm | Top plate lifts 40 mm with it plugged in (needs 67 mm) |
-| JST-SH 1.0 mm 6-pin, both ends, pin 1 to pin 1 | 70–80 mm | Same (needs 67 mm). A longer spare folds against knob 4's bell |
+| USB-C to USB-C, USB 2.0, one 90° side-exit plug + one straight plug | 100 mm | Loop sized for it (route 98 mm) |
+| JST-GH 1.25 mm 8-pin, both ends, pin 1 to pin 1, 26 AWG | 100 mm | Route 73 mm, the rest as a gentle S. Check pin-1-to-pin-1 continuity on arrival |
+| FFC 12-pin 1.0 mm, contacts on opposite sides (type B) | 80 mm | Top plate lifts 40 mm with it plugged in (needs 70 mm) |
+| JST-SH 1.0 mm 6-pin, both ends, pin 1 to pin 1 | 80 mm | Same (needs 69 mm). A longer spare folds against knob 4's bell |
+| HY2.0 3-pin, both ends (optional link) | 50 mm | Knob board to the 7B's J8 (route 27 mm) |
 
 **FFC contact side:** with top-contact ZIF connectors on the top of both
 boards as modeled, the cable's contacts end up on opposite sides (type B).
@@ -256,14 +286,15 @@ load solder joints:
 - The socket is a **mid-mount** part with **through-hole shell legs**
   (unverified: LCSC lists C2894902 as SMD-only, so get its drawing; if it
   has no real THT legs, pick a mid-mount part that does), and its face sits flush with the inside of the back wall. The plug's overmold
-  seats 2.5 mm deep into a 14 × 8 mm opening in the wall, so a sideways pull
-  levers the plug against the case, not the socket. (Overmolds up to
-  ~13.5 × 7.5 mm seat fully; most cables are 10.5–12.5 × 5.5–6.5 mm.)
+  seats 2.5 mm deep into a 13 × 7 mm opening in the wall, so a sideways pull
+  levers the plug against the case, not the socket. (Most cables'
+  overmolds are 10.5–12.5 × 5.5–6.5 mm and seat fully; a bigger one stops
+  at the wall.)
 - **Push-in:** the USB board's arm rests against a printed backstop rib on
   the floor right behind the socket.
 - **Pull-out:** the board's edge sits against the back wall.
-- **Screws:** two M2 screws either side of the socket, two more in the main
-  part of the board, into printed bosses.
+- **Screws:** two M2×6 screws either side of the socket, two more in the
+  main part of the board, into printed bosses.
 
 **Internal USB-C.** The USB board's socket has four through-hole shell legs.
 The cable is pressed into two printed clips on the tray floor, so tugging the
@@ -281,11 +312,10 @@ through slots in the knob board.
 **Motors.** The 2204 lead (~30 cm with a 3-pin servo-style plug per one
 listing; **verify on arrival**) leaves the motor base under the bell, runs
 back over the hinge to the back strip, and plugs into the header behind its
-tongue. The rest coils flat on the back strip (24 × 5 mm, 3 layers) under
-the panel and is strapped through two slots, clear of the spinning bell. A
-30 cm lead fills the 6.7 mm under the panel (6.6 mm coil): longer leads
-don't fit, shorter ones are easier. That margin is 0.1 mm, so measure the
-real lead's length and diameter on arrival.
+tongue. The rest coils flat on the back strip (a 20 mm long coil, 3
+layers) under the panel and is strapped through two slots, clear of the
+spinning bell. A 30 cm lead makes a 6.6 mm high coil in the 11.1 mm under
+the panel. Measure the real lead's length and diameter on arrival.
 
 **Service loops.** The top plate lifts 40 mm with the key and touch cables
 still plugged in (checked), which is enough to reach the ZIF latch and the
@@ -320,10 +350,11 @@ step that connects it (checked in the model, like the screwdriver access).
 | I²C to touch band (polled, no interrupt) | 2 |
 | 5 V monitor (ADC) | 1 |
 | CC1/CC2 current-offer sense (ADC) | 2 |
-| **Total** | **43 of 48** |
+| Link to the display board (UART TX, optional lead) | 1 |
+| **Total** | **44 of 48** |
 
 USB, RUN and the SWD debug pins are separate pins on the RP2350B and don't
-count against the 48. The UART pins the old internal link used are free.
+count against the 48.
 Constraints for the schematic: each motor's 3 PWM signals should share one
 PWM frequency; GPIO n and n+16 share a PWM channel, so map the 15 PWM
 signals to 15 distinct channels in the schematic; the three analog inputs
@@ -340,8 +371,10 @@ erratum E9; see [knob-module.md](knob-module.md)).
 
 ## Touch band connections
 
-- Touch controller (part TBD from JLC stock) + slider electrodes, 1–10 kΩ
-  in series with each electrode next to the chip.
+- Touch controller **AT42QT2120** (SOIC-20, LCSC C614938) + 12 electrodes,
+  1–10 kΩ in series with each electrode next to the chip. All 12 channels
+  run as keys; firmware interpolates the position (the chip's own slider
+  uses only 3 channels, too coarse for the band).
 - JST-SH 6-pin, side entry, on the underside at the right end.
 
 ## USB board connections
@@ -364,6 +397,8 @@ erratum E9; see [knob-module.md](knob-module.md)).
   integrated terminations.
 - Upstream: external USB-C (CC1/CC2 5.1 kΩ to GND, sensed through 10 kΩ).
   Shell to GND at the socket.
+- Optional USB-PD sink (CH224-class) footprint on the upstream CC lines,
+  not fitted by default (power policy above).
 - Downstream port 1: JST-GH 8-pin to the knob board (VBUS through its own
   ~1.8 A reverse-blocking switch). Port 2: USB-C to the display board (56 kΩ
   CC pull-ups, VBUS through a ~1 A reverse-blocking switch). Ports 3–4

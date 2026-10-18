@@ -17,41 +17,84 @@ Python), plus the project's `.venv` for the CAD.
 
 | Board | Status | Folder |
 |---|---|---|
-| Prototype frame PCB (2 keys) | Generated, DRC clean, untested | [`proto-frame/`](proto-frame/) |
-| Rev 0 knob module | Schematic next; layout waits on measuring the motor | — |
-| Full frame PCB (21 keys) | After the prototype | — |
-| Full knob board | After the prototype | — |
-| Touch band | After the prototype | — |
+| Prototype frame PCB, rev C (2 keys on the 7B) | Generated, DRC clean, untested | [`proto-frame/`](proto-frame/) |
+| Rev 0 knob module | Schematic next; layout waits on measuring the motor. Outline: `cad/out/proto_knob_module_outline.dxf` | — |
+| Rev 0.5 test board (RP2350B + CH334F + AT42QT2120 + the full build's connectors) | Outline and placement only (`cad/out/proto_rev05_board_outline.dxf`, 70 × 45 mm, EST); no schematic yet | — |
+| Full frame PCB (21 keys) | After the prototype. Outline: `cad/out/full_frame_pcb_outline.dxf` | — |
+| Full knob board | After the prototype. Outline: `cad/out/full_knob_board_outline.dxf` | — |
+| Touch band | After the prototype (optional, D12) | — |
 
-## Prototype frame PCB
+## Prototype frame PCB (rev C)
 
-Two B3U switches on the strip below the key windows, three through-hole
-wire pads (K1, K2, GND) to hand-wire to the ESP32-S3 dev board, and four M2
-holes. The board is 72 mm wide, wider than the 2.4" glass (60.3 mm), so the
-M2 screw heads and the pads' solder tails sit off the glass; `gen_pcb.py`
-refuses to build if any of them lands over it. Copper stays 0.5 mm from every
-board and window edge, and the windows have R0.5 corners (what the router
-mills).
+The prototype now sits on the real Waveshare 7B (design review D3), so this
+board is the full build's frame cut down to its **two top-left keys**, at
+the same place on the panel. Its left and back edges reach past the glass,
+like the full frame's.
 
-It hangs from the acrylic top plate on M2 standoffs, resting 0.2 mm above the
-display glass. The model needs **3.3 mm** between the board and the plate:
-use 3 mm standoffs plus a 0.3 mm shim (washer or shim stack) on each, and keep
-a 0.1/0.2 mm shim kit to tune the gap. At 3.0 mm the switches are held down
-0.1 mm and may read as pressed.
+- **Switches:** SW1/SW2 under the key windows (the full build's position)
+  and **SW3/SW4 above them: the second-switch option** for the D8 force test
+  (one switch vs two per key). Each has its own wire pad. Use the one-nub
+  caps (`key_cap_clear_resin.stl`) for the one-switch test and the two-nub
+  caps (`key_cap_two_nub_clear_resin.stl`) for two switches.
+- **Wire pads** K1, GND, K1B, K2B, K2 (through-hole) on the back margin, off
+  the glass, for hand-wiring to the Rev 0.5 board.
+- **Mounting:** M2 pan-head screws only where the head is off the glass (two
+  on the left edge, two on the back edge). Over the glass the board uses
+  **countersunk holes** (JLC's countersink option, 90°; extra fee), so the
+  M2 countersunk heads sit flush with the underside: one at the strip
+  crossing between the keys and one on the right margin. That's the same
+  support method the full frame uses (D8), so the prototype tests it.
+  Copper keeps clear of the countersinks; the crossing's countersink blocks
+  the strip, so each key's traces leave on its own side.
+- `gen_pcb.py` refuses to build if a pan head or a pad's solder tail lands
+  over the glass. Copper stays 0.5 mm from every board and window edge, and
+  the windows have R0.5 corners (what the router mills).
 
-Other prototype standoffs (from `cad/model.py`; the stack rises if params change):
-M3 corner standoffs 24.7 mm (base plate to top plate), display module
-standoffs 15.5 mm, knob module bosses 2.2 mm.
+It hangs from the acrylic top plate on M2 standoffs, with the caps and the
+board **0.8 mm above the glass** (D8; was 0.2). The cap's down-stop (rails
+under its side lips, lugs at its back corners) lands on this board 0.5 mm
+after the switch's rest position, past the switch's worst-case 0.35 mm
+travel. The model needs **3.3 mm** between the board and the plate: 3 mm
+standoffs plus a 0.3 mm shim, with a 0.1/0.2 mm shim kit to tune the stack.
+At 3.0 mm the switches are held down 0.1 mm and may read pressed.
+
+Other prototype standoffs (from `cad/model.py`; see `cad/out/summary.md`,
+the stack moves if params change): **M3 24.5 mm** at the plate corners and
+sides (six), **M3 12.6 mm** from the base plate to the 7B's four tabs,
+**M2 2.0 mm** under the knob module and the Rev 0.5 board.
 
 ```sh
 hardware/proto-frame/export.sh     # CAD -> KiCad -> DRC -> JLC files
 ```
 
 Outputs in `proto-frame/jlc/`: Gerbers + drill (`proto-frame-gerbers.zip`),
-`proto-frame-bom.csv` and `proto-frame-cpl.csv` for JLC assembly of the two
-switches (LCSC C231329). The board is defined in `gen_pcb.py` (no separate
-schematic for a 2-switch board).
+`proto-frame-bom.csv` and `proto-frame-cpl.csv` for JLC assembly of the four
+switches (LCSC C231329). Tell JLC which holes are countersunk (H5, H6: M2,
+90°, from the bottom side). The board is defined in `gen_pcb.py` (no
+separate schematic for a 4-switch board).
 
 | Top | Bottom |
 |---|---|
 | ![top](proto-frame/render_top.png) | ![bottom](proto-frame/render_bottom.png) |
+
+## Notes for the boards still to draw
+
+- **Top side only (D6).** Every part goes on one side so JLC's single-side
+  assembly covers each board. The CAD now models the knob board that way:
+  the press switch sits on the fixed front border and an arm on the printed
+  motor spacer presses it (an M2 set screw in the arm is the striker); the
+  motor headers are SMD right-angle; BOOTSEL is a reverse-mount tact switch
+  (or, if none is found, a plain one on the bottom: the only bottom part).
+- **Drivers off the tongues (D16):** the model puts each TMC6300 on the back
+  strip beside its motor header. Only the MT6701's lines cross a hinge.
+- **Frame PCB supports (D8):** besides the pan-head screws along the back
+  and left edges, countersunk M2 holes at the four webs between the knob
+  windows, three on the right margin and two strip crossings (x = ±33 mm,
+  between key rows 2 and 3). Those crossings can't carry traces: route the
+  matrix around them. Keep copper 0.3 mm outside each countersink.
+- **GPIO6 link (D5):** HY2.0 3-pin side-entry header on the knob board's back
+  edge (x = 57 mm), footprint always, fitted optionally.
+- **PD sink (D9):** a CH224-class footprint area beside the external USB-C
+  on the USB board, on its CC lines, not fitted by default.
+- **Touch band (D12):** optional; `TOUCH_BAR = False` in `cad/params.py`
+  removes the band, its cable and the knob board's SH header from the model.

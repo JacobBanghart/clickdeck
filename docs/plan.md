@@ -10,10 +10,14 @@
   Adjustable detent count/strength and end stops are nice-to-have.
   Full force feedback is not required.
 - **USB only.** Must not show up as a monitor.
-- Custom host software / integrations (Linux first).
+- **Works standalone:** set up once in a web configurator, everything
+  stored on the device. Optional host software for live integrations
+  (Linux first).
 - Knobs also **press to click**, like Stream Deck dials.
 - A **touch band** under the knob displays for taps and swipes.
-- Cheap to build: case printable at home (256 mm bed), one JLC order.
+- Simple to build: case printable at home (256 mm bed), one JLC order.
+  Cost isn't a design driver (a single build costs more than a Stream
+  Deck + XL; [cost.md](cost.md)), but the numbers stay honest.
 
 **Explicitly not wanted**
 - Hall-effect switches.
@@ -23,52 +27,78 @@
 ## Architecture
 
 ```
- PC: OpenDeck + clickdeck device plugin (or the Python library directly)
+ PC: web configurator (browser, setup) · optional daemon (live integrations) · or nothing
    │  single USB-C cable, into the back wall
    ▼
  USB board: USB 2.0 hub (CH334F), reads the port's current offer (CC pins)
    ├── USB ──► knob board: RP2350B (USB device 1)
-   │             ├── USB HID + data channel → keys, knob turns/presses, touch; knob settings
+   │             ├── USB HID (keyboard + media) + WebUSB data channel → keymap, macros, knob settings
+   │             ├── optional 1-wire link ──► display board GPIO6 (page, wake)
    │             ├── 5 knobs: MT6701 sensor + motor driver + press switch each
    │             ├── 21-key matrix (frame PCB, switches only)
    │             └── I²C ──► touch band (under the top plate)
    └── USB ──► ESP32-S3 + 7" display board (USB device 2; bought: Waveshare ESP32-S3-LCD-7B, 1024×600)
-                 ├── USB data channel → images and display commands from the PC (~0.5 MB/s)
+                 ├── WebUSB data channel → pages, images, display settings (~0.5 MB/s)
                  └── drives the LCD   → all key images + knob display areas
 ```
 
-The host sees two USB devices behind a hub and pairs them
+The host sees two USB devices behind a hub; the software pairs them
 ([protocol.md](protocol.md)). Inside the case every link is a bought cable
 plugged into a connector JLC fits: no soldering or crimping
 ([wiring.md](wiring.md)).
 
-### Host software: OpenDeck
-[OpenDeck](https://github.com/nekename/OpenDeck) is an open-source app (Linux,
-Windows, macOS) that runs Stream Deck plugins. It officially supports Elgato
-hardware, and other vendors' devices through plugins. A **clickdeck device
-plugin** gives builders much of the Stream Deck plugin library without
-writing integrations. Plugins that rely on Elgato-only features may not
-work. Knob feel (detents, stops, haptic ticks) needs clickdeck-specific
-settings on top. A small Python library talks to the device directly for
-custom scripts.
+### Software: web configurator, optional daemon
+VIA-style: a **web configurator** (a static page using WebUSB, WebHID and
+Web Serial; Chromium browsers only) is the main tool. It sets the key
+layout and pages, HID shortcuts and macros, knob feel, images and
+brightness, and updates the firmware of both chips. Everything is stored
+on the device, so clickdeck works on any computer with no software
+installed.
 
-### Why a data channel for images
-HID on full-speed USB is limited to ~64 KB/s (one 120×120 key
-image ≈ 0.5 s). A CDC channel on the ESP32-S3 does about 0.5 MB/s
-(Espressif's figure): one raw key takes ~85 ms, a raw full page ~1.8 s. So
-RLE/JPEG is the default, not an option. Also: upload icons once and
-reference them by ID; redraw only the parts of the screen that changed.
-Target: a full page in under 300 ms.
+A small optional **host daemon** (`clickdeckd`) adds live integrations:
+changing images, showing app state (mic muted, volume), running scripts.
+OpenDeck or Companion Satellite thin clients are possible later, on top of
+it. Details: [configurator.md](configurator.md).
+
+Linux needs a udev rule (`uaccess`) so the browser can open the devices.
+
+### Why a bulk channel for images
+HID on full-speed USB is limited to ~64 KB/s (64-byte reports, one 120×120
+key image ≈ 0.5 s), so WebHID is too slow. Each chip has a vendor bulk
+interface that the browser reaches through WebUSB. Plan on about 0.5 MB/s
+(Espressif's figure for its USB stack): one raw key takes ~85 ms, a raw
+full page ~1.8 s. So RLE/JPEG is the default, not an option. Also: upload
+icons once and reference them by CRC; redraw only the parts of the screen
+that changed. Target: a full page in under 300 ms.
 
 ### Keys: Elgato style
 One LCD panel under a **frame-shaped PCB** (square window cut out per key).
 A clear resin cap sits in each window; a tab on the cap presses a micro
-switch mounted on the PCB strip between windows. What stops the cap from
-tilting, and how the frame PCB is supported, is still open
-([open-questions.md](open-questions.md)). Laser-cut acrylic caps are out:
+switch mounted on the PCB strip between windows.
+
+The frame PCB must not rest on the glass, and the glass must not be the
+cap's stop (design review B1–B3, decision D8):
+- **More frame support:** 14 M2 screws hold the frame PCB: 5 pan-head
+  along the back and left edges (off the glass) and 9 countersunk, flush
+  with the PCB's underside, over the glass (4 between the knob windows, 3
+  on the right margin, 2 at strip crossings x = ±33 mm between key rows 2
+  and 3).
+- **Cap down-stop:** caps and frame PCB sit 0.8 mm above the glass
+  (`GLASS_GAP`; the image sits ~0.6 mm deeper than with the old 0.2 mm).
+  Rails under each cap's side lips and lugs at its back corners stop on the
+  frame PCB after 0.5 mm of travel, past the B3U's worst-case 0.35 mm. 0.1
+  and 0.2 mm shim washers tune the stack. `cad/keystack.py` checks that the
+  worst cap drop (0.52 mm) plus the frame's flex (0.046 mm/N worst, down
+  from 4.2 mm/N) leaves at least 0.1 mm to the glass at a 3 N press.
+- **Second switch:** the prototype frame PCB has a second switch footprint
+  per key. The 5-point force test decides whether the full build needs two
+  switches per key.
+
+Laser-cut acrylic caps are out:
 sheet tolerance alone is larger than the key stack's budget. The cap has
 0.2 mm of free play; an optional foam or silicone ring on the flange stops
-rattle.
+rattle. Caps come in one standard clear finish for now; revisit the look
+once real caps are in hand.
 
 ```
       ┌──────────────┐  ← clear cap (the image shows through it)
@@ -120,15 +150,35 @@ driven with 3 PWM signals (the TMC6300 needs 6, so an inverter derives the
 low sides; DRV8316 is the fallback). Details in [pcb.md](pcb.md).
 
 **Press to click:** each knob sits on a tongue cut into the knob board
-(U-shaped slot, hinged at the back). Pressing the knob flexes the tongue onto
-a B3U switch underneath.
+(U-shaped slot, hinged at the back). An arm on the printed motor spacer
+reaches forward over the slot to a B3U switch on the board's fixed front
+border (top side); pressing the knob flexes the tongue down and an M2×3 set
+screw in the arm presses the switch. A plain 8 × 1.6 mm FR-4 neck is likely several
+times too stiff (design review H3, decision D10), so:
+1. First a $0 test: saw a tongue into scrap FR-4 and load it on the kitchen
+   scale.
+2. Rev 0 gets a **tunable hinge** (perforations that can be drilled or cut
+   out) and an adjustable **set-screw striker** per switch, so each knob's
+   press gap is set on the bench, with the top plate off.
+3. If sideways force on the knob causes false clicks (the cap top is far
+   above the hinge), the next revision moves to a parallel-guided flexure.
+
+**Knob board floorplan** (D16, D6): each driver sits on the 19 mm back
+strip next to its motor header, off the tongues, so only sensor traces
+cross each hinge. Before the full order, floorplan the board with real
+footprints (RP2350B QFN-80, TMC6300, connectors) and mirror that on Rev 0.
+Current-shunt footprints go on Rev 0 only. The knob board is
+**top-side only** (D6, shown feasible in the model), so JLC's cheaper
+single-side assembly fits everything. It needs SMD right-angle motor
+headers (part not chosen; THT is the fallback) and a reverse-mount BOOTSEL
+switch.
 
 ### Power budget
 One USB-C cable feeds the display board, its backlight and 5 motors. One
 SmartKnob motor alone draws ~0.7–1 A peak at 5 V. But a motor only draws
 real current while it's pushing back on a hand: an untouched knob sits at a
 detent center and needs no torque. So the budget is about **one motor's
-worth (~1 A)**, enforced by a firmware arbiter:
+worth (about 0.8–1.5 A, set by the port; below)**, enforced by a firmware arbiter:
 
 - **Wake on movement.** All angle sensors stay on (10–14 mA each). A
   knob's driver wakes when it moves more than a fraction of a degree
@@ -142,30 +192,54 @@ worth (~1 A)**, enforced by a firmware arbiter:
 - **Queue haptic notifications** so pulses never overlap. Calibrate knobs
   one at a time.
 
-The USB board reads the host port's advertised USB-C current (CC pins) and
-the knob board sets the motor budget from it: 500 mA for default USB power
-(or an A-to-C cable), 1.0 A for a 1.5 A port, 1.5 A for a 3 A port (capped by
-the internal cable). A brownout guard on the 5 V input backs it up (it trips
-on a drop from idle, not a fixed 4.6 V). Details:
+**Power policy (D9): full haptics need a USB-C port that offers 1.5 A or
+more, over a C-to-C cable.** The USB board reads the host port's
+advertised USB-C current (CC pins, polled all the time) and the knob board
+sets the motor budget from it:
+- Default USB power (500 mA, or any A-to-C cable): haptics nearly off. The
+  display, hub and logic already use about 0.5 A, so the motors only get
+  faint detents and ticks. The configurator says why.
+- 1.5 A port: about 0.8 A for the motors until real current is measured.
+- 3 A port: 1.5 A (capped by the internal cable).
+
+Until the knob board has read CC and been configured over USB, the motors
+stay off and the backlight starts low. An optional USB-PD sink footprint
+(CH224-class, not fitted by default) on the USB board could ask a PD
+charger for 5 V at 3 A. A brownout guard on the 5 V input backs it all up
+(it trips on a drop from idle, not a fixed 4.6 V). Details:
 [wiring.md](wiring.md); see also [lessons.md](lessons.md) #2.
 
-### Firmware updates
-Both chips update over the single USB cable, no extra tools, each over its
-own USB connection through the hub: the ESP32-S3 with esptool (or the
-host app), the RP2350B by rebooting into its built-in bootloader and
-copying a UF2 file (drag and drop works too). No custom bootloader. If the
-RP2350B firmware is broken, a BOOTSEL button on the knob board recovers it.
-Bootloaders stay unlocked.
-Knob calibration and display settings live in flash storage that firmware
-updates don't erase.
+### Firmware updates and recovery
+Both chips update from the web configurator over the single USB cable,
+each over its own USB connection through the hub, through its ROM
+bootloader: the ESP32-S3 with esptool-js over Web Serial, the RP2350B
+through its UF2 bootloader over WebUSB (drag and drop of a UF2 works too).
+No OTA slots and no custom bootloader: the ROM bootloader can't be
+overwritten, so a failed update can always be retried. The page asks the
+user to hold a knob for 3 s before it reflashes or changes the keymap
+(D17). Bootloaders stay unlocked.
+
+Three pinholes reach the display board's BOOT and RESET (back wall) and the
+knob board's BOOTSEL (case floor, under the knob board's left end; lift the
+slab off the stand to reach it). Settings live in flash that firmware updates don't
+erase; holding the top-left key while plugging in resets them. Step by
+step: [recovery.md](recovery.md).
 
 ### USB protocol
 Follows lessons from Stream32's documented protocol
 ([lessons.md](lessons.md) #11–16): versioned hello with feature flags,
-image cache by CRC so reconnects resend nothing, the device reports key
-size in pixels, binary framing with RLE/JPEG, saved pages that persist
-plus temporary live-state overlays, separate key-down/key-up events, and a
-plain HID keyboard mode that needs no host software.
+images stored by CRC so reconnects resend nothing, the device reports key
+size in pixels, binary framing with RLE/JPEG, pages stored on the device
+plus temporary live-state overlays, separate key-down/key-up events, and
+keys that send their stored shortcuts with no host software.
+
+**Offline pages and screen wake (D5):** the two chips only meet over USB
+through the host. An optional one-wire link from the knob board to the
+display board's GPIO6 connector carries page switches and activity, so
+pages change and the screen blanks and wakes with no host. The knob board
+has the footprint now; fitting the lead is optional. Without the link and
+without a host, the display never idle-blanks
+([protocol.md](protocol.md)).
 
 ### Touch band
 A thin capacitive sensor PCB under the top plate, just below the knob
@@ -173,36 +247,65 @@ displays: tap or swipe on the plate surface, like the + XL's touch strip.
 (Touching the display glass itself doesn't work: it sits ~7 mm below the top
 surface because of the key stack.) The knobs moved forward 4 mm to make the
 band 11.2 mm tall (model). It sits close to the motor bells, so it has a
-grounded guard trace and firmware ignores touches for 300 ms around knob
-motion or a press ([pcb.md](pcb.md)).
+grounded guard trace, hatched ground on the bottom layer, and firmware
+ignores touches for 300 ms around knob motion or a press
+([pcb.md](pcb.md)). The realistic touch test (full-length strip, motor
+running, panel lit) comes before the layout is frozen; only if it fails do
+the knobs move further forward (D11).
+
+Touch controller (D12): **AT42QT2120** (Microchip, SOIC-20; LCSC C614938,
+$1.89, 69 in stock on 2026-10-17, not marked end-of-life; Farnell and RS also stock it). It replaces the
+discontinued MPR121. Its built-in slider uses only 3 channels (too coarse
+over ~155 mm), so all 12 channels run as separate electrodes and firmware
+works out the position from their signal levels. The band is a
+nice-to-have and unplugs; if the part can't be sourced, the band is
+dropped, not the build (`TOUCH_BAR = False` in `cad/params.py` removes the
+band, its cable and the knob board's SH header from the model).
 
 ### Case material
 The case holds about 2.3 W in a closed box, and the 7B is rated 0–65 °C.
-Print it in PETG or ASA (not PLA), with 4 walls and ≥ 25% infill at the
-bosses. Log temperatures for 2 h at full brightness on the first build.
+Print it in **PETG** (not PLA), with 4 walls and ≥ 25% infill at the
+bosses. Screws that get undone for service go into **M3 heat-set inserts**
+(4.0 mm hole × 5.7 mm) in the top plate's 8 mm posts, with M3×6 machine
+screws, not self-tapped plastic threads (D14). Log temperatures
+for 2 h at full brightness on the first build.
 
-## Stages (test board: 2 keys + 1 knob)
+## Stages (prototype: 2 keys + 1 knob on the real 7B)
 
-1. **Images over USB:** a Python script sends an image to a key area on the
-   2.4" screen.
-2. **Switches:** a press sends an HID event; the PC reacts by changing that
-   key's image.
+The prototype uses the real display board (Waveshare 7B), not a small
+stand-in screen, and one JLC order carries the Rev 0 knob module, a
+"Rev 0.5" test board (RP2350B + CH334F hub + touch controller + the
+full-build connectors), the prototype frame PCB, the caps and the knobs
+(D3). So the first full-build panel doesn't meet any of these for the first
+time. Parts: [parts.md](parts.md).
+
+1. **Images over USB:** the display firmware (ESP-IDF) shows images sent
+   over its WebUSB bulk interface on the 7B. Measure throughput and the
+   flash-write glitch early.
+2. **Switches:** a press sends an HID event; a stored keymap works with no
+   software running; a "host" key changes its own image.
 3. **Knob:** on the Rev 0 knob module (MT6701 + TMC6300 + press switch on
-   a tongue); SimpleFOC closed loop; clicky/smooth/stops switched by a
-   command from the PC. Also test: the press feel (tongue stiffness), and
-   driving the TMC6300 with 3 PWM signals + inverter.
+   a tongue), driven from the Rev 0.5 board; SimpleFOC closed loop;
+   clicky/smooth/stops set from the PC. Also test: the press feel (scrap
+   FR-4 first, then the tunable hinge), and driving the TMC6300 with 3 PWM
+   signals + inverter.
 3b. **Touch band:** a full-length, 10–12-segment strip under an offcut of
-   the printed plate, with the motor running and the panel lit
+   the printed plate, read by the AT42QT2120 on the Rev 0.5 board, with
+   the motor running and the panel lit
    ([prototype-tests.md](prototype-tests.md)).
-4. **Mechanics:** frame + clear cap + tab; adjust until a press anywhere
-   on the key clicks cleanly. Caps are JLC3DP clear resin prints; the
-   prototype plates are laser-cut acrylic.
+3c. **USB and connectors:** the Rev 0.5 board's hub, RP2350B, JST-GH link,
+   FFC/ZIF and JST-SH, and the two-device pairing, on Linux, Windows and
+   macOS.
+4. **Mechanics:** the two top-left keys on the prototype frame PCB (rev C)
+   + clear caps; adjust until a press anywhere
+   on the key clicks cleanly, and compare one switch per key with two.
+   Caps are JLC3DP clear resin prints; the prototype plates are laser-cut
+   acrylic.
 5. **Decide go/no-go:** if the knob and cap feel are both good → full
-   20-key/5-knob design.
+   21-key/5-knob design.
 
-Software: on the RP2350B, the arduino-pico core + SimpleFOC (or pico-sdk);
-on the ESP32-S3, a toolchain that can set ESP-IDF sdkconfig options (the
-7B's RGB panel needs them: [protocol.md](protocol.md)); Python with
-`pyserial` and `hidapi` on the PC. Pin every version and build in CI. Keep the host
-integration layer behind an abstraction so it carries over to the full
-build.
+Software: on the ESP32-S3, **ESP-IDF 5.x** (esp_lcd + esp_tinyusb; the
+7B's RGB panel needs sdkconfig options a precompiled Arduino core can't
+set: [protocol.md](protocol.md)). On the RP2350B, **arduino-pico +
+SimpleFOC**, pinned. The web configurator in TypeScript; the optional
+daemon with a Python library. Pin every version and build in CI.

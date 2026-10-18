@@ -28,10 +28,13 @@ kicad-cli pcb export pos -o jlc/pos-raw.csv --format csv --units mm --side front
 } > jlc/proto-frame-cpl.csv
 rm jlc/pos-raw.csv
 
-cat > jlc/proto-frame-bom.csv <<'EOF'
-Comment,Designator,Footprint,LCSC
-B3U-1000P,"SW1,SW2",SW_SPST_B3U-1000P,C231329
-EOF
+# SW1/SW2 are the full build's switches; SW3/SW4 the second-switch option (D8 force
+# test). Order them all; for the one-switch test use the one-nub caps.
+SWS=$(awk -F, 'NR>1 {print $1}' jlc/proto-frame-cpl.csv | paste -sd, -)
+{
+  echo "Comment,Designator,Footprint,LCSC"
+  echo "B3U-1000P,\"$SWS\",SW_SPST_B3U-1000P,C231329"
+} > jlc/proto-frame-bom.csv
 
 kicad-cli pcb render --side top --width 1600 --height 1200 --zoom 1.1 -o render_top.png "$PCB" > /dev/null
 kicad-cli pcb render --side bottom --width 1600 --height 1200 --zoom 1.1 -o render_bottom.png "$PCB" > /dev/null

@@ -44,7 +44,8 @@ Sources and licenses:
    power budget in [plan.md](plan.md). The USB board reads the host's
    advertised USB-C current (default, 1.5 A or 3 A) and the motor budget
    follows it, with a brownout guard ([wiring.md](wiring.md)).
-   Require a C-to-C cable. On the prototype, power the motor with short,
+   Full haptics need a C-to-C cable from a port offering 1.5 A or more; on
+   default ports haptics are nearly off. On the prototype, power the motor with short,
    thick leads, not breadboard jumpers.
 
 3. **The driver chip may not be in stock at the assembler.** SmartKnob
@@ -52,9 +53,10 @@ Sources and licenses:
    ([#83](https://github.com/scottbez1/smartknob/issues/83)). JLC lists it
    today as an "extended" part, and one listing showed it
    [out of stock](https://jlcpcb.com/partdetail/TRINAMIC_MOTIONCONTROL-TMC6300LA/C5196961).
-   → Check JLC stock before every order. Keep DRV8316 (plan B) footprint-
-   compatible in the schematic, or pre-order parts through JLC's parts
-   service.
+   → Check JLC stock before every order. Source the TMC6300 through JLC
+   Global Sourcing or consign it from DigiKey, and reserve the full-build
+   quantity once Rev 0 passes. Keep DRV8316 (plan B) drawn in the
+   schematic.
 
 4. **Auto-calibration at boot is fragile.** SimpleFOC's `initFOC` spins the
    motor at startup to find pole pairs and zero angle; with the MT6701 it
@@ -77,7 +79,7 @@ Sources and licenses:
 
 6. **Press detection with strain gauges needs per-unit calibration**
    ([SmartKnob #48](https://github.com/scottbez1/smartknob/issues/48)).
-   → Confirms the choice of a real switch under a hinged tongue.
+   → Confirms the choice of a real switch pressed through a hinged tongue.
 
 ## Firmware and toolchain
 
@@ -95,10 +97,11 @@ Sources and licenses:
    ([#14](https://github.com/eezbotfun/8-key-macropad/issues/14)). Their
    locked bootloader drew complaints
    ([#12](https://github.com/eezbotfun/8-key-macropad/issues/12)).
-   → Both chips update over USB: an internal hub gives the ESP32-S3 and the
-   RP2350B on the knob board their own USB connections, so the RP2350B
-   uses its built-in UF2 bootloader (BOOTSEL button for recovery). Never
-   lock the bootloader.
+   → Both chips update over USB from the web configurator: an internal hub
+   gives the ESP32-S3 and the RP2350B their own USB connections, and each
+   is flashed through its ROM bootloader (esptool-js for the ESP32-S3, UF2
+   for the RP2350B). Pinholes for BOOT and BOOTSEL for recovery
+   ([recovery.md](recovery.md)). Never lock the bootloader or burn fuses.
 
 9. **Heavy artwork can lock up USB.** On eezbotfun's ESP32-S2, custom icons
    plus a background made the USB device stop responding until a firmware
@@ -125,11 +128,13 @@ Sources and licenses:
     at exactly that size.
 14. **Raw images over slow links are slow.** Base64 RGB565 over serial took
     seconds per key; Stream32 added RLE compression (up to ~99% smaller for
-    flat icons). → Binary framing on our USB bulk/CDC channel, with RLE or
+    flat icons). → Binary framing on our USB bulk channel, with RLE or
     JPEG.
 15. **Separate saved layouts from live updates.** Persisted pages for
     offline use (page navigation works with no host), plus temporary
     "live state" overlays in RAM that expire.
+    → Pages are stored on the device. Offline page switching needs the
+    optional GPIO6 link between the two chips ([protocol.md](protocol.md)).
 16. **Identify the device precisely.** Specific USB IDs and a stable serial
     number, so the host never grabs the wrong serial port.
 
@@ -139,8 +144,8 @@ Sources and licenses:
     settings for color inversion, RGB/BGR order and mirroring
     ([#17](https://github.com/fadyfaheem/stream32/issues/17),
     [#20](https://github.com/fadyfaheem/stream32/issues/20)).
-    → Firmware settings for all three. For the prototype's generic 2.4"
-    screen, expect either ST7789 or ILI9341.
+    → Firmware settings for all three. The prototype uses the real 7B, so
+    record its board revision and check these on it.
 18. **Waveshare RGB boards may not dim.** Stream32 found the 4.3" board's
     backlight is on/off only (through an I/O expander), and the 4" Rev 3
     needed a hardware mod to power on automatically.
@@ -149,6 +154,10 @@ Sources and licenses:
     brightness adjustment at the same price, so clickdeck uses the 7B.
 19. **Blank the screen when idle** (Stream32 defaults to 10 minutes, and
     blanks when the computer locks) to avoid burn-in.
+    → clickdeck blanks when idle if it can see activity (daemon running or
+    GPIO6 link fitted), and always while the PC sleeps. With neither, it
+    never blanks, since nothing could wake it. The panel is IPS, so burn-in
+    is a smaller risk than on OLED.
 
 ## Keys and host software
 
@@ -162,8 +171,9 @@ Sources and licenses:
     top request; it also crashed writing to its install folder
     ([#11](https://github.com/eezbotfun/8-key-macropad/issues/11),
     [#13](https://github.com/eezbotfun/8-key-macropad/issues/13)).
-    → OpenDeck and the Python library are cross-platform; store settings in
-    the user's config folder.
+    → The web configurator runs in any Chromium browser on Linux, Windows
+    and macOS, and settings live on the device. The optional daemon keeps
+    its own settings in the user's config folder.
 22. **Keys should show live state** (mic muted, which audio output) and
     profiles should import, export and clear
     ([Stream32 #27](https://github.com/fadyfaheem/stream32/issues/27),
@@ -171,8 +181,9 @@ Sources and licenses:
     [#15](https://github.com/eezbotfun/8-key-macropad/issues/15)).
 23. **Be careful running commands from the host.** Stream32 put shell-command
     status checks behind a developer-mode setting.
-24. **Stream32 already speaks Bitfocus Companion's Satellite API**, a second
-    host option alongside OpenDeck.
+24. **Stream32 already speaks Bitfocus Companion's Satellite API.**
+    → A Companion Satellite or OpenDeck client is possible later, as a thin
+    layer on the clickdeck daemon ([configurator.md](configurator.md)).
 
 ## Mechanics
 
@@ -184,8 +195,8 @@ Sources and licenses:
 ## Licensing notes
 
 - OpenDeck (the app) is GPL-3.0. Its plugins run as separate programs, so a
-  clickdeck plugin can likely stay MIT; check OpenDeck's plugin terms before
-  publishing.
+  clickdeck plugin (if one is ever written) can likely stay MIT; check
+  OpenDeck's plugin terms before publishing.
 - Code copied from SmartKnob keeps its Apache-2.0 license and notice;
   mechanical files reused from it need CC BY attribution.
 - eezbotfun's case files are CC BY-NC: don't copy them into this repo.
