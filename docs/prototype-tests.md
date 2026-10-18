@@ -91,7 +91,7 @@ can't show the motor and panel interference.
 | Flash while running | `SAVE` / `PERSIST` while knobs turn and images stream | No FOC glitch you can feel, no display glitch |
 | Brownout | Pull VBUS down with a load or a long thin cable | Motors cut, the device stays enumerated, the trip shows in `STATUS` |
 | Fuzz | Send malformed and random frames to both data channels for 10 min | No crash or hang; bad frames get `ERROR` |
-| Confirm hold | Send a keymap change and a bootloader request; don't hold, then hold a knob 3 s | Nothing changes without the hold; both apply after it. Without the GPIO6 link the display's bootloader request stays refused (`not-confirmed`) and the configurator asks for the BOOT pinhole |
+| Lock | Lock off: send a keymap change and a bootloader request to each chip. Lock on: repeat; don't hold, then hold a knob 3 s | Lock off: both apply at once, no button or pinhole. Lock on: nothing changes without the hold; both apply after it. Lock on without the GPIO6 link, the display's bootloader request stays refused (`not-confirmed`) and the configurator asks for the BOOT pinhole |
 
 ## Updates and recovery
 

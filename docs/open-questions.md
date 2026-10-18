@@ -53,7 +53,7 @@ Cabling (new with the internal hub; [wiring.md](wiring.md)):
 | ✅ | Power on default 500 mA ports (D9). **Answer:** full haptics need a 1.5 A+ port over C-to-C; on default ports haptics are nearly off; ~0.8 A motor budget on 1.5 A ports until measured; optional PD sink footprint ([wiring.md](wiring.md)) | Measure real motor current on Rev 0 | Power budget |
 | ❓ | FFC contact side: type B (opposite sides) assumes top-contact ZIFs on both boards | ZIF datasheet | Key cable order |
 | ❓ | One JLC panel means one board thickness, but the touch band was planned at 0.8 mm | Test sensing through 1.6 mm board + 2 mm plate on the prototype, or order the band separately | Touch band, cost |
-| ⚠️ | Extended-part fees: the whole panel has roughly 17–19 extended part types ($3 each per order at JLC), not ~5. Cost isn't a design driver (D1), but [cost.md](cost.md) includes these and US import duty | Count from the BOM with JLC's BOM tool; get a real JLC cart quote with a US address | Cost |
+| ⚠️ | Extended-part fees: the whole panel has 24 extended part types ($3.07 each per order at JLC; counted 2026-10-17, list in cost.md), not ~5. Cost isn't a design driver (D1), but [cost.md](cost.md) includes these and US import duty | Count from the BOM with JLC's BOM tool; get a real JLC cart quote with a US address | Cost |
 | ✅ | Can the knob board be top-side only (D6)? **Yes, in the model:** each press switch sits on the top side of the fixed 5 mm front border and an arm on the printed motor spacer presses it (an M2×3 set screw in the arm is the striker); the drivers moved to the back strip, so only sensor traces cross the hinges. Still to pick: SMD right-angle motor headers (THT fallback) and a reverse-mount BOOTSEL tact switch (fallback: a plain one on the bottom, the only bottom part) | Floorplan with real footprints before the full order | Knob board, assembly cost ([pcb.md](pcb.md)) |
 
 Everything else:
@@ -64,7 +64,7 @@ Everything else:
 | ✅ | Touch band controller (D12). **Answer:** **AT42QT2120-SUR** (SOIC-20, LCSC C614938, $1.89, 69 in stock on 2026-10-17; extended part at JLC). The MPR121 is dropped (discontinued, NXP PCN16772). Its slider is only 3 channels, so all 12 channels run as keys and firmware interpolates the position | Check JLC stock on quote day; if it's gone, drop the touch band rather than pay for an alternative (`TOUCH_BAR = False` in `cad/params.py`) | Touch band PCB |
 | ✅ | Host software (D4). **Answer:** a VIA-style web configurator (WebUSB/WebHID/Web Serial, Chromium) is the main tool, settings stored on the device; an optional daemon for live integrations. OpenDeck/Companion Satellite clients maybe later ([configurator.md](configurator.md)) | — | Host software |
 | ❓ | Image throughput over the WebUSB vendor bulk interface on the 7B (plan ~0.5 MB/s) | Measure on the prototype | Protocol |
-| ❓ | Display reflash confirmation without the GPIO6 link: the display chip can't see the 3 s knob hold. **Default for now:** without the link, a display-only reflash needs the BOOT pinhole; with the link fitted, the knob hold confirms it | Revisit after the link is tested on the Rev 0.5 board | [protocol.md](protocol.md), [recovery.md](recovery.md), [configurator.md](configurator.md) |
+| ✅ | Display reflash confirmation without the GPIO6 link. **Answer (D17 changed):** no confirmation by default, so no pinhole. Only with the optional lock on and no link does a display-only reflash need the BOOT pinhole | — | [protocol.md](protocol.md), [recovery.md](recovery.md), [configurator.md](configurator.md) |
 | ❓ | Case printing: does the stand print well on a home printer, and what does JLC3DP charge? | Slice the STLs; get a JLC3DP quote | Cost estimate |
 | ❓ | Real costs: JLC quotes for the panelized PCBs with assembly | Upload the real Gerbers/BOM | Cost estimate |
 
@@ -116,6 +116,8 @@ Options are in [design-review.md](design-review.md). ✅ All answered:
 - ✅ D15 look: one standard clear cap finish for now; revisit after seeing it
 - ✅ D16 floorplan: drivers off the tongue (on the back strip next to each
   motor header), real-footprint floorplan first, shunts on Rev 0 only
-- ✅ D17 security: 3 s knob hold to confirm reflash or keymap changes
+- ✅ D17 security (changed 2026-10-18): VIA-style trust, the browser's device
+  picker is the confirmation; optional on-device lock brings back the 3 s
+  knob hold for reflash or keymap changes
 - ✅ D18 updates: no OTA slots; the configurator flashes through each
   chip's ROM bootloader ([recovery.md](recovery.md))

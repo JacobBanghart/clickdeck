@@ -16,47 +16,48 @@ Screws, cable types and lengths come from the model, so they match
 
 | Qty | Part | Spec | Source / LCSC # | ~Price | Used in |
 |---|---|---|---|---|---|
-| 1 panel | PCBs: knob board, frame PCB, touch band, USB board, panelized | 2-layer FR-4 1.6 mm, ENIG or HASL; outlines from `cad/out/*.dxf`. Every part on one side of each board (D6), so JLC's single-side assembly covers them. The frame PCB has countersunk M2 holes (JLC countersink option, V: fee) so its screws sit flush over the glass. JLC makes 5 panels and assembles at least 2 | JLCPCB | in the board lines of cost.md | all boards |
+| 1 panel | PCBs: knob board, frame PCB, touch band, USB board, panelized | 2-layer FR-4 1.6 mm, ENIG or HASL; outlines from `cad/out/*.dxf`. Every part on one side of each board (D6), so JLC's Economic (single-side) assembly can take them. The frame PCB has countersunk M2 holes (JLC countersink option, V: fee) so its screws sit flush over the glass. JLC makes 5 panels and assembles at least 2 | JLCPCB | $30–70 for 5 panels (HASL to ENIG, 4-design fee); fees in cost.md | all boards |
 
 ### Parts JLC fits (per device)
 
 | Qty | Part | Spec | Source / LCSC # | ~Price | Used in |
 |---|---|---|---|---|---|
-| 1 | RP2350B, stepping A4 (erratum E9 fixed) | QFN-80 microcontroller, 48 GPIO, native USB | LCSC (look up in JLC's library) (V: A4 marking) | $1–2 | knob board |
-| 1 | RP2350B support parts | 16 MB QSPI flash W25Q128JVSIQ [C97521](https://www.lcsc.com/product-detail/C97521.html); 12 MHz crystal (ABM8-272-T3 class, Raspberry Pi's reference); 3.3 µH SMPS inductor (AOTA-B201610S3R3 class); 3.3 V regulator | JLC (V: part numbers except the flash) | $1–2 | knob board |
-| 5 | TMC6300-LA-T | 3-phase motor driver, 2–11 V | [C5274455](https://www.lcsc.com/product-detail/C5274455.html) (59 in stock, 2026-10-17; DigiKey ~4,100) | ~$26 | knob board |
-| 5 | MT6701CT-STD | magnetic angle sensor, SSI, SOP-8 (not the QT: that's a 3×3 QFN-16) | [C3003196](https://www.lcsc.com/product-detail/C3003196.html) (V: JLC stock) | ~$5 | knob board |
+| 1 | RP2350B, stepping A4 (erratum E9 fixed) | QFN-80 microcontroller, 48 GPIO, native USB | [C42415655](https://www.lcsc.com/product-detail/C42415655.html) (stepping A4 per LCSC; 4,720 in stock, 2026-10-17) (V: A4 marking) | ~$1.3 | knob board |
+| 1 | RP2350B support parts | 16 MB QSPI flash W25Q128JVSIQ [C97521](https://www.lcsc.com/product-detail/C97521.html); 12 MHz crystal (ABM8-272-T3 [C20625731](https://www.lcsc.com/product-detail/C20625731.html), Raspberry Pi's reference); 3.3 µH SMPS inductor (AOTA-B201610S3R3 [C42411119](https://www.lcsc.com/product-detail/C42411119.html): 3 in stock, minimum buy 32, 2026-10-17); 3.3 V regulator. The flash is a JLC basic part | JLC (V: part numbers except the flash) | $4–5 | knob board |
+| 5 | TMC6300-LA-T | 3-phase motor driver, 2–11 V | [C5274455](https://www.lcsc.com/product-detail/C5274455.html) (201 in stock, 2026-10-17; DigiKey ~4,100) | ~$12 from DigiKey via Global Sourcing ($2.44); ~$25 at LCSC | knob board |
+| 5 | MT6701CT-STD | magnetic angle sensor, SSI, SOP-8 (not the QT: that's a 3×3 QFN-16) | [C3003196](https://www.lcsc.com/product-detail/C3003196.html) (V: JLC stock) | ~$8 | knob board |
 | 5 | SN74LVC3G04DCTR | triple inverter (3-PWM drive), SM8 (DCT) package | [C139324](https://www.lcsc.com/product-detail/C139324.html) | ~$1 | knob board |
-| 5 | B3U-1000P | knob press switch, top side on the board's front border (the motor spacer's arm presses it) | [C231329](https://www.lcsc.com/product-detail/C231329.html) | ~$2 | knob board |
+| 5 | B3U-1000P | knob press switch, top side on the board's front border (the motor spacer's arm presses it) | [C231329](https://www.lcsc.com/product-detail/C231329.html) | ~$0.8 | knob board |
 | 5 | 1N4148W | SOD-123 diodes for the knob press switches (in the key matrix) | JLC basic part | ~$0.1 | knob board |
 | 5 | 1×3 right-angle pin header, 2.54 mm, SMD | motor plug sockets, top side (D6: no through-hole pins); must match the motor's plug; prefer a shrouded/keyed one so the plug can't go on offset | LCSC (V: SMD right-angle part not chosen; THT fallback [C2886703](https://www.lcsc.com/product-detail/C2886703.html)) | ~$0.5 | knob board |
-| 1 | JST SM08B-GHS-TB | 8-pin GH header, side entry, latching (USB link) | [C265111](https://www.lcsc.com/product-detail/C265111.html) | ~$0.5 | knob board |
+| 1 | JST SM08B-GHS-TB | 8-pin GH header, side entry, latching (USB link) | [C265111](https://www.lcsc.com/product-detail/C265111.html) (V: 0 in JLC stock, 2026-10-17; pre-order minimum 19) | ~$0.6 | knob board |
 | 1 | FFC/FPC connector, 12-pin 1.0 mm, flip-lock ZIF, right angle | e.g. XUNPU FPC-1.0FX-12PWCR-H20 (V: contact side, height) | [C19269355](https://www.lcsc.com/product-detail/C19269355.html) | ~$0.2 | knob board |
-| 1 | JST BM06B-SRSS-TB | 6-pin SH header, top entry (touch cable; leave off without the band) | [C160392](https://www.lcsc.com/product-detail/C160392.html) | ~$0.2 | knob board |
+| 1 | JST BM06B-SRSS-TB | 6-pin SH header, top entry (touch cable; leave off without the band) | [C160392](https://www.lcsc.com/product-detail/C160392.html) | ~$0.4 | knob board |
 | 1 (optional) | HY2.0 3-pin header, 2.0 mm, SMD side entry | GPIO6 link to the 7B's J8 (D5); the footprint is always on the board, fit it if you use the link | LCSC (V: part not chosen) | ~$0.1 | knob board |
 | 1 | BOOTSEL button | reverse-mount SMD tact switch (plunger through the board, pressed through the floor pinhole). If none is found: a plain SMD tact switch on the bottom side, the board's only bottom-side part | LCSC (V: part not chosen) | ~$0.1 | knob board |
-| 1 | ESD/TVS arrays | on the key-matrix lines at the ZIF and the touch lines at the SH header, with series resistors (part not chosen) | LCSC (V) | ~$0.5 | knob board |
+| 1 | ESD/TVS arrays | on the key-matrix lines at the ZIF and the touch lines at the SH header, with series resistors (part not chosen; SRV05-4-P-T7 [C85364](https://www.lcsc.com/product-detail/C85364.html) is a preferred extended part) | LCSC (V) | ~$0.5 | knob board |
 | 1 set | Knob board passives | 2 × 22 µF 0805 per driver; 10 kΩ pull-downs on NSTDBY and every PWM net; ~1 kΩ series on the high-side inputs; 0 Ω/shunt on each driver's BRUV/BRW; load switch (soft start, motor rail only); ~470 µF bulk; decoupling; 1 kΩ BOOTSEL resistor at the MCU end; CC sense filters; I²C pull-ups for the touch band | JLC basic parts | $3–5 | knob board |
-| 21 | B3U-1000P | key switches (buy spares and sort by feel) | [C231329](https://www.lcsc.com/product-detail/C231329.html) | ~$8 | frame PCB |
+| 21 | B3U-1000P | key switches (buy spares and sort by feel) | [C231329](https://www.lcsc.com/product-detail/C231329.html) | ~$3 | frame PCB |
 | 21 | 1N4148W | SOD-123 matrix diodes (26 in all with the knob board's 5) | JLC basic part | ~$0.5 | frame PCB |
 | 1 | FFC/FPC connector, 12-pin 1.0 mm, flip-lock ZIF | same as on the knob board | [C19269355](https://www.lcsc.com/product-detail/C19269355.html) | ~$0.2 | frame PCB |
-| 1 | Touch controller: AT42QT2120 (or none) | capacitive slider controller, I²C, on the band's parts side. Optional (D12): if it's expensive or out of stock, drop the band (`TOUCH_BAR = False` in params.py removes the band, its cable and the knob board's SH header) | [C614938](https://www.lcsc.com/product-detail/C614938.html) (V: stock) | $0.5–2 | touch band |
-| 1 | JST SM06B-SRSS-TB | 6-pin SH header, side entry | JLC C160405 | ~$0.2 | touch band |
+| 1 | Touch controller: AT42QT2120 (or none) | capacitive slider controller, I²C, on the band's parts side. Optional (D12): if it's expensive or out of stock, drop the band (`TOUCH_BAR = False` in params.py removes the band, its cable and the knob board's SH header) | [C614938](https://www.lcsc.com/product-detail/C614938.html) (V: stock; 69 on 2026-10-17) | ~$1.9 | touch band |
+| 1 | JST SM06B-SRSS-TB | 6-pin SH header, side entry | [C160405](https://www.lcsc.com/product-detail/C160405.html) | ~$0.9 | touch band |
 | 1 set | Touch band passives | 1–10 kΩ in series with each electrode; ferrite bead + 10 µF on 3V3 | JLC basic parts | ~$0.2 | touch band |
 | 1 | WCH CH334F | 4-port USB 2.0 hub, QFN-24; PSELF strapped low (bus-powered), 0 Ω option to flip | [C5187527](https://www.lcsc.com/product-detail/C5187527.html) (8,489 in stock, $0.63, 2026-10-17) | ~$0.6 | USB board |
 | 1 | 12 MHz crystal, 3225 | CH334F XI/XO (its load caps are built in); plus a 0 Ω link footprint that can ground XI for crystal-free mode | JLC basic part (V) | ~$0.1 | USB board |
 | 1 | USB-C receptacle, 16-pin, mid-mount (sinks 1.6 mm into the board) | external port; HCTL HC-TYPE-C-16P-CB1.6 (V: get the drawing; slot and pad depth in the outline are from the model, shell legs unverified) | [C2894902](https://www.lcsc.com/product-detail/C2894902.html); fallback top-mount TYPE-C-31-M-12 [C165948](https://www.lcsc.com/product-detail/C165948.html) | ~$0.2 | USB board |
 | 1 | USB-C receptacle, 16-pin, TYPE-C-31-M-12 | internal port to the display board; SMD signals, 4 through-hole shell legs | [C165948](https://www.lcsc.com/product-detail/C165948.html) | ~$0.2 | USB board |
-| 1 | JST SM08B-GHS-TB | 8-pin GH header (USB link to the knob board) | [C265111](https://www.lcsc.com/product-detail/C265111.html) | ~$0.5 | USB board |
+| 1 | JST SM08B-GHS-TB | 8-pin GH header (USB link to the knob board) | [C265111](https://www.lcsc.com/product-detail/C265111.html) | ~$0.6 | USB board |
 | 2 | Reverse-blocking current-limited switches | one per downstream VBUS branch: display port (~0.5–1 A) and knob board (~1.8 A). Must block reverse current while on (the SY6280 only blocks when off, so the 7B could back-feed the PC); or SY6280AAC + an ideal diode | LCSC (V: not chosen) | ~$0.5 | USB board |
-| 1 | USBLC6-2SC6 | USB ESD protection, external port, in line between the socket and the hub | [C7519](https://www.lcsc.com/product-detail/C7519.html) | ~$0.1 | USB board |
+| 1 | USBLC6-2SC6 | USB ESD protection, external port, in line between the socket and the hub | [C7519](https://www.lcsc.com/product-detail/C7519.html) (extended; SRV05-4-P-T7 [C85364](https://www.lcsc.com/product-detail/C85364.html) has the same SOT-23-6 pinout and is a preferred extended part) | ~$0.2 | USB board |
 | 1 (optional, not fitted) | USB-PD sink, CH224-class (e.g. CH224K) | D9: footprint beside the external port on its CC lines, to ask a PD charger for 5 V / 3 A. Not fitted by default; the policy is a 1.5 A+ C-to-C port | LCSC (V: part and stock) | ~$0.5 + extended fee | USB board |
 | 1 | VBUS TVS | 5–5.5 V standoff, clamping below the load switches' 6 V absolute max | LCSC (V: not chosen) | ~$0.1 | USB board |
 | 1 set | USB board passives | 5.1 kΩ CC pull-downs ×2, 56 kΩ CC pull-ups ×2 (display port), 10 kΩ CC sense resistors ×2 (+ 10–22 kΩ at the knob end), 22–47 µF polymer at the input, RC delay on the switch enables, explicit Rset, 22 µF on the CH334F's VDD33, decoupling | JLC basic parts | ~$1 | USB board |
 
 JLC's assembly minimum is 2 boards, so you pay for the parts on a spare set too
 (see [cost.md](cost.md)). JLC charges a setup fee once for the panel, plus a fee per
-"extended" part type.
+"extended" part type: 24 types with the parts above (list and fees in cost.md).
+Prices are LCSC's at the quantity for 2 boards, 2026-10-17.
 
 ### 3D prints
 
@@ -99,23 +100,23 @@ Search terms that find them: "USB C to USB C 90 degree 10cm" (pick a side-angle 
 
 | Qty | Part | Spec | Source / LCSC # | ~Price | Used in |
 |---|---|---|---|---|---|
-| 4 | M3x14 screw | machine | hardware kit |  | Mount the display; plug in its USB cable |
-| 5 | M2x5 screw | thread-forming | hardware kit |  | Build the top plate (on the bench) |
-| 9 | M2x5 screw | countersunk thread-forming | hardware kit |  | Build the top plate (on the bench) |
-| 4 | M3x6 screw | machine | hardware kit |  | Close the case |
-| 20 | M2x8 screw | machine | hardware kit |  | Build the knob board (on the bench) |
-| 20 | M2x3 screw | countersunk machine | hardware kit |  | Build the knob board (on the bench) |
-| 15 | M2x6 screw | thread-forming | hardware kit |  | Screw the knob board into the tray; plug in the USB link, Screw in the USB board |
+| 4 | M3x14 screw | machine | hardware kit | ~$1 (pack of 50) | Mount the display; plug in its USB cable |
+| 5 | M2x5 screw | thread-forming | hardware kit | ~$1 (pack of 50) | Build the top plate (on the bench) |
+| 9 | M2x5 screw | countersunk thread-forming | hardware kit | ~$1 (pack of 50) | Build the top plate (on the bench) |
+| 4 | M3x6 screw | machine | hardware kit | ~$1 (pack of 50) | Close the case |
+| 20 | M2x8 screw | machine | hardware kit | ~$1 (pack of 50) | Build the knob board (on the bench) |
+| 20 | M2x3 screw | countersunk machine | hardware kit | ~$1 (pack of 50) | Build the knob board (on the bench) |
+| 15 | M2x6 screw | thread-forming | hardware kit | ~$1 (pack of 50) | Screw the knob board into the tray; plug in the USB link, Screw in the USB board |
 | 4 | Magnets 8 × 1.5 mm | tray | AliExpress | ~$1 | Print the case; fit magnets, feet and inserts |
 | 4 | Magnets 8 × 3 mm | stand | AliExpress | ~$1 | Put it on the stand |
 | 6 | Rubber feet 10 × 1.5 mm | self-adhesive | AliExpress | ~$1 | Print the case; fit magnets, feet and inserts, Put it on the stand |
 | 5 | Hook-and-loop cable ties | ~10 mm wide, reusable; strap the motor lead coils | AliExpress | ~$1 | Build the knob board (on the bench) |
-| 5 | M2×3 set screws | press strikers, threaded into the motor spacers' arms | hardware kit |  | Build the knob board (on the bench) |
+| 5 | M2×3 set screws | press strikers, threaded into the motor spacers' arms | hardware kit | ~$1 | Build the knob board (on the bench) |
 | 4 | M3 heat-set inserts, 4 mm hole × 5.7 mm | top plate posts (e.g. Ruthex RX-M3x5.7 or CNC Kitchen M3 short) | AliExpress / Amazon | ~$1 | Print the case; fit magnets, feet and inserts |
 | 1 set | M2 shim washers, 0.1 and 0.2 mm | between the frame PCB and its bosses, to tune the key stack | AliExpress | ~$1 | Build the top plate (on the bench) |
 | 1 | 3M 467MP or 468MP transfer tape | full coverage under the touch band (no air gaps) | AliExpress / DigiKey | ~$3 | Build the top plate (on the bench) |
 | — | Epoxy | magnets | any | ~$3 | Build the knob board (on the bench), Print the case; fit magnets, feet and inserts |
-| — (optional) | Thin foam or silicone ring | on each key cap's flange, against rattle | any |  | Build the top plate (on the bench) |
+| — (optional) | Thin foam or silicone ring | on each key cap's flange, against rattle | any | ~$1 | Build the top plate (on the bench) |
 
 ## Not in the kit
 
@@ -129,15 +130,16 @@ The rest of the prototype list is in [parts.md](parts.md).
 
 | Qty | Part | Spec | Source / LCSC # | ~Price | Used in |
 |---|---|---|---|---|---|
-| 1 | Prototype frame PCB, rev C | 58.3 × 30.7 mm, the full build's two top-left keys on the 7B; 4 B3U footprints (a second switch above each key for the D8 force test), 4 M2 holes off the glass, 2 countersunk over it, solder pads off the glass. `hardware/proto-frame/` | JLCPCB (assembled) |  | prototype |
+| 1 | Prototype frame PCB, rev C | 58.3 × 30.7 mm, the full build's two top-left keys on the 7B; 4 B3U footprints (a second switch above each key for the D8 force test), 4 M2 holes off the glass, 2 countersunk over it, solder pads off the glass. `hardware/proto-frame/` | JLCPCB (assembled) | in the $75–125 JLC order (cost.md) | prototype |
 | 2 + 2 | Key caps: one nub and two nubs | `cad/out/key_cap_clear_resin.stl` (one switch) and `cad/out/key_cap_two_nub_clear_resin.stl` (two switches), clear resin, one standard finish | JLC3DP | $4–8 | prototype |
-| 1 | Rev 0.5 test board (outline only, no layout yet) | 70 × 45 mm (EST), `cad/out/proto_rev05_board_outline.dxf`: RP2350B, CH334F, AT42QT2120, PD sink area, 2 × USB-C, JST-GH pair, ZIF, JST-SH, HY2.0, knob module header | JLCPCB (assembled) |  | prototype |
-| 1 set | Standoffs (model lengths; round to stock, shim the rest) | M3, plate to plate (corners): **24.5 mm**; M3, base plate to the 7B's tabs: **12.6 mm**; M2, frame PCB to top plate: **3.3 mm**; M2, knob module and Rev 0.5 board: **2.0 mm** | hardware kit |  | prototype |
+| 1 | Rev 0.5 test board (outline only, no layout yet) | 70 × 45 mm (EST), `cad/out/proto_rev05_board_outline.dxf`: RP2350B, CH334F, AT42QT2120, PD sink area, 2 × USB-C, JST-GH pair, ZIF, JST-SH, HY2.0, knob module header | JLCPCB (assembled) | in the $75–125 JLC order (cost.md) | prototype |
+| 1 set | Standoffs (model lengths; round to stock, shim the rest) | M3, plate to plate (corners): **24.5 mm**; M3, base plate to the 7B's tabs: **12.6 mm**; M2, frame PCB to top plate: **3.3 mm**; M2, knob module and Rev 0.5 board: **2.0 mm** | hardware kit | ~$5 | prototype |
 
 ## Totals
 
-One device: **~$300–450** with your own 3D printer, ~$330–525 with the case from
-JLC3DP, ~$195–370 each when 5 people order together. Prices above are per-part
-guides; the totals in [cost.md](cost.md) also include JLC's PCB, setup and
-extended-part fees, the spare assembled board set, and shipping.
+One device: **~$475–735** with your own 3D printer, ~$530–850 with the case from
+JLC3DP, ~$275–520 each when 5 people order together, US import duty included.
+Prices above are per part, per device. The totals also include JLC's PCB, setup and
+extended-part fees, the parts on the spare board set, shipping and duty; the
+breakdown is in [cost.md](cost.md) ("Where the money goes").
 

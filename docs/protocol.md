@@ -116,7 +116,7 @@ COBS( type u8 | seq u16 | len u16 | payload (len bytes) | crc16 u16 ) 0x00
 | 5 | `no-space` | Image storage full and nothing can be evicted |
 | 6 | `version` | Protocol major version outside the supported range |
 | 7 | `internal` | Firmware fault |
-| 8 | `not-confirmed` | A change that needs the 3 s knob hold wasn't confirmed in time |
+| 8 | `not-confirmed` | Lock is on and a change that needs the 3 s knob hold wasn't confirmed in time |
 
 - **One codec:** a single C framing library for both firmwares, plus a
   TypeScript twin for the configurator and a Python twin for the daemon,
@@ -136,11 +136,19 @@ COBS( type u8 | seq u16 | len u16 | payload (len bytes) | crc16 u16 ) 0x00
 - The device reports key and knob-display sizes in pixels; the host renders
   artwork at exactly that size.
 
-## Confirmation (3 s knob hold)
+## Trust and the optional lock
 
-Changes that could make clickdeck type something unexpected, or replace its
-firmware, need a physical OK: `KEYMAP` (when saved), `SAVE` of a keymap, and
-`REBOOT_BOOTLOADER`.
+VIA-style trust (D17), as with VIA/QMK and Elgato's app. By default,
+`KEYMAP`, `SAVE` and `REBOOT_BOOTLOADER` apply at once, with no physical
+confirmation. The browser's WebUSB/Web Serial device picker is the
+confirmation: a random web page can't touch clickdeck unless the user
+picks it. The threat a physical OK would stop is malware on the PC
+reflashing the device to stay around (BadUSB-style). That malware already
+controls the PC, so for a macro pad the gain is small.
+
+**Lock (optional, off by default).** A setting in the configurator, stored
+on the device (`LOCK`). With lock on, `KEYMAP` (when saved), `SAVE` of a
+keymap and `REBOOT_BOOTLOADER` need a 3 s knob hold:
 
 1. The host sends the request. The inputs device answers `PENDING`, gives
    a short haptic tick, and the configurator shows "Hold any knob pressed
@@ -151,10 +159,10 @@ firmware, need a physical OK: `KEYMAP` (when saved), `SAVE` of a keymap, and
 
 The display chip can't see the knobs. With the GPIO6 link fitted, the knob
 board passes the confirmation over it, so the display's
-`REBOOT_BOOTLOADER` is confirmed the same way. Without the link the
-display can't see the hold, so by default it refuses `REBOOT_BOOTLOADER`
-(`ERROR(not-confirmed)`) and the configurator asks for the BOOT pinhole
-instead (see Open points).
+`REBOOT_BOOTLOADER` is confirmed the same way. With lock on and no link,
+the display refuses `REBOOT_BOOTLOADER` (`ERROR(not-confirmed)`) and the
+configurator asks for the BOOT pinhole instead. That is the only case
+outside recovery that needs a pinhole.
 
 ## Pages and images (display device)
 
@@ -208,7 +216,7 @@ to display. Short binary messages, same CRC:
 |---|---|
 | `page n` | A page-switch key was pressed: show page n |
 | `activity` | A key, knob or touch was used: reset the idle timer, wake |
-| `confirm` | The 3 s knob hold happened (for the display's bootloader request) |
+| `confirm` | The 3 s knob hold happened (for the display's bootloader request when lock is on) |
 | `reset-settings` | Settings reset at power-up ([recovery.md](recovery.md)) |
 
 Without the link, page switching and idle blanking need a host, and the
@@ -273,7 +281,8 @@ apply).
 | `POWER` (inputs) | motor current budget (mA); the default comes from the port's advertised current ([wiring.md](wiring.md)) |
 | `SAVE` (inputs) | write the keymap, knob configs and `POWER` to flash, once every motor is asleep |
 | `RESET_SETTINGS` (both) | back to defaults; knob calibration kept |
-| `REBOOT_BOOTLOADER` (both) | reboot into the ROM bootloader (needs the 3 s knob hold) |
+| `LOCK` (both) | lock on/off (off by default); on: keymap saves and `REBOOT_BOOTLOADER` need the 3 s knob hold |
+| `REBOOT_BOOTLOADER` (both) | reboot into the ROM bootloader (needs the 3 s knob hold only when lock is on) |
 
 The daemon forwards activity (a key press, a knob turn) to the display
 device as `DISPLAY wake`, since idle blanking lives on the display side.
@@ -291,11 +300,12 @@ Through each chip's ROM bootloader, from the web configurator
 - **Display (ESP32-S3):** `REBOOT_BOOTLOADER` sets the force-download flag
   and restarts; the chip comes back as Espressif's USB serial/JTAG device
   (303A:1001), and esptool-js flashes it over Web Serial. Plain esptool
-  works too. Recovery: the BOOT pinhole.
+  works too. No BOOT button needed. Recovery (dead firmware): the BOOT
+  pinhole.
 - **Inputs (RP2350B):** `REBOOT_BOOTLOADER` restarts into the RP2350's ROM
   UF2 bootloader (2E8A:000F); the page writes the image over WebUSB
   (PICOBOOT interface, as picotool does), or the user drags a UF2 file onto
-  the drive. Recovery: the BOOTSEL pinhole.
+  the drive. Recovery (dead firmware): the BOOTSEL pinhole.
 - **Toolchains:** ESP-IDF 5.x for the display; arduino-pico + SimpleFOC for
   the RP2350B. Pin every version for both firmwares and build them in CI
   (lessons.md #7). Releases carry SHA-256 hashes.
@@ -303,9 +313,6 @@ Through each chip's ROM bootloader, from the web configurator
 
 ## Open points
 
-- The display's `REBOOT_BOOTLOADER` is only confirmed by the knob hold when
-  the GPIO6 link is fitted. Default without the link: display reflashes
-  need the BOOT pinhole. Revisit once the link is tested.
 - Measure image throughput on a 7B over the vendor bulk interface (plan:
   ~0.5 MB/s; target: a full page in under 300 ms with compression).
 - Exact HID report descriptors and the default keymap.

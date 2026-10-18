@@ -424,7 +424,7 @@ Count: 86 findings, 67 tagged [fix] and 19 tagged [decision]. Every [decision] f
 | D14 | As recommended: M3 heat-set inserts, PETG. |
 | D15 | One standard clear finish for now; revisit after seeing it. |
 | D16 | As recommended: drivers off the tongue, floorplan with real footprints first, shunts on Rev 0 only. |
-| D17 | As recommended: 3 s knob hold to confirm reflash or keymap changes. |
+| D17 | Changed (2026-10-18): VIA-style trust; the browser's WebUSB/Web Serial device picker is the confirmation, with no pinhole or knob hold by default. An optional lock (stored on the device) brings back the 3 s knob hold for reflash and keymap changes. |
 | D18 | Changed: no OTA slots. Firmware updates go through the web configurator using each chip's ROM bootloader (ESP32-S3 via esptool-js over Web Serial; RP2350B via its UF2 bootloader), so a failed update can always be retried. Images use a WebUSB bulk interface, since WebHID's 64-byte reports are too slow. Linux needs a udev rule. |
 
 ### Added after the review: recovery ("factory reset") plan (2026-10-17)

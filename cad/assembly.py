@@ -1055,38 +1055,41 @@ BOM_JLC_BOARDS = [
     # qty, part, spec, source, ~price, used in
     ("1 panel", "PCBs: knob board, frame PCB, touch band, USB board, panelized",
      "2-layer FR-4 1.6 mm, ENIG or HASL; outlines from `cad/out/*.dxf`. Every part on one side of "
-     "each board (D6), so JLC's single-side assembly covers them. The frame PCB has "
+     "each board (D6), so JLC's Economic (single-side) assembly can take them. The frame PCB has "
      "countersunk M2 holes (JLC countersink option, V: fee) so its screws sit flush over the glass. "
-     "JLC makes 5 panels and assembles at least 2", "JLCPCB", "in the board lines of cost.md",
+     "JLC makes 5 panels and assembles at least 2", "JLCPCB",
+     "$30–70 for 5 panels (HASL to ENIG, 4-design fee); fees in cost.md",
      "all boards"),
 ]
 BOM_JLC_PARTS = [
     # Knob board
     ("1", "RP2350B, stepping A4 (erratum E9 fixed)", "QFN-80 microcontroller, 48 GPIO, native USB",
-     "LCSC (look up in JLC's library) (V: A4 marking)", "$1–2", "knob board"),
+     lcsc("C42415655") + " (stepping A4 per LCSC; 4,720 in stock, 2026-10-17) (V: A4 marking)", "~$1.3",
+     "knob board"),
     ("1", "RP2350B support parts", "16 MB QSPI flash W25Q128JVSIQ " + lcsc("C97521") + "; 12 MHz crystal "
-     "(ABM8-272-T3 class, Raspberry Pi's reference); 3.3 µH SMPS inductor (AOTA-B201610S3R3 class); "
-     "3.3 V regulator", "JLC (V: part numbers except the flash)", "$1–2", "knob board"),
-    ("5", "TMC6300-LA-T", "3-phase motor driver, 2–11 V", lcsc("C5274455") + " (59 in stock, 2026-10-17; "
-     "DigiKey ~4,100)", "~$26", "knob board"),
+     "(ABM8-272-T3 " + lcsc("C20625731") + ", Raspberry Pi's reference); 3.3 µH SMPS inductor "
+     "(AOTA-B201610S3R3 " + lcsc("C42411119") + ": 3 in stock, minimum buy 32, 2026-10-17); 3.3 V regulator. "
+     "The flash is a JLC basic part", "JLC (V: part numbers except the flash)", "$4–5", "knob board"),
+    ("5", "TMC6300-LA-T", "3-phase motor driver, 2–11 V", lcsc("C5274455") + " (201 in stock, 2026-10-17; "
+     "DigiKey ~4,100)", "~$12 from DigiKey via Global Sourcing ($2.44); ~$25 at LCSC", "knob board"),
     ("5", "MT6701CT-STD", "magnetic angle sensor, SSI, SOP-8 (not the QT: that's a 3×3 QFN-16)",
-     lcsc("C3003196") + " (V: JLC stock)", "~$5", "knob board"),
+     lcsc("C3003196") + " (V: JLC stock)", "~$8", "knob board"),
     ("5", "SN74LVC3G04DCTR", "triple inverter (3-PWM drive), SM8 (DCT) package", lcsc("C139324"), "~$1",
      "knob board"),
     ("5", "B3U-1000P", "knob press switch, top side on the board's front border (the motor spacer's arm "
-     "presses it)", lcsc("C231329"), "~$2", "knob board"),
+     "presses it)", lcsc("C231329"), "~$0.8", "knob board"),
     ("5", "1N4148W", "SOD-123 diodes for the knob press switches (in the key matrix)", "JLC basic part",
      "~$0.1", "knob board"),
     ("5", "1×3 right-angle pin header, 2.54 mm, SMD", "motor plug sockets, top side (D6: no through-hole "
      "pins); must match the motor's plug; prefer a shrouded/keyed one so the plug can't go on offset",
      "LCSC (V: SMD right-angle part not chosen; THT fallback " + lcsc("C2886703") + ")", "~$0.5",
      "knob board"),
-    ("1", "JST SM08B-GHS-TB", "8-pin GH header, side entry, latching (USB link)", lcsc("C265111"), "~$0.5",
-     "knob board"),
+    ("1", "JST SM08B-GHS-TB", "8-pin GH header, side entry, latching (USB link)", lcsc("C265111")
+     + " (V: 0 in JLC stock, 2026-10-17; pre-order minimum 19)", "~$0.6", "knob board"),
     ("1", "FFC/FPC connector, 12-pin 1.0 mm, flip-lock ZIF, right angle",
      "e.g. XUNPU FPC-1.0FX-12PWCR-H20 (V: contact side, height)", lcsc("C19269355"), "~$0.2", "knob board"),
     ("1", "JST BM06B-SRSS-TB", "6-pin SH header, top entry (touch cable; leave off without the band)",
-     lcsc("C160392"), "~$0.2", "knob board"),
+     lcsc("C160392"), "~$0.4", "knob board"),
     ("1 (optional)", "HY2.0 3-pin header, 2.0 mm, SMD side entry", "GPIO6 link to the 7B's J8 (D5); the "
      "footprint is always on the board, fit it if you use the link", "LCSC (V: part not chosen)", "~$0.1",
      "knob board"),
@@ -1094,14 +1097,15 @@ BOM_JLC_PARTS = [
      "floor pinhole). If none is found: a plain SMD tact switch on the bottom side, the board's only "
      "bottom-side part", "LCSC (V: part not chosen)", "~$0.1", "knob board"),
     ("1", "ESD/TVS arrays", "on the key-matrix lines at the ZIF and the touch lines at the SH header, "
-     "with series resistors (part not chosen)", "LCSC (V)", "~$0.5", "knob board"),
+     "with series resistors (part not chosen; SRV05-4-P-T7 " + lcsc("C85364") + " is a preferred extended "
+     "part)", "LCSC (V)", "~$0.5", "knob board"),
     ("1 set", "Knob board passives", "2 × 22 µF 0805 per driver; 10 kΩ pull-downs on NSTDBY and every PWM "
      "net; ~1 kΩ series on the high-side inputs; 0 Ω/shunt on each driver's BRUV/BRW; load switch "
      "(soft start, motor rail only); ~470 µF bulk; decoupling; 1 kΩ BOOTSEL resistor at the MCU end; "
      "CC sense filters; "
      "I²C pull-ups for the touch band", "JLC basic parts", "$3–5", "knob board"),
     # Frame PCB
-    ("21", "B3U-1000P", "key switches (buy spares and sort by feel)", lcsc("C231329"), "~$8", "frame PCB"),
+    ("21", "B3U-1000P", "key switches (buy spares and sort by feel)", lcsc("C231329"), "~$3", "frame PCB"),
     ("21", "1N4148W", "SOD-123 matrix diodes (26 in all with the knob board's 5)", "JLC basic part", "~$0.5",
      "frame PCB"),
     ("1", "FFC/FPC connector, 12-pin 1.0 mm, flip-lock ZIF", "same as on the knob board",
@@ -1110,8 +1114,8 @@ BOM_JLC_PARTS = [
     ("1", "Touch controller: AT42QT2120 (or none)", "capacitive slider controller, I²C, on the band's "
      "parts side. Optional (D12): if it's expensive or out of stock, drop the band "
      "(`TOUCH_BAR = False` in params.py removes the band, its cable and the knob board's SH header)",
-     lcsc("C614938") + " (V: stock)", "$0.5–2", "touch band"),
-    ("1", "JST SM06B-SRSS-TB", "6-pin SH header, side entry", "JLC C160405", "~$0.2", "touch band"),
+     lcsc("C614938") + " (V: stock; 69 on 2026-10-17)", "~$1.9", "touch band"),
+    ("1", "JST SM06B-SRSS-TB", "6-pin SH header, side entry", lcsc("C160405"), "~$0.9", "touch band"),
     ("1 set", "Touch band passives", "1–10 kΩ in series with each electrode; ferrite bead + 10 µF on 3V3",
      "JLC basic parts", "~$0.2", "touch band"),
     # USB board
@@ -1125,14 +1129,15 @@ BOM_JLC_PARTS = [
      lcsc("C2894902") + "; fallback top-mount TYPE-C-31-M-12 " + lcsc("C165948"), "~$0.2", "USB board"),
     ("1", "USB-C receptacle, 16-pin, TYPE-C-31-M-12", "internal port to the display board; SMD signals, "
      "4 through-hole shell legs", lcsc("C165948"), "~$0.2", "USB board"),
-    ("1", "JST SM08B-GHS-TB", "8-pin GH header (USB link to the knob board)", lcsc("C265111"), "~$0.5",
+    ("1", "JST SM08B-GHS-TB", "8-pin GH header (USB link to the knob board)", lcsc("C265111"), "~$0.6",
      "USB board"),
     ("2", "Reverse-blocking current-limited switches", "one per downstream VBUS branch: display port "
      "(~0.5–1 A) and knob board (~1.8 A). Must block reverse current while on (the SY6280 only blocks "
      "when off, so the 7B could back-feed the PC); or SY6280AAC + an ideal diode", "LCSC (V: not chosen)",
      "~$0.5", "USB board"),
     ("1", "USBLC6-2SC6", "USB ESD protection, external port, in line between the socket and the hub",
-     lcsc("C7519"), "~$0.1", "USB board"),
+     lcsc("C7519") + " (extended; SRV05-4-P-T7 " + lcsc("C85364") + " has the same SOT-23-6 pinout and is "
+     "a preferred extended part)", "~$0.2", "USB board"),
     ("1 (optional, not fitted)", "USB-PD sink, CH224-class (e.g. CH224K)", "D9: footprint beside the external "
      "port on its CC lines, to ask a PD charger for 5 V / 3 A. Not fitted by default; the policy is a "
      "1.5 A+ C-to-C port", "LCSC (V: part and stock)", "~$0.5 + extended fee", "USB board"),
@@ -1198,14 +1203,16 @@ def proto_bom_lines(pinfo):
         ("1", "Prototype frame PCB, rev C", f"{x1 - x0:.1f} × {y1 - y0:.1f} mm, the full build's two top-left "
          f"keys on the 7B; {n_sw} B3U footprints (a second switch above each key for the D8 force test), "
          f"{len(fp['mount_holes_pan'])} M2 holes off the glass, {len(fp['mount_holes_csk'])} countersunk over it, "
-         "solder pads off the glass. `hardware/proto-frame/`", "JLCPCB (assembled)", "", "prototype"),
+         "solder pads off the glass. `hardware/proto-frame/`", "JLCPCB (assembled)",
+         "in the $75–125 JLC order (cost.md)", "prototype"),
         ("2 + 2", "Key caps: one nub and two nubs", "`cad/out/key_cap_clear_resin.stl` (one switch) and "
          "`cad/out/key_cap_two_nub_clear_resin.stl` (two switches), clear resin, one standard finish",
          "JLC3DP", "$4–8", "prototype"),
         ("1", "Rev 0.5 test board (outline only, no layout yet)", f"{rw:g} × {rh:g} mm (EST), "
          "`cad/out/proto_rev05_board_outline.dxf`: RP2350B, CH334F, AT42QT2120, PD sink area, 2 × USB-C, "
-         "JST-GH pair, ZIF, JST-SH, HY2.0, knob module header", "JLCPCB (assembled)", "", "prototype"),
-        ("1 set", "Standoffs (model lengths; round to stock, shim the rest)", so, "hardware kit", "",
+         "JST-GH pair, ZIF, JST-SH, HY2.0, knob module header", "JLCPCB (assembled)",
+         "in the $75–125 JLC order (cost.md)", "prototype"),
+        ("1 set", "Standoffs (model lengths; round to stock, shim the rest)", so, "hardware kit", "~$5",
          "prototype"),
     ]
     out = ["## Prototype parts from the model (D3)", "",
@@ -1237,7 +1244,7 @@ def write_bom(info, proto_info=None):
                    "AliExpress (search the spec)", price[n], num[STEP_OF_CABLE[n]])
                   for n, c in info["cables"].items() if c["buy"]]
     hw_rows = [(str(sum(st.values())), f"{kind.split()[0]} screw", " ".join(kind.split()[1:]),
-                "hardware kit", "", ", ".join(num[k] for k in st)) for kind, st in counts.items()]
+                "hardware kit", "~$1 (pack of 50)", ", ".join(num[k] for k in st)) for kind, st in counts.items()]
     hw_rows += [
         ("4", f"Magnets {P.MAGNET_TRAY[0]:g} × {P.MAGNET_TRAY[1]:g} mm", "tray", "AliExpress", "~$1",
          num["tray"]),
@@ -1248,7 +1255,7 @@ def write_bom(info, proto_info=None):
         ("5", "Hook-and-loop cable ties", "~10 mm wide, reusable; strap the motor lead coils",
          "AliExpress", "~$1", num["knob_sub"]),
         ("5", f"M2×{P.STRIKER_LEN:g} set screws", "press strikers, threaded into the motor spacers' arms",
-         "hardware kit", "", num["knob_sub"]),
+         "hardware kit", "~$1", num["knob_sub"]),
         ("4", f"M3 heat-set inserts, {P.INSERT_M3[0]:g} mm hole × {P.INSERT_M3[1]:g} mm", "top plate posts "
          "(e.g. Ruthex RX-M3x5.7 or CNC Kitchen M3 short)", "AliExpress / Amazon", "~$1", num["tray"]),
         ("1 set", "M2 shim washers, 0.1 and 0.2 mm", "between the frame PCB and its bosses, to tune the key "
@@ -1256,7 +1263,7 @@ def write_bom(info, proto_info=None):
         ("1", "3M 467MP or 468MP transfer tape", "full coverage under the touch band (no air gaps)",
          "AliExpress / DigiKey", "~$3", num["top_plate_sub"]),
         ("—", "Epoxy", "magnets", "any", "~$3", f"{num['knob_sub']}, {num['tray']}"),
-        ("— (optional)", "Thin foam or silicone ring", "on each key cap's flange, against rattle", "any", "",
+        ("— (optional)", "Thin foam or silicone ring", "on each key cap's flange, against rattle", "any", "~$1",
          num["top_plate_sub"]),
     ]
     lines = [
@@ -1284,7 +1291,8 @@ def write_bom(info, proto_info=None):
         "",
         "JLC's assembly minimum is 2 boards, so you pay for the parts on a spare set too",
         "(see [cost.md](cost.md)). JLC charges a setup fee once for the panel, plus a fee per",
-        "\"extended\" part type.",
+        "\"extended\" part type: 24 types with the parts above (list and fees in cost.md).",
+        "Prices are LCSC's at the quantity for 2 boards, 2026-10-17.",
         "",
         "### 3D prints",
         "",
@@ -1317,10 +1325,11 @@ def write_bom(info, proto_info=None):
         "",
         "## Totals",
         "",
-        "One device: **~$300–450** with your own 3D printer, ~$330–525 with the case from",
-        "JLC3DP, ~$195–370 each when 5 people order together. Prices above are per-part",
-        "guides; the totals in [cost.md](cost.md) also include JLC's PCB, setup and",
-        "extended-part fees, the spare assembled board set, and shipping.",
+        "One device: **~$475–735** with your own 3D printer, ~$530–850 with the case from",
+        "JLC3DP, ~$275–520 each when 5 people order together, US import duty included.",
+        "Prices above are per part, per device. The totals also include JLC's PCB, setup and",
+        "extended-part fees, the parts on the spare board set, shipping and duty; the",
+        "breakdown is in [cost.md](cost.md) (\"Where the money goes\").",
         "",
     ]
     BOM_PATH.write_text("\n".join(lines) + "\n")

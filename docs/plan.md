@@ -215,9 +215,10 @@ each over its own USB connection through the hub, through its ROM
 bootloader: the ESP32-S3 with esptool-js over Web Serial, the RP2350B
 through its UF2 bootloader over WebUSB (drag and drop of a UF2 works too).
 No OTA slots and no custom bootloader: the ROM bootloader can't be
-overwritten, so a failed update can always be retried. The page asks the
-user to hold a knob for 3 s before it reflashes or changes the keymap
-(D17). Bootloaders stay unlocked.
+overwritten, so a failed update can always be retried. Trust is VIA-style
+(D17): the browser's device picker is the confirmation, with no pinhole or
+knob hold by default. An optional lock (stored on the device) brings back
+a 3 s knob hold for reflashes and keymap changes. Bootloaders stay unlocked.
 
 Three pinholes reach the display board's BOOT and RESET (back wall) and the
 knob board's BOOTSEL (case floor, under the knob board's left end; lift the

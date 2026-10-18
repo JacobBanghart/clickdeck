@@ -47,9 +47,9 @@ the + XL.
 
 | | ~Cost |
 |---|---|
-| **Build one, with your own 3D printer** | **$375–575** |
-| Build one, case ordered from JLC3DP | $410–650 |
-| Per unit, 5 people ordering together | $250–475 |
+| **Build one, with your own 3D printer** | **$475–735** |
+| Build one, case ordered from JLC3DP | $530–850 |
+| Per unit, 5 people ordering together | $275–520 |
 | Stream Deck + XL (36 keys, 6 dials), for comparison | ~$350 |
 
 **A single build costs more than a Stream Deck + XL.** Cost isn't what this
@@ -60,7 +60,7 @@ exemption is gone; JLC's DDP duty is about 35% typical), in two orders:
 JLC (all PCBs in one panel, plus prints) and AliExpress/Waveshare. Get a
 real JLC quote before ordering. No crimping, and the goal is no soldering:
 JLC fits every part, and every cable inside plugs in. The biggest costs
-are the display board, the motors, JLC's fees and the duty.
+are JLC's boards (fees and parts), the duty, the motors and the display board.
 Breakdown: [docs/cost.md](docs/cost.md); every part: [docs/bom.md](docs/bom.md).
 
 ## Design

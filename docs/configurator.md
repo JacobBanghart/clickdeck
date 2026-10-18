@@ -49,19 +49,24 @@ the display board, and treats them as one clickdeck (pairing:
 [protocol.md](protocol.md)). The first time, the browser asks permission for
 each one; after that it remembers them.
 
-**Confirming risky changes:** keymap changes and firmware updates need a
-physical OK. The page asks you to hold a knob pressed for 3 s; until then
-the device ignores the change. A web page or program can't silently turn
-clickdeck into a keyboard that types something else.
+**Trust (VIA-style, D17):** the browser's device picker is the
+confirmation, as with VIA and Elgato's app. Keymap changes and firmware
+updates apply with no physical OK, and a random web page can't reach
+clickdeck unless you pick it. Malware on the PC could reflash it, but that
+malware already controls the PC.
+
+**Lock (optional):** a setting on the page, stored on the device, off by
+default. With lock on, keymap changes and firmware updates need a 3 s knob
+hold; until then the device ignores the change ([protocol.md](protocol.md)).
 
 **Firmware updates** go through each chip's ROM bootloader, so a failed
 update can always be retried:
 - **Display (ESP32-S3):** the page asks it to reboot into download mode,
   then flashes it with [esptool-js](https://github.com/espressif/esptool-js)
-  over Web Serial. You pick the port once in the browser's dialog. Without
-  the optional GPIO6 link the display can't see the knob hold, so the page
-  asks you to start its bootloader with the BOOT pinhole instead
-  ([recovery.md](recovery.md)).
+  over Web Serial. You pick the port once in the browser's dialog. No BOOT
+  button needed. Only with lock on and no optional GPIO6 link, the display
+  can't see the knob hold, so the page asks you to start its bootloader
+  with the BOOT pinhole instead ([recovery.md](recovery.md)).
 - **Knob board (RP2350B):** the page asks it to reboot into its UF2
   bootloader, then writes the firmware over WebUSB (picotool-style). Drag
   and drop of a UF2 file onto the RP2350 drive works too.

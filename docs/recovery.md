@@ -62,10 +62,11 @@ Use this when firmware is broken, or to undo your own builds.
 3. Follow the prompts. The page:
    - downloads the pinned builds from the project's GitHub Release and
      checks their SHA-256 hashes;
-   - asks each chip to reboot into its ROM bootloader (you hold a knob for
-     3 s to confirm; [protocol.md](protocol.md)). Without the optional GPIO6
-     link the display board can't see the hold, so the page asks you to use
-     its BOOT pinhole (below) instead;
+   - asks each chip to reboot into its ROM bootloader, with no button or
+     pinhole. If lock is on, you hold a knob for 3 s to confirm
+     ([protocol.md](protocol.md)); with lock on and no optional GPIO6 link
+     the display board can't see the hold, so the page asks you to use its
+     BOOT pinhole (below) instead;
    - flashes the display board with esptool-js over Web Serial (ESP32-S3
      download mode) and the knob board over WebUSB (RP2350B UF2 bootloader);
    - offers to erase stored settings as well (off by default).
