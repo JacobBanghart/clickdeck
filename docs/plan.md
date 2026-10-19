@@ -105,18 +105,21 @@ cap's stop (design review B1–B3, decision D8):
   Rails under each cap's side lips and lugs at its back corners stop on the
   frame PCB after 0.5 mm of travel, past the B3U's worst-case 0.35 mm. 0.1
   and 0.2 mm shim washers tune the stack. `cad/keystack.py` checks that the
-  worst cap drop (0.49 mm, with the guide below) plus the frame's flex (0.046 mm/N worst, down
+  worst cap drop (0.51 mm, with the guide below) plus the frame's flex (0.046 mm/N worst, down
   from 4.2 mm/N) leaves at least 0.1 mm to the glass at a 3 N press.
 - **Cap guide (B3):** caps move straight up and down, guided by the plate.
   The plate's key hole continues down as a skirt around each cap, cut away
   where the lips, tab, lugs and switches pass, to 0.2 mm above the frame
-  PCB. At 0.015 mm per side over 5.1 mm the cap tilts at most 0.34°, well
-  under the 0.58° that put the far edge on the glass in B3. This is the
-  tightest fit in the build: set `HOLE_COMP` from the fit coupon and check
-  on the prototype that each cap slides freely. `assembly.py --check` fails
-  if the tilt passes 0.35° or could put the far edge on the glass.
+  PCB. The fit is 0.05 mm per side (printed PETG plate, SLA caps). Tune it
+  with the fit coupon via `HOLE_COMP`. Over 5.1 mm this lets the cap tilt up
+  to 1.17°. That tilt is guide slop, not a feature. The down-stop keeps the
+  cap off the glass: worst drop 0.51 mm, 0.29 mm to spare. `assembly.py
+  --check` fails if that margin is under 0.1 mm, if a stop foot misses the
+  PCB, or if a skirt side is missing. If off-center presses don't click
+  cleanly on the prototype, use SLA resin guide inserts (~0.6°) or the
+  second switch.
 - **Second switch:** the prototype frame PCB has a second switch footprint
-  per key. The 5-point force test decides whether the full build needs two
+  per key. The off-center click test decides whether the full build needs two
   switches per key.
 
 Laser-cut acrylic caps are out:

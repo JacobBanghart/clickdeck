@@ -35,7 +35,7 @@ connectors) are first answered on Rev A.
 | | Question | Affects |
 |---|---|---|
 | ⚠️ | Is the B3U's 0.15 mm travel a satisfying click, or too short? | Key switch choice |
-| ⚠️ | Does a press anywhere on the cap, including the far corner, click cleanly without tilting? Does the cap slide freely in its 0.015 mm guide? One switch or two per key? | Cap, guide, tab, frame support and down-stop (D8) |
+| ⚠️ | Does a press anywhere on the cap, including the far corners, click cleanly? Does the cap slide freely in its 0.05 mm guide? One switch or two per key? | Cap, guide, tab, frame support and down-stop (D8) |
 | ⚠️ | Is the 2204's cogging noticeable in smooth mode? | Motor choice (fallback: SparkFun ROB-20441) |
 | ❓ | Knob current at rest, while clicking, at an end stop | Power budget numbers |
 | ❓ | **Rev A.** Does the hinged tongue give a good press feel (force, travel, no wobble when turning), and does side force cause false clicks? | Hinge perforations and striker setting; parallel flexure if side force clicks (D10) |

@@ -32,14 +32,6 @@ def guide_tilt(clear: float, length: float, width: float = P.CAP_SIZE) -> float:
     return phi - math.acos(min(1.0, (width + 2 * clear) / R))
 
 
-def guide_edge_drop(g: dict, tilt: float) -> tuple[float, float]:
-    """Cap pivoting on its switch nub at rest, tilted `tilt` about both axes (the
-    guide limits each axis on its own): the lever arm (mm, |dx| + |dy| from the nub
-    to the farthest bottom point) and that point's drop (mm)."""
-    arm = max(abs(bx - nx) + abs(by - ny) for nx, ny in g["nubs"] for bx, by in g["bottom"])
-    return arm, arm * math.tan(tilt)
-
-
 def cap_max_drop(g: dict, tilt: float | None = None) -> float:
     """Worst downward travel (mm) of the cap's bottom corners, for any press.
     tilt: largest tilt (radians) the guide allows about either axis (None: unguided)."""

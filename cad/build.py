@@ -223,7 +223,6 @@ def main():
         g = model.key_stop_geometry(nubs)
         g_len = model.key_guide_length(st)
         tilt = keystack.guide_tilt(P.KEY_GUIDE_CLEAR, g_len)
-        arm, edge = keystack.guide_edge_drop(g, tilt)
         drop = keystack.cap_max_drop(g, tilt)
         w, d, h = inf["outer_mm"]
         tilted = inf.get("tilted_mm")
@@ -239,13 +238,12 @@ def main():
             f"switch top {st.sw_top:.2f}, top plate {st.plate_bot:.2f}-{st.plate_top:.2f}, "
             f"motor {st.motor_bot:.2f}-{st.motor_top:.2f}",
             f"- Key stack (D8): caps and frame PCB {P.GLASS_GAP:.2f} mm above the glass, down-stop "
-            f"{P.KEY_STOP_GAP:.2f} mm; worst cap drop {drop:.2f} mm + frame flex {max(defl):.3f} mm/N "
+            f"{P.KEY_STOP_GAP:.2f} mm; worst cap drop {drop:.2f} mm (guide tilt + switch bottomed + "
+            f"down-stop), glass margin {st.pcb_bot - st.glass - drop:.2f} mm; frame flex {max(defl):.3f} mm/N "
             f"({max(defl) * P.KEY_PRESS_DESIGN_N:.2f} mm at {P.KEY_PRESS_DESIGN_N:g} N)",
             f"- Cap guide (D8, B3): straight-line travel in the plate's key hole and skirt, "
             f"{P.KEY_GUIDE_CLEAR:g} mm per side over {g_len:.1f} mm; max tilt {math.degrees(tilt):.2f}° "
-            f"(limit {P.KEY_TILT_MAX_DEG:g}°; B3's 0.58° reached the glass at the old 0.2 mm gap); "
-            f"far-edge drop {edge:.2f} mm pivoting on the nub, {P.SW_TRAVEL_MAX + edge:.2f} mm with the "
-            f"switch bottomed, of {P.GLASS_GAP:.2f} mm to the glass",
+            f"(guide slop, not a feature; the down-stop keeps the cap off the glass)",
         ]
         if "knob_test_stand" in inf:
             kts = inf["knob_test_stand"]

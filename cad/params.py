@@ -33,14 +33,13 @@ SW_TRAVEL_MAX = 0.35      # B3U actuator travel to the click, worst case (Omron 
 # Cap guide (D8, B3): caps move straight up and down, guided by the plate. No
 # rocker, hinged, tilting or pivoting caps. The plate's key hole continues down as
 # a skirt around the cap (cut away where the lips, tabs, lugs and switches pass) to
-# just above the frame PCB. Tilt = guide clearance over engagement length.
-KEY_GUIDE_CLEAR = 0.015   # cap to guide, per side: a fine sliding fit (set HOLE_COMP from
-                          # the fit coupon; check on the prototype that the cap slides freely)
+# just above the frame PCB. Tilt = guide clearance over engagement length; it is
+# guide slop, not a feature. The down-stop keeps the cap off the glass.
+KEY_GUIDE_CLEAR = 0.05    # cap to guide, per side (printed PETG plate, SLA caps); the plate's
+                          # key hole uses it too. Tune with the fit coupon via HOLE_COMP
 KEY_GUIDE_WALL = 0.8      # skirt wall thickness (two 0.4 mm perimeters)
 KEY_GUIDE_GAP = 0.2       # skirt bottom to the frame PCB's top face
 KEY_GUIDE_POCKET = 0.3    # skirt clearance around the cap's lips, tabs, lugs and the switches
-KEY_TILT_MAX_DEG = 0.35   # design limit, well under the 0.58° that put the far edge on the
-                          # glass in B3 (old 0.2 mm gap)
 KEY_PRESS_DESIGN_N = 3.0  # a firm press; the cap must stay off the glass at this force
 KEY_GLASS_MARGIN = 0.1    # required cap/PCB-to-glass clearance at the design force
 FR4_E, FR4_G = 20000.0, 4000.0   # N/mm², for the frame PCB deflection estimate (grillage)

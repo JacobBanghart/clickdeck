@@ -95,9 +95,9 @@ the knob test stand's screw holes come from measuring it.
   the pins clear the rails. Knob and hub are the full build's.
 - **Prototype top plate** (`print_proto_top_plate.stl`, 3 mm, PETG or
   resin; a home print works too). It carries the cap guides: each key hole
-  continues down as a skirt around the cap, a fine sliding fit (0.015 mm
-  per side, D8). Print `print_fit_coupon.stl` on the same printer first and
-  set `HOLE_COMP`; laser-cut acrylic can't make the skirt.
+  continues down as a skirt around the cap, 0.05 mm per side (D8). Print
+  `print_fit_coupon.stl` on the same printer first and tune the fit with
+  `HOLE_COMP`. Laser-cut acrylic can't make the skirt.
 - Not laser-cut acrylic caps: sheet tolerance alone is larger than the key
   stack's budget.
 

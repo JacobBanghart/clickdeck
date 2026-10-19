@@ -53,11 +53,11 @@ force, a thermocouple or IR thermometer, and a logic analyzer (a cheap
 | Gap | Kit | Feeler gauge or calipers: cap bottom to glass | Record it (model: 0.8 mm); must be > 0 under every key |
 | Down-stop | Kit | Press each cap at 3 N, then harder, with witness film on the glass | The cap's rails and lugs stop on the frame PCB after ~0.5 mm, past the switch's click; no mark on the film |
 | Click feel | Kit | Press each key 50× | Crisp click every time; decide whether 0.15 mm travel feels good or too short |
-| Actuation force | Kit | Kitchen scale at 5 points per cap: center, 4 edges (including the far edge from the switch) | Every point clicks; the far edge needs ≤ 2× the center force |
+| Off-center click consistency | Kit | Kitchen scale. Press each cap at the center, each corner and the far edge from the switch. Record the force and the click feel at each point | The far edge needs ≤ 2× the center force, and every press clicks cleanly. If it fails: SLA resin guide inserts (tighter fit, ~0.6° tilt), or the second switch per key (footprints already on the proto frame) |
 | Glass load | Kit | Witness film (or carbon paper) on the glass, press 10 N on each cap | No mark on the glass |
 | Missed events | Kit | 500 presses per key, logic analyzer on the switch and the USB events | 0 missed or doubled events |
 | Rattle | Kit | Shake the prototype; tap keys lightly | No rattle you'd notice in use (if it fails, try a foam or silicone ring on the flange) |
-| One switch vs two | Kit | Same 5-point force test on a cap with one switch (SW1/SW2, one-nub cap) and one with two (SW3/SW4 wired too, two-nub cap) on the rev C frame PCB | Decides whether the full build uses two switches per key |
+| One switch vs two | Kit | Same off-center click test on a cap with one switch (SW1/SW2, one-nub cap) and one with two (SW3/SW4 wired too, two-nub cap) on the rev C frame PCB | Decides whether the full build uses two switches per key |
 | Image | Kit | Look through the cap from straight on and at 45° | Image looks like it's on the key surface; edges and gaps acceptable |
 | Down and up events | Kit | Hold a key 3 s | Separate key-down and key-up events (push-to-talk works) |
 

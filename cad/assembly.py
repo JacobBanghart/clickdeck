@@ -17,8 +17,10 @@ Checks:
 - service: the top plate, display and knob board lift out in that order;
   a paperclip reaches the display board's BOOT/RESET through the back wall
   and the knob board's BOOTSEL through the floor
-- key stack (D8): every cap's down-stop lands on the frame PCB, and the worst
-  cap drop plus the frame PCB's flex at a firm press stays short of the glass
+- key stack (D8): every cap's down-stop lands on the frame PCB, every key has
+  its guide skirt on all four sides, and the worst cap drop (guide tilt, switch
+  bottomed, down-stop) plus the frame PCB's flex at a firm press stays short of
+  the glass
 - plug insertion: every plug has a straight path into its socket at the step
   that connects it (like the screwdriver check)
 - cables: no cable runs through a part (motor bells included); the cables
@@ -150,7 +152,7 @@ STEPS = [
          "With the top plate face up, drop the five clear knob-window covers into their "
          "pockets (they rest on a ledge) and fix each with a little clear UV glue or clear "
          "tape on the ledge. Lay the plate face down. Drop the clear caps into their holes, "
-         "tabs toward the front edge; each should slide freely in its guide with no side play. Plug the key cable (FFC) into the frame PCB's ZIF "
+         "tabs toward the front edge; each should slide freely in its guide. Plug the key cable (FFC) into the frame PCB's ZIF "
          "connector (flip the latch up, slide the cable in, latch down), then fit the frame "
          "PCB over the plate's two locating pins (switches facing the caps) and screw it to "
          "the bosses: pan-head screws along the back and left edges (off the glass), "
@@ -475,21 +477,20 @@ def check_keystack(items, info, nubs=1):
     """D8: the cap's down-stop lands on the frame PCB after the switch trips, and no
     press (any point, any tilt the plate allows) brings a cap within KEY_GLASS_MARGIN
     of the glass, counting the frame PCB's flex at KEY_PRESS_DESIGN_N (grillage).
-    B3: the plate's guide skirt is there, its tilt (clearance over engagement) stays
-    under KEY_TILT_MAX_DEG, and that tilt alone, with the switch bottomed, keeps
-    the cap's far edge off the glass."""
+    B3: every key has its guide skirt on all four sides. The worst drop counts the
+    guide's tilt (slop, not a feature), the switch bottomed and the down-stop; the
+    down-stop is what keeps the cap off the glass."""
     import keystack
     from build123d import Rectangle
     by = {it.label: it for it in items}
     st, kf = info["stack"], info["key_frame"]
     g = model.key_stop_geometry(nubs)
     probs = []
-    # Cap guide (D8, B3): straight-line travel; the tilt it allows must keep the far
-    # edge off the glass even with the switch bottomed and no down-stop
+    # Cap guide (D8, B3): straight-line travel; its tilt is slop. The worst drop counts
+    # that tilt, the switch bottomed and the down-stop landing on the frame PCB
     g_len = model.key_guide_length(st)
     tilt = keystack.guide_tilt(P.KEY_GUIDE_CLEAR, g_len)
     tilt_deg = math.degrees(tilt)
-    arm, edge = keystack.guide_edge_drop(g, tilt)
     drop = keystack.cap_max_drop(g, tilt)
     defl = keystack.frame_deflection(kf["rect"], kf["key_xy"], model.PCB_WIN, kf["supports"], kf["loads"],
                                      kf["knob_wins"], kf["knob_size"])
@@ -500,16 +501,15 @@ def check_keystack(items, info, nubs=1):
     plate = next(it.part for it in items if it.label.startswith("top_plate"))
     probe_z = st.pcb_top + P.KEY_GUIDE_GAP + 0.05
     r = P.CAP_SIZE / 2 + P.KEY_GUIDE_CLEAR + P.KEY_GUIDE_WALL / 2      # mid-wall of the skirt
-    for dx, dy in ((-r, 6.7), (r, -6.7), (4.2, r), (-4.2, -r)):        # one point on each side
-        hit = plate & (Pos(kx0 + dx, ky0 + dy, probe_z) * Box(0.2, 0.2, 0.05))
-        if hit is None or hit.volume < 1e-4:
-            probs.append(f"cap guide skirt missing at ({dx:.1f}, {dy:.1f}) from key 0")
-    if tilt_deg > P.KEY_TILT_MAX_DEG + 1e-9:
-        probs.append(f"cap guide allows {tilt_deg:.2f}° of tilt ({P.KEY_GUIDE_CLEAR} mm per side over "
-                     f"{g_len:.1f} mm), limit {P.KEY_TILT_MAX_DEG}°")
-    if P.SW_TRAVEL_MAX + edge > glass_gap - P.KEY_GLASS_MARGIN + 1e-6:
-        probs.append(f"cap guide lets the far edge reach the glass: switch travel {P.SW_TRAVEL_MAX} + "
-                     f"tilt drop {edge:.2f} mm, glass {glass_gap:.2f} mm below (margin {P.KEY_GLASS_MARGIN} mm)")
+    probes = [(-r, 6.7), (r, -6.7), (4.2, r), (-4.2, -r)]               # one point on each side
+    for i, (kx, ky) in enumerate(kf["key_xy"]):
+        for dx, dy in probes:
+            hit = plate & (Pos(kx + dx, ky + dy, probe_z) * Box(0.2, 0.2, 0.05))
+            if hit is None or hit.volume < 1e-4:
+                probs.append(f"key {i}: cap guide skirt missing at ({dx:.1f}, {dy:.1f}) from its center")
+    if drop > glass_gap - P.KEY_GLASS_MARGIN + 1e-6:
+        probs.append(f"worst cap drop {drop:.2f} mm (guide tilt {tilt_deg:.2f}°, switch bottomed, down-stop) "
+                     f"leaves {glass_gap - drop:.2f} mm to the glass, need {P.KEY_GLASS_MARGIN} mm")
     sk = info["frame_sketch"]
     gaps = []
     for x0, x1, y0, y1 in g["feet_boxes"]:
@@ -535,9 +535,7 @@ def check_keystack(items, info, nubs=1):
         probs.append(f"key {worst}: cap can drop {drop:.2f} mm + frame flex {per_key[worst] * F:.2f} mm "
                      f"at {F:g} N = {need:.2f} mm, glass is {glass_gap:.2f} mm below "
                      f"(margin {P.KEY_GLASS_MARGIN} mm)")
-    rows = dict(guide_len=g_len, tilt_deg=tilt_deg, edge_drop=edge, edge_pressed=P.SW_TRAVEL_MAX + edge,
-                reach_deg=math.degrees(math.atan(glass_gap / arm)),
-                drop=drop, glass_gap=glass_gap, stop_gap=min(g_ for g_ in gaps if g_ is not None),
+    rows = dict(guide_len=g_len, tilt_deg=tilt_deg, drop=drop, margin=glass_gap - drop, glass_gap=glass_gap, stop_gap=min(g_ for g_ in gaps if g_ is not None),
                 defl_max=per_key[worst], worst_key=worst, force=F, need=need,
                 clearance=glass_gap - need, defl_5n=drop + per_key[worst] * 5.0)
     return probs, rows
@@ -868,14 +866,12 @@ def keystack_lines(checks):
     out += [
         f"| Cap guide: clearance per side, engagement " + col(
             lambda r: f"{P.KEY_GUIDE_CLEAR:g} mm, {r['guide_len']:.1f} mm"),
-        f"| Max cap tilt in the guide (limit {P.KEY_TILT_MAX_DEG:g}°; B3: 0.58° reached the glass "
-        "at the old 0.2 mm gap) " + col(lambda r: f"{r['tilt_deg']:.2f}°"),
-        "| Far-edge drop from that tilt, pivoting on the nub (with the switch bottomed) " + col(
-            lambda r: f"{r['edge_drop']:.2f} mm ({r['edge_pressed']:.2f} mm)"),
-        "| Tilt that would put the far edge on the glass " + col(lambda r: f"{r['reach_deg']:.2f}°"),
+        "| Max cap tilt in the guide (slop, not a feature) " + col(lambda r: f"{r['tilt_deg']:.2f}°"),
         "| Cap bottom ↔ glass at rest " + col(lambda r: f"{r['glass_gap']:.2f} mm"),
         "| Down-stop gap (cap feet ↔ frame PCB) " + col(lambda r: f"{r['stop_gap']:.2f} mm"),
-        "| Worst cap-edge drop, any press, PCB rigid (stops + guide) " + col(lambda r: f"{r['drop']:.2f} mm"),
+        "| Worst cap-edge drop, any press, PCB rigid (guide tilt + switch bottomed + down-stop) "
+        + col(lambda r: f"{r['drop']:.2f} mm"),
+        f"| Glass margin after that drop (need {P.KEY_GLASS_MARGIN:g} mm) " + col(lambda r: f"{r['margin']:.2f} mm"),
         "| Frame PCB flex at the worst switch (grillage) " + col(lambda r: f"{r['defl_max']:.3f} mm/N"),
         f"| Cap drop + flex at {P.KEY_PRESS_DESIGN_N:g} N " + col(lambda r: f"{r['need']:.2f} mm"),
         "| Same at a hard 5 N press " + col(lambda r: f"{r['defl_5n']:.2f} mm"),
@@ -948,8 +944,8 @@ def write_guide(info, checks, shots, service):
         f"{status(checks['pinholes'], 'all three reachable')} |",
         f"| Key stack (D8): every cap's down-stop lands on the frame PCB, and the worst cap drop plus "
         f"the frame's flex at a {P.KEY_PRESS_DESIGN_N:g} N press stays {P.KEY_GLASS_MARGIN:g} mm off the glass. "
-        f"Cap guide (B3): the cap tilts at most {P.KEY_TILT_MAX_DEG:g}° in the plate's guide, and that tilt "
-        f"can't put its far edge on the glass | "
+        f"Cap guide (B3): every key has its guide skirt on all four sides; the worst drop counts the "
+        f"guide's tilt, and the down-stop keeps the cap {P.KEY_GLASS_MARGIN:g} mm off the glass | "
         f"{status(checks['keystack'], 'clear of the glass (full build and prototype)')} |",
         "",
         *keystack_lines(checks),
@@ -1267,7 +1263,7 @@ def proto_bom_lines(pinfo):
          f"MT6701 breakout ({P.MT6701_BREAKOUT[0]:g} mm wide, EST: measure it) slides in on rails under "
          "the deck. With `knob.stl` and `knob_hub.stl`", "JLC3DP (PETG or resin)", "$3–8", "prototype"),
         ("1", "Prototype top plate", "`cad/out/print_proto_top_plate.stl`, 3 mm, with the cap guide skirts "
-         f"({P.KEY_GUIDE_CLEAR:g} mm per side, D8). Set `HOLE_COMP` from the fit coupon first",
+         f"({P.KEY_GUIDE_CLEAR:g} mm per side, D8). Tune the fit with the coupon via `HOLE_COMP` first",
          "JLC3DP or home printer (PETG or resin)", "$5–10", "prototype"),
         ("1 set", "Standoffs (model lengths; round to stock, shim the rest)", so, "hardware kit", "~$5",
          "prototype"),
@@ -1410,9 +1406,11 @@ def main():
             print(f"  {name}: route {c['length']:.0f} mm"
                   + (f", lift needs {c['lift']:.0f} mm" if c["lift"] else "") + f" -> {c['buy']} mm")
     k = checks["keystack_rows"]
-    print(f"  cap guide: {P.KEY_GUIDE_CLEAR:g} mm per side over {k['guide_len']:.1f} mm -> max tilt "
-          f"{k['tilt_deg']:.2f}° (limit {P.KEY_TILT_MAX_DEG:g}°), far-edge drop {k['edge_drop']:.2f} mm "
-          f"({k['edge_pressed']:.2f} mm with the switch bottomed) of {k['glass_gap']:.2f} mm to the glass")
+    for name, r in (("full", k), ("proto", checks.get("keystack_proto"))):
+        if r:
+            print(f"  cap guide ({name}): {P.KEY_GUIDE_CLEAR:g} mm per side over {r['guide_len']:.1f} mm -> "
+                  f"max tilt {r['tilt_deg']:.2f}°, worst drop {r['drop']:.2f} mm (tilt + switch bottomed + "
+                  f"down-stop), glass margin {r['margin']:.2f} mm of {r['glass_gap']:.2f} mm")
     print(f"  key stack: cap drop {k['drop']:.2f} + frame {k['defl_max']:.3f} mm/N x {k['force']:g} N = "
           f"{k['need']:.2f} mm of {k['glass_gap']:.2f} mm to the glass")
     if check_only:
