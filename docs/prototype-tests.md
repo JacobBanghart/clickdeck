@@ -81,6 +81,7 @@ can't show the motor and panel interference.
 | Browsers and OSes | Configurator in Chrome and Edge on Linux (with the udev rule), Windows and macOS | Both devices open; no driver installs |
 | Power descriptors | `lsusb -v`, `lsusb -t`, `dmesg` on Linux | Both devices declare ≤ 100 mA; no "insufficient available bus power" |
 | Connectors | Rev 0.5: JST-GH link, FFC + ZIF to the frame PCB, JST-SH to the touch strip | All work; footprints and pin 1 match the bought cables |
+| Crystal start-up | Rev 0.5: power-cycle the RP2350B 50× with the basic C9002 crystal and 33 pF caps, at room temperature, cold (from a freezer) and warm (~50 °C) | Boots and enumerates every time. If not, fit the ABM8-272-T3 with 15 pF ([pcb.md](pcb.md)) |
 
 ## Firmware stress
 
@@ -118,7 +119,9 @@ the JST-GH contacts aren't staggered.
 4. PC unplugged: check the JST-GH cable pin 1 to pin 1, then plug it in.
 5. `lsusb -t`: the hub at 480M, both devices at 12M on separate ports; no
    power rejections in `dmesg`. Repeat on Windows and macOS.
-6. Scope VBUS inrush at hot-plug.
+6. Scope VBUS inrush and ringing at hot-plug, with only the 2 × 22 µF
+   input ceramics fitted. The peak stays under 6 V; if not, fit the
+   polymer cap.
 7. PC unplugged: plug in a reversed GH cable, then power up. Nothing gets
    hot; the knob board doesn't enumerate; no damage after the straight
    cable goes back.

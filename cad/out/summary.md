@@ -30,3 +30,9 @@
 - case_tray: 178 x 147 x 28 mm, fits a 256 mm bed
 - top_plate: 178 x 147 x 27 mm, fits a 256 mm bed
 - stand: 162 x 113 x 101 mm, fits a 256 mm bed
+
+## JLC panel (estimate)
+- Boards: frame PCB 169.5 x 95.6, knob board 161.1 x 57.8, USB board 81.0 x 33.3, touch band 155.3 x 11.2 mm; 300 cm² of bounding boxes
+- Panel: ~215 x 169 mm = 362 cm² (2 mm gaps, 5 mm rails on two edges)
+- Assumption: JLC's large-size fee counts the assembled area, 2 panels for one build = 724 cm² against 650 cm² (5 assembled for a group buy = 1811 cm²)
+- WARNING: JLC panel area 724 cm² for one build is over the 650 cm² large-size threshold (~$57 fee) (accepted)

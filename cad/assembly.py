@@ -1054,11 +1054,11 @@ def lcsc(c):
 BOM_JLC_BOARDS = [
     # qty, part, spec, source, ~price, used in
     ("1 panel", "PCBs: knob board, frame PCB, touch band, USB board, panelized",
-     "2-layer FR-4 1.6 mm, ENIG or HASL; outlines from `cad/out/*.dxf`. Every part on one side of "
+     "2-layer FR-4 1.6 mm, ENIG (owner decision: flat pads for the 0.4 mm QFNs); outlines from `cad/out/*.dxf`. Every part on one side of "
      "each board (D6), so JLC's Economic (single-side) assembly can take them. The frame PCB has "
      "countersunk M2 holes (JLC countersink option, V: fee) so its screws sit flush over the glass. "
      "JLC makes 5 panels and assembles at least 2", "JLCPCB",
-     "$30–70 for 5 panels (HASL to ENIG, 4-design fee); fees in cost.md",
+     "$45–70 for 5 panels (ENIG, 4-design fee); fees in cost.md",
      "all boards"),
 ]
 BOM_JLC_PARTS = [
@@ -1067,9 +1067,15 @@ BOM_JLC_PARTS = [
      lcsc("C42415655") + " (stepping A4 per LCSC; 4,720 in stock, 2026-10-17) (V: A4 marking)", "~$1.3",
      "knob board"),
     ("1", "RP2350B support parts", "16 MB QSPI flash W25Q128JVSIQ " + lcsc("C97521") + "; 12 MHz crystal "
-     "(ABM8-272-T3 " + lcsc("C20625731") + ", Raspberry Pi's reference); 3.3 µH SMPS inductor "
-     "(AOTA-B201610S3R3 " + lcsc("C42411119") + ": 3 in stock, minimum buy 32, 2026-10-17); 3.3 V regulator. "
-     "The flash is a JLC basic part", "JLC (V: part numbers except the flash)", "$4–5", "knob board"),
+     "X322512MSB4SI " + lcsc("C9002") + " (basic, 20 pF load, 80 Ω ESR) with 2 × 33 pF C0G "
+     + lcsc("C1562") + " and the 1 kΩ series resistor. Raspberry Pi's reference is the ABM8-272-T3 "
+     + lcsc("C20625731") + " (10 pF, 50 Ω) with 2 × 15 pF; same 3225 footprint, so it's the fallback "
+     "if the Rev 0.5 board's start-up test fails. 3.3 µH SMPS inductor AOTA-B201610S3R3-101-T "
+     + lcsc("C42411119") + " (3 in JLC stock, pre-order minimum 32, 2026-10-17). No stocked substitute: "
+     "Raspberry Pi requires a polarity-marked, shielded 3.3 µH ±20%, DCR ≤ 250 mΩ, Isat ≥ 1.5 A, and "
+     "only this part is marked. 3.3 V regulator AMS1117-3.3 " + lcsc("C6186") + " (basic, 1 A) with "
+     "22 µF on its output. Flash, crystal, caps and regulator are basic parts",
+     "JLC (V: inductor stock on order day)", "$3–4", "knob board"),
     ("5", "TMC6300-LA-T", "3-phase motor driver, 2–11 V", lcsc("C5274455") + " (201 in stock, 2026-10-17; "
      "DigiKey ~4,100)", "~$12 from DigiKey via Global Sourcing ($2.44); ~$25 at LCSC", "knob board"),
     ("5", "MT6701CT-STD", "magnetic angle sensor, SSI, SOP-8 (not the QT: that's a 3×3 QFN-16)",
@@ -1084,8 +1090,10 @@ BOM_JLC_PARTS = [
      "pins); must match the motor's plug; prefer a shrouded/keyed one so the plug can't go on offset",
      "LCSC (V: SMD right-angle part not chosen; THT fallback " + lcsc("C2886703") + ")", "~$0.5",
      "knob board"),
-    ("1", "JST SM08B-GHS-TB", "8-pin GH header, side entry, latching (USB link)", lcsc("C265111")
-     + " (V: 0 in JLC stock, 2026-10-17; pre-order minimum 19)", "~$0.6", "knob board"),
+    ("1", "GH 8-pin header, HCTL HC-GH-8PWT", "1.25 mm GH, side entry, latching (USB link). Clone of "
+     "JST SM08B-GHS-TB: 13.25 mm wide with solder tabs, 4.25 mm tall, mates with JST GH plugs",
+     lcsc("C3011950") + " (1,726 in JLC stock, $0.18, 2026-10-17; the JST part " + lcsc("C265111")
+     + " has 0) (V: pad drawing on layout day)", "~$0.2", "knob board"),
     ("1", "FFC/FPC connector, 12-pin 1.0 mm, flip-lock ZIF, right angle",
      "e.g. XUNPU FPC-1.0FX-12PWCR-H20 (V: contact side, height)", lcsc("C19269355"), "~$0.2", "knob board"),
     ("1", "JST BM06B-SRSS-TB", "6-pin SH header, top entry (touch cable; leave off without the band)",
@@ -1096,14 +1104,19 @@ BOM_JLC_PARTS = [
     ("1", "BOOTSEL button", "reverse-mount SMD tact switch (plunger through the board, pressed through the "
      "floor pinhole). If none is found: a plain SMD tact switch on the bottom side, the board's only "
      "bottom-side part", "LCSC (V: part not chosen)", "~$0.1", "knob board"),
-    ("1", "ESD/TVS arrays", "on the key-matrix lines at the ZIF and the touch lines at the SH header, "
-     "with series resistors (part not chosen; SRV05-4-P-T7 " + lcsc("C85364") + " is a preferred extended "
-     "part)", "LCSC (V)", "~$0.5", "knob board"),
+    ("4", "SRV05-4-P-T7 ESD arrays", "4 lines each, SOT-23-6, pin 5 to 3V3. Three on the 10 key-matrix "
+     "lines at the ZIF, one on SDA/SCL at the SH header; series resistors on every line",
+     lcsc("C85364") + " (preferred extended: no loading fee; 36,942 in JLC stock, 2026-10-17)", "~$0.8",
+     "knob board"),
     ("1 set", "Knob board passives", "2 × 22 µF 0805 per driver; 10 kΩ pull-downs on NSTDBY and every PWM "
-     "net; ~1 kΩ series on the high-side inputs; 0 Ω/shunt on each driver's BRUV/BRW; load switch "
-     "(soft start, motor rail only); ~470 µF bulk; decoupling; 1 kΩ BOOTSEL resistor at the MCU end; "
+     "net; ~1 kΩ series on the high-side inputs; 0 Ω/shunt on each driver's BRUV/BRW; ~470 µF bulk; "
+     "decoupling; 1 kΩ BOOTSEL resistor at the MCU end; "
      "CC sense filters; "
      "I²C pull-ups for the touch band", "JLC basic parts", "$3–5", "knob board"),
+    ("1", "TPS259470ARPWR eFuse (motor rail)", "soft-start switch for the motor rail only, enabled by "
+     "firmware after reading CC. Same part as the USB board's two VBUS switches: true reverse blocking, "
+     "current limit set by RILM (0.5–6 A), slew rate set by a dVdt cap", lcsc("C3662799")
+     + " (4,468 in JLC stock, $1.29, 2026-10-17)", "~$1.3", "knob board"),
     # Frame PCB
     ("21", "B3U-1000P", "key switches (buy spares and sort by feel)", lcsc("C231329"), "~$3", "frame PCB"),
     ("21", "1N4148W", "SOD-123 matrix diodes (26 in all with the knob board's 5)", "JLC basic part", "~$0.5",
@@ -1122,30 +1135,36 @@ BOM_JLC_PARTS = [
     ("1", "WCH CH334F", "4-port USB 2.0 hub, QFN-24; PSELF strapped low (bus-powered), 0 Ω option to flip",
      lcsc("C5187527") + " (8,489 in stock, $0.63, 2026-10-17)", "~$0.6", "USB board"),
     ("1", "12 MHz crystal, 3225", "CH334F XI/XO (its load caps are built in); plus a 0 Ω link footprint "
-     "that can ground XI for crystal-free mode", "JLC basic part (V)", "~$0.1", "USB board"),
+     "that can ground XI for crystal-free mode. Same part as the RP2350B's crystal",
+     lcsc("C9002") + " (basic)", "~$0.1", "USB board"),
     ("1", "USB-C receptacle, 16-pin, mid-mount (sinks 1.6 mm into the board)",
      "external port; HCTL HC-TYPE-C-16P-CB1.6 (V: get the drawing; slot and pad depth in the outline are "
      "from the model, shell legs unverified)",
      lcsc("C2894902") + "; fallback top-mount TYPE-C-31-M-12 " + lcsc("C165948"), "~$0.2", "USB board"),
     ("1", "USB-C receptacle, 16-pin, TYPE-C-31-M-12", "internal port to the display board; SMD signals, "
      "4 through-hole shell legs", lcsc("C165948"), "~$0.2", "USB board"),
-    ("1", "JST SM08B-GHS-TB", "8-pin GH header (USB link to the knob board)", lcsc("C265111"), "~$0.6",
-     "USB board"),
-    ("2", "Reverse-blocking current-limited switches", "one per downstream VBUS branch: display port "
-     "(~0.5–1 A) and knob board (~1.8 A). Must block reverse current while on (the SY6280 only blocks "
-     "when off, so the 7B could back-feed the PC); or SY6280AAC + an ideal diode", "LCSC (V: not chosen)",
-     "~$0.5", "USB board"),
-    ("1", "USBLC6-2SC6", "USB ESD protection, external port, in line between the socket and the hub",
-     lcsc("C7519") + " (extended; SRV05-4-P-T7 " + lcsc("C85364") + " has the same SOT-23-6 pinout and is "
-     "a preferred extended part)", "~$0.2", "USB board"),
+    ("1", "GH 8-pin header, HCTL HC-GH-8PWT", "USB link to the knob board; same as on the knob board",
+     lcsc("C3011950"), "~$0.2", "USB board"),
+    ("2", "TPS259470ARPWR eFuses (VBUS)", "one per downstream VBUS branch: display port (RILM 3.32 kΩ, "
+     "~1 A) and knob board (RILM ~1.87 kΩ, ~1.8 A). Back-to-back FETs block reverse current while on, "
+     "so the 7B can't back-feed the PC. Enable delayed by an RC. QFN-10 2 × 2 mm, 0.45 mm pitch",
+     lcsc("C3662799") + " (one type for all three switches)", "~$2.6", "USB board"),
+    ("1", "SRV05-4-P-T7", "USB ESD, external port, at the socket: D+, D−, CC1, CC2 on its four lines, "
+     "pin 5 to VBUS. 3.5 pF typ (5 pF max) per line; the datasheet lists USB 2.0, so it suits the "
+     "480 Mbit/s pair. Same SOT-23-6 footprint as the USBLC6-2SC6 " + lcsc("C7519") + ", but its four "
+     "lines are separate pins (no flow-through), so route each line to its own pad",
+     lcsc("C85364") + " (preferred extended: no loading fee)", "~$0.2", "USB board"),
     ("1 (optional, not fitted)", "USB-PD sink, CH224-class (e.g. CH224K)", "D9: footprint beside the external "
      "port on its CC lines, to ask a PD charger for 5 V / 3 A. Not fitted by default; the policy is a "
      "1.5 A+ C-to-C port", "LCSC (V: part and stock)", "~$0.5 + extended fee", "USB board"),
-    ("1", "VBUS TVS", "5–5.5 V standoff, clamping below the load switches' 6 V absolute max",
+    ("1", "VBUS TVS", "5–5.5 V standoff, clamping below 6 V (the CH334F sits straight on VBUS; check "
+     "its absolute max)",
      "LCSC (V: not chosen)", "~$0.1", "USB board"),
     ("1 set", "USB board passives", "5.1 kΩ CC pull-downs ×2, 56 kΩ CC pull-ups ×2 (display port), "
-     "10 kΩ CC sense resistors ×2 (+ 10–22 kΩ at the knob end), 22–47 µF polymer at the input, RC delay "
-     "on the switch enables, explicit Rset, 22 µF on the CH334F's VDD33, decoupling",
+     "10 kΩ CC sense resistors ×2 (+ 10–22 kΩ at the knob end), 2 × 22 µF 25 V X5R at the input "
+     "(CL21A226MAQNNNE C45783, basic; keep a 22–47 µF polymer footprint, fitted only if the hot-plug "
+     "test rings), RC delay on the switch enables, RILM and dVdt parts, 22 µF on the CH334F's VDD33, "
+     "decoupling",
      "JLC basic parts", "~$1", "USB board"),
 ]
 BOM_PRINTS = [
@@ -1291,7 +1310,7 @@ def write_bom(info, proto_info=None):
         "",
         "JLC's assembly minimum is 2 boards, so you pay for the parts on a spare set too",
         "(see [cost.md](cost.md)). JLC charges a setup fee once for the panel, plus a fee per",
-        "\"extended\" part type: 24 types with the parts above (list and fees in cost.md).",
+        "\"extended\" part type: 19 types with the parts above (list and fees in cost.md).",
         "Prices are LCSC's at the quantity for 2 boards, 2026-10-17.",
         "",
         "### 3D prints",
@@ -1325,8 +1344,8 @@ def write_bom(info, proto_info=None):
         "",
         "## Totals",
         "",
-        "One device: **~$475–735** with your own 3D printer, ~$530–850 with the case from",
-        "JLC3DP, ~$275–520 each when 5 people order together, US import duty included.",
+        "One device: **~$475–710** with your own 3D printer, ~$530–825 with the case from",
+        "JLC3DP, ~$275–520 each when 5 people order together (none planned until a device works), US import duty included.",
         "Prices above are per part, per device. The totals also include JLC's PCB, setup and",
         "extended-part fees, the parts on the spare board set, shipping and duty; the",
         "breakdown is in [cost.md](cost.md) (\"Where the money goes\").",

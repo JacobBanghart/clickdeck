@@ -18,7 +18,7 @@ from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).parent))
 
-from build123d import (Align, Box, Compound, Cylinder, ExportDXF, Pos, Rectangle, Rot, Unit,  # noqa: E402
+from build123d import (Align, BoundBox, Box, Compound, Cylinder, ExportDXF, Pos, Rectangle, Rot, Unit,  # noqa: E402
                        export_step, export_stl)
 
 import model  # noqa: E402
@@ -69,6 +69,69 @@ def fit_coupon():
         bore = model.d_shape(P.KNOB_HUB_D / 2 + 0.1 + d / 2, P.KNOB_HUB_FLAT - P.KNOB_HUB_D / 2 + 0.1 + d / 2, 10)
         plate -= Pos(x, 54.0, -1) * bore
     return plate
+
+
+# JLC panel estimate. The four boards go in one mouse-bite panel. JLC charges a
+# large-size fee (~$57) when "PCB area > 650 cm²" and doesn't say whether that's one
+# panel or the order. Conservative reading: the area JLC assembles for one build,
+# i.e. ASSEMBLED_PANELS panels (its minimum is 2). Five are made, but only two assembled.
+PANEL_GAP = 2.0           # mm between boards (mouse-bite tabs)
+PANEL_RAIL = 5.0          # mm assembly rail on two opposite edges
+JLC_LARGE_CM2 = 650.0
+ASSEMBLED_PANELS = 2
+PANEL_FEE_ACCEPTED = True  # pending a real JLC quote (it decides whether the >650 cm² fee applies); True keeps the warning but stops --strict failing on it
+
+
+def panel_estimate(boards):
+    """Smallest rectangle (mm) for the boards' bounding boxes: each board goes in a
+    main column (as drawn) or a side column (turned 90°); rails on either pair of edges."""
+    best = None
+    names = list(boards)
+    for mask in range(1 << len(names)):
+        cols = ([boards[n] for i, n in enumerate(names) if not mask >> i & 1],
+                [boards[n][::-1] for i, n in enumerate(names) if mask >> i & 1])
+        cols = [c for c in cols if c]
+        w = sum(max(b[0] for b in c) for c in cols) + PANEL_GAP * (len(cols) - 1)
+        h = max(sum(b[1] for b in c) + PANEL_GAP * (len(c) - 1) for c in cols)
+        for size in ((w, h + 2 * PANEL_RAIL), (w + 2 * PANEL_RAIL, h)):
+            if best is None or size[0] * size[1] < best[0] * best[1]:
+                best = size
+    return best
+
+
+def panel_lines(info):
+    """Summary lines and problems for the JLC panel area check."""
+    def size(sk):
+        bb = sk if isinstance(sk, BoundBox) else sk.bounding_box()
+        return (bb.size.X, bb.size.Y)
+    boards = {"frame PCB": size(info["frame_sketch"]), "knob board": size(info["knob_board_sketch"]),
+              "USB board": size(info["usb_board_sketch"])}
+    if info.get("touch_band_bbox") is not None:
+        boards["touch band"] = size(info["touch_band_bbox"])
+    w, h = panel_estimate(boards)
+    board_cm2 = sum(a * b for a, b in boards.values()) / 100
+    panel_cm2 = w * h / 100
+    order_cm2 = ASSEMBLED_PANELS * panel_cm2
+    lines = [
+        "## JLC panel (estimate)",
+        "- Boards: " + ", ".join(f"{n} {a:.1f} x {b:.1f}" for n, (a, b) in boards.items())
+        + f" mm; {board_cm2:.0f} cm² of bounding boxes",
+        f"- Panel: ~{w:.0f} x {h:.0f} mm = {panel_cm2:.0f} cm² ({PANEL_GAP:g} mm gaps, "
+        f"{PANEL_RAIL:g} mm rails on two edges)",
+        f"- Assumption: JLC's large-size fee counts the assembled area, {ASSEMBLED_PANELS} panels for "
+        f"one build = {order_cm2:.0f} cm² against {JLC_LARGE_CM2:.0f} cm² (5 assembled for a group buy "
+        f"= {5 * panel_cm2:.0f} cm²)",
+    ]
+    problems = []
+    if order_cm2 > JLC_LARGE_CM2:
+        msg = (f"JLC panel area {order_cm2:.0f} cm² for one build is over the {JLC_LARGE_CM2:.0f} cm² "
+               f"large-size threshold (~$57 fee)")
+        lines.append(f"- WARNING: {msg}" + (" (accepted)" if PANEL_FEE_ACCEPTED else ""))
+        if not PANEL_FEE_ACCEPTED:
+            problems.append(msg)
+    else:
+        lines.append(f"- Under the large-size threshold by {JLC_LARGE_CM2 - order_cm2:.0f} cm²")
+    return lines, problems
 
 
 def main():
@@ -211,10 +274,13 @@ def main():
         lines.append(f"- WARNING: {msg}")
     lines.append("")
     lines += ["## Printing (case parts)", *print_lines, ""]
+    p_lines, panel_problems = panel_lines(info)
+    lines += [*p_lines, ""]
     (OUT / "summary.md").write_text("\n".join(lines))
     print("\n".join(lines))
     problems = [w for lay in (L, PL) for w in lay.warnings]
     problems += [p for p in print_lines if "DOES NOT FIT" in p]
+    problems += panel_problems
     if problems and "--strict" in sys.argv:
         print(f"\n--strict: {len(problems)} problem(s), failing", file=sys.stderr)
         sys.exit(1)

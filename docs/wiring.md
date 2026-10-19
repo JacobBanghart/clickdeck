@@ -117,35 +117,38 @@ coiled flat on the back strip and strapped through two slots. See
 ### Path
 
 ```
- PC VBUS ─► USB board ─┬─ TVS (clamps < 6 V) + 22–47 µF polymer ─ CH334F (its own 3.3 V regulator, 22 µF on VDD33)
-                       ├─ current-limited, reverse-blocking switch (~1 A) ─► display board port VBUS (always on)
-                       └─ current-limited, reverse-blocking switch (~1.8 A) ─► JST-GH pins 2+7 ─► knob board:
-                              ├─ 3.3 V regulator (logic, direct)
-                              └─ soft-start load switch ─► motors (enabled by firmware after reading CC)
+ PC VBUS ─► USB board ─┬─ TVS (clamps < 6 V) + 2 × 22 µF ─ CH334F (its own 3.3 V regulator, 22 µF on VDD33)
+                       ├─ TPS259470A eFuse (~1 A) ─► display board port VBUS (always on)
+                       └─ TPS259470A eFuse (~1.8 A) ─► JST-GH pins 2+7 ─► knob board:
+                              ├─ AMS1117-3.3 regulator (logic, direct)
+                              └─ TPS259470A eFuse, soft start ─► motors (enabled by firmware after reading CC)
 ```
 
+- **One switch part for all three:** the TPS259470ARPWR eFuse (LCSC
+  C3662799). Its back-to-back FETs block reverse current while it's on.
+  RILM sets the current limit (3.32 kΩ ≈ 1.0 A, 1.65 kΩ ≈ 2.0 A, ±10%
+  above 1 A). A cap on dVdt sets the turn-on slew. It runs from 2.7 V to
+  23 V (28 V absolute max). QFN-10, 2 × 2 mm, 0.45 mm pitch.
 - **Display board port:** a downstream USB-C socket with 56 kΩ pull-ups on
-  CC1/CC2 (default USB power, per spec) and VBUS through a current-limited
-  switch with **true reverse-current blocking** (part TBD from JLC stock).
-  The SY6280 first picked here only blocks reverse current while disabled,
-  and this switch is always on, so the 7B's 5 V rail could drive the PC's
-  VBUS (see "Back-feed" above); use a part that blocks while enabled, or add
-  an ideal diode after it. Set the current limit with an explicit Rset (the
-  SY6280 is 6800/Rset, ±25%), and delay its enable with an RC so the 7B's
-  ≥ 120 µF doesn't charge at the same moment as the knob board. A short in
-  that cable can't take down the rest.
-- **Knob board branch:** its own current-limited, reverse-blocking switch on
-  the USB board (current limit ~1.8 A, blocking reverse current while
-  enabled; at the very least a 1.5–2 A PTC), so a pinched GH cable or a shorted bulk cap can't go straight to
-  the PC port.
+  CC1/CC2 (default USB power, per spec) and VBUS through an eFuse with
+  **true reverse-current blocking**. The SY6280 first picked here only
+  blocked reverse current while disabled. This switch is always on, so the
+  7B's 5 V rail could have driven the PC's VBUS (see "Back-feed" above).
+  RILM 3.32 kΩ (~1 A). Delay its enable with an RC so the 7B's ≥ 120 µF
+  doesn't charge at the same moment as the knob board. A short in that
+  cable can't take down the rest.
+- **Knob board branch:** its own eFuse on the USB board, RILM ~1.87 kΩ
+  (~1.8 A), blocking reverse current while on. A pinched GH cable or a
+  shorted bulk cap can't go straight to the PC port.
 - **Input protection:** the VBUS TVS needs a 5–5.5 V standoff and a clamp
-  voltage below 6 V at the expected surge (the switches' absolute maximum is
-  6 V; an ordinary 5 V TVS clamps near 9 V and doesn't qualify). Name the
-  part in the BOM. Add 22–47 µF of polymer (or electrolytic) at the input to
-  damp hot-plug ringing.
-- **Knob board input:** logic (3.3 V regulator, sensors, RP2350B) runs
-  straight from the input. The soft-start load switch (controlled rise
-  time, part TBD from JLC stock) feeds only the motor rail, and firmware
+  voltage below 6 V at the expected surge. The eFuses take 28 V, but the
+  CH334F sits straight on VBUS (check its absolute max). An ordinary 5 V
+  TVS clamps near 9 V and doesn't qualify. Name the part in the BOM. Put
+  2 × 22 µF basic ceramics (C45783) at the input. Keep a 22–47 µF polymer
+  footprint, and fit it only if the hot-plug test shows ringing.
+- **Knob board input:** logic (AMS1117-3.3 regulator, sensors, RP2350B)
+  runs straight from the input. The third eFuse (soft start set by its
+  dVdt cap) feeds only the motor rail, and firmware
   enables it after reading the CC offer, so charging the ~470 µF bulk
   doesn't sag the PC's port. 2 × 22 µF at each driver for motor current
   spikes.
@@ -163,8 +166,8 @@ and CC2. Both CC lines also go through 10 kΩ resistors to the JST-GH cable
 RP2350B ADC pins, with 100 nF to ground at the knob board (a slow filter;
 the ADC reads DC). The knob-end resistors protect the ADC pins if 5 V ever
 lands on a CC pin. Firmware disables the digital input buffers on those
-pins (RP2350 erratum E9). An ESD array on the USB board covers CC1/CC2 as
-well as D±. Whichever CC line the cable
+pins (RP2350 erratum E9). One SRV05-4-P-T7 ESD array on the USB board
+covers CC1/CC2 as well as D±. Whichever CC line the cable
 connects sits at (USB Type-C spec, voltage across the 5.1 kΩ):
 
 | PC advertises | CC voltage | Motor budget (default) |
@@ -210,11 +213,11 @@ All on the boards, fitted by JLC. Part numbers: [bom.md](bom.md).
 |---|---|---|---|
 | USB board | USB-C, mid-mount (sinks into the board), through-hole shell legs (unverified: LCSC lists C2894902 as SMD-only) | PC cable | External; see "Strain" |
 | USB board | USB-C, top mount, 4 through-hole shell legs (TYPE-C-31-M-12) | Display cable, straight end | Faces forward |
-| USB board | JST-GH 8-pin, side entry (SM08B-GHS-TB) | USB link cable | Faces forward; positive latch |
+| USB board | JST-GH 8-pin, side entry (HCTL HC-GH-8PWT, a GH clone; JST SM08B-GHS-TB is out of stock) | USB link cable | Faces forward; positive latch |
 | Knob board | JST-GH 8-pin, side entry | USB link cable | Back-left corner, faces back |
 | Knob board | 1×3 2.54 mm right-angle header ×5, SMD (part not chosen; THT fallback) | Motor plugs | Behind each tongue, pins point left. Shrouded or keyed if the motor plug has a key |
-| Knob board | 12-pin 1.0 mm flip-lock ZIF | Key FFC | Right end, on a small tab. Series resistors and a TVS array on the key lines |
-| Knob board | JST-SH 6-pin, top entry (BM06B-SRSS-TB) | Touch cable | Right end, front. TVS array on the lines |
+| Knob board | 12-pin 1.0 mm flip-lock ZIF | Key FFC | Right end, on a small tab. Series resistors and three SRV05-4-P-T7 arrays on the key lines |
+| Knob board | JST-SH 6-pin, top entry (BM06B-SRSS-TB) | Touch cable | Right end, front. One SRV05-4-P-T7 on SDA/SCL |
 | Knob board | HY2.0 3-pin, footprint always, fitting optional | Link lead to the 7B's J8 | GPIO6 link (see below) |
 | Knob board | BOOTSEL button: reverse-mount tact switch (part not chosen), plunger through the board, reached through a pinhole in the case floor | — | Recovery ([recovery.md](recovery.md)) |
 | Knob board | USB test pads | — | Bench recovery only. Silkscreen "unplug GH first" (the pads would back-feed with the cable in) |
@@ -336,8 +339,8 @@ step that connects it (checked in the model, like the screwdriver access).
   26 diodes, 21 on the frame PCB and 5 on the knob board.
 - **ESD:** the cap gaps leave ~5.6 mm air paths to the B3U terminals, and
   the lines run 80 mm of FFC to bare GPIO. The frame PCB has a GND guard
-  ring around each window; the knob board has series resistors and a TVS
-  array at the ZIF.
+  ring around each window; the knob board has series resistors and three
+  SRV05-4-P-T7 arrays at the ZIF.
 
 ## RP2350B pin budget (48 GPIO)
 
@@ -379,10 +382,11 @@ erratum E9; see [knob-module.md](knob-module.md)).
 
 ## USB board connections
 
-- CH334F hub (QFN-24), USB ESD protection (an array covering D± and CC),
-  TVS (see "Input protection").
-- **Crystal:** a 12 MHz crystal on XI/XO (load caps are built in), fitted,
-  plus a 0 Ω link that can ground XI for crystal-free mode. The CH334
+- CH334F hub (QFN-24), USB ESD protection (one SRV05-4-P-T7 covering D±
+  and CC), TVS (see "Input protection").
+- **Crystal:** a 12 MHz crystal (C9002, basic) on XI/XO (load caps are
+  built in), fitted, plus a 0 Ω link that can ground XI for crystal-free
+  mode. The CH334
   datasheet says crystal-free mode isn't on by default on some package
   forms, and JLC can't confirm it at ordering.
 - **Power strap:** PSELF strapped low (bus-powered), with a 0 Ω option to
@@ -391,7 +395,7 @@ erratum E9; see [knob-module.md](knob-module.md)).
   it.
 - **Placement:** the hub sits next to the external socket, so the
   480 Mbit/s upstream pair is under 15 mm: a 90 Ω coplanar pair with no
-  vias, over unbroken ground, with the USBLC6 in line at the socket. The
+  vias, over unbroken ground, with the SRV05-4 at the socket. The
   long runs are the full-speed downstream legs.
 - Confirm in the CH334F's datasheet row: MTT (one translator per port) and
   integrated terminations.
@@ -400,6 +404,6 @@ erratum E9; see [knob-module.md](knob-module.md)).
 - Optional USB-PD sink (CH224-class) footprint on the upstream CC lines,
   not fitted by default (power policy above).
 - Downstream port 1: JST-GH 8-pin to the knob board (VBUS through its own
-  ~1.8 A reverse-blocking switch). Port 2: USB-C to the display board (56 kΩ
-  CC pull-ups, VBUS through a ~1 A reverse-blocking switch). Ports 3–4
+  ~1.8 A eFuse). Port 2: USB-C to the display board (56 kΩ CC pull-ups,
+  VBUS through a ~1 A eFuse). Ports 3–4
   unused (test pads).

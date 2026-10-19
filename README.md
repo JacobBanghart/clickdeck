@@ -47,9 +47,9 @@ the + XL.
 
 | | ~Cost |
 |---|---|
-| **Build one, with your own 3D printer** | **$475–735** |
-| Build one, case ordered from JLC3DP | $530–850 |
-| Per unit, 5 people ordering together | $275–520 |
+| **Build one, with your own 3D printer** | **$475–710** |
+| Build one, case ordered from JLC3DP | $530–825 |
+| Per unit, 5 people ordering together (not planned until a device works) | $275–520 |
 | Stream Deck + XL (36 keys, 6 dials), for comparison | ~$350 |
 
 **A single build costs more than a Stream Deck + XL.** Cost isn't what this

@@ -18,7 +18,7 @@ boards, all connectors fitted by JLC (cabling: [wiring.md](wiring.md)):
 | **Knob board** | RP2350B, 5× MT6701 sensors, 5× motor drivers, 5× B3U press switches, 5× motor headers, JST-GH (USB link), ZIF (keys), JST-SH (touch) | `full_knob_board_outline.dxf` |
 | **Frame PCB** | 21× B3U key switches around the key windows, ZIF connector for the key cable. No chips | `full_frame_pcb_outline.dxf` |
 | **Touch band** | Capacitive touch electrodes + touch controller, glued under the top plate below the knob displays | strip, ~160 × 11 mm |
-| **USB board** | CH334F USB 2.0 hub, external USB-C (mid-mount), USB-C to the display board, JST-GH to the knob board, current-offer sensing (CC), two current-limited reverse-blocking power switches, ESD | L-shape, back-left corner: `full_usb_board_outline.dxf` |
+| **USB board** | CH334F USB 2.0 hub, external USB-C (mid-mount), USB-C to the display board, JST-GH to the knob board, current-offer sensing (CC), two reverse-blocking eFuses (TPS259470A), ESD (SRV05-4-P-T7) | L-shape, back-left corner: `full_usb_board_outline.dxf` |
 
 ### Knob board
 - One PCB for all five knobs. Each knob sits on a **tongue**: a U-shaped
@@ -64,9 +64,25 @@ boards, all connectors fitted by JLC (cabling: [wiring.md](wiring.md)):
 - **Reset safety:** specify RP2350B stepping A4. 10 kΩ pull-downs on each
   `NSTDBY` and PWM net, ~1 kΩ in series on the high-side inputs, and a
   watchdog that drops `NSTDBY` (RP2350 erratum E9).
-- **RP2350B support parts:** pick and record part numbers for the 3.3 µH
-  SMPS inductor, QSPI flash, crystal, regulator and the soft-start load
-  switch (the RP2354B has on-chip flash and drops one part).
+- **RP2350B support parts** (the RP2354B has on-chip flash and drops the
+  flash; full list in [bom.md](bom.md)):
+  - Flash: W25Q128JVSIQ (C97521, basic).
+  - Crystal: X322512MSB4SI (C9002, basic, 20 pF load, 80 Ω ESR) with
+    2 × 33 pF (C1562) and Raspberry Pi's 1 kΩ series resistor. That's
+    2 × (20 − 3 pF stray). Raspberry Pi's reference is the ABM8-272-T3
+    (10 pF, 50 Ω) with 2 × 15 pF. The C9002's higher ESR and load mean
+    less drive margin, and Raspberry Pi asks for a start-up test over
+    temperature with any other crystal. The Rev 0.5 board runs that test;
+    if it fails, fit the ABM8 (same 3225 footprint) with 15 pF, or a
+    smaller series resistor.
+  - SMPS inductor: AOTA-B201610S3R3-101-T (C42411119). Raspberry Pi
+    requires shielded, 3.3 µH ±20%, DCR ≤ 250 mΩ, Isat ≥ 1.5 A, and a
+    polarity mark, placed the right way round. No stocked JLC part has the
+    mark, so it stays (3 in stock, pre-order minimum 32, 2026-10-17).
+  - Regulator: AMS1117-3.3 (C6186, basic, 1 A, ~1.1 V dropout), with
+    22 µF on its output.
+  - Motor-rail soft start: TPS259470ARPWR eFuse (C3662799), the same part
+    as the USB board's two VBUS switches.
 - **Motor mount:** holes fit more than one motor (2204 patterns plus a
   fallback motor), since specific motors go out of stock. NPTH with a 1 mm
   copper keep-out and no pour under the motor base; screw length rule in
@@ -85,8 +101,10 @@ boards, all connectors fitted by JLC (cabling: [wiring.md](wiring.md)):
 - **Power:** the two CC sense lines from the USB board go to ADC pins
   through 10–22 kΩ series resistors, so firmware sets the motor budget from
   the PC's advertised current ([wiring.md](wiring.md)). The soft-start
-  switch feeds the motor rail only.
-- **ESD:** series resistors and a TVS array at the ZIF and the JST-SH.
+  eFuse feeds the motor rail only.
+- **ESD:** series resistors and SRV05-4-P-T7 arrays (C85364, preferred,
+  no fee): three on the 10 key lines at the ZIF, one on SDA/SCL at the
+  JST-SH. Pin 5 to 3V3.
 - **Motor connectors:** an SMD right-angle 1×3 2.54 mm header behind each
   tongue, plus two slots per knob for a strap around the coiled lead
   (the spare lead coils in a ~20 mm long loop on the back strip).
@@ -104,7 +122,7 @@ boards, all connectors fitted by JLC (cabling: [wiring.md](wiring.md)):
   side. Route one full row before the full order (consider SOD-523 diodes).
 
 ### USB board
-- CH334F hub (QFN-24) with a fitted 12 MHz crystal on XI/XO and a 0 Ω link
+- CH334F hub (QFN-24) with a fitted 12 MHz crystal (C9002) on XI/XO and a 0 Ω link
   that can ground XI (crystal-free mode isn't guaranteed on JLC's lot).
   PSELF strapped low (bus-powered) with a 0 Ω option; 22 µF on VDD33. Port
   1 → JST-GH to the knob board; port 2 → USB-C socket to the display board;
@@ -112,16 +130,20 @@ boards, all connectors fitted by JLC (cabling: [wiring.md](wiring.md)):
   crystal).
 - Hub next to the external socket: the upstream link is 480 Mbit/s, so keep
   it under 15 mm as a 90 Ω coplanar pair, no vias, unbroken ground below,
-  USBLC6 in line at the socket.
+  SRV05-4-P-T7 at the socket. It takes D+, D−, CC1 and CC2 on its four
+  pins (3.5 pF typ, 5 pF max; the datasheet lists USB 2.0). It fits the
+  USBLC6-2SC6 footprint, but its lines don't flow through: route each line
+  to its own pad.
 - External socket: a mid-mount (sink) 16-pin USB-C with through-hole shell
   legs; its face lines up with the inside of the back wall. Four M2 holes,
   two right beside the socket. Keep the arm's rear edge straight: it bears
   on a printed backstop.
 - Upstream CC1/CC2: 5.1 kΩ to GND, plus 10 kΩ out to the JST-GH cable for
   sensing. Downstream USB-C: 56 kΩ CC pull-ups. Both downstream VBUS
-  branches go through current-limited switches that block reverse current
-  while enabled (~1 A display, ~1.8 A knob board). VBUS TVS clamps below
-  6 V ([wiring.md](wiring.md)).
+  branches go through TPS259470A eFuses that block reverse current while
+  on (RILM sets ~1 A display, ~1.8 A knob board). Input: 2 × 22 µF basic
+  ceramics (C45783), plus an unfitted polymer footprint. VBUS TVS clamps
+  below 6 V ([wiring.md](wiring.md)).
 - Optional footprint for a CH224-class USB-PD sink on the upstream port,
   not fitted by default (power policy D9 in [plan.md](plan.md)).
 - Board top is 7.1 mm above the case bottom (4.1 mm above the floor). The
@@ -149,6 +171,9 @@ boards, all connectors fitted by JLC (cabling: [wiring.md](wiring.md)):
   filament.
 
 ### Order everything from JLC at once
+All four boards are 2-layer FR-4 with an **ENIG** finish (owner decision).
+ENIG pads are flat, which suits the 0.4 mm QFN-80 and QFN-20.
+
 Put the frame PCB, knob board, touch band and USB board in **one panel**
 (JLC accepts multiple designs panelized with mouse bites), so there's one
 PCB order and one assembly setup fee. One panel means one thickness: the
