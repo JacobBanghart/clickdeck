@@ -21,10 +21,10 @@ jobs:
       - name: Install pinned CAD toolchain
         run: pip install -r cad/requirements.txt
 
-      - name: Build models, both knob tiers (fail on fit warnings)
+      - name: Build models, default slots + all haptic + all lite (fail on fit warnings)
         run: python cad/build.py --no-render --strict
 
-      - name: Assembly checks (interference, screwdriver access, service, pinholes, key stack; lite knob fit)
+      - name: Assembly checks (interference, screwdriver access, service, pinholes, key stack; knob slots in three configurations)
         run: python cad/assembly.py --check
 
       - name: Check committed outputs are up to date

@@ -13,9 +13,11 @@
 A custom USB macro controller: per-key images, real clicky micro switches,
 and motor-driven knobs that switch between clicky and smooth in software.
 
-Two tiers (D22): **haptic** (the motor-driven knobs) and a cheaper
-**lite** tier with plain push encoders, detented or smooth as ordered.
-Only the knob board differs; everything else is the same.
+The knobs are modules (D23). Each of the five knob slots takes a
+**haptic** module (motor-driven), a cheaper **lite** module (a plain push
+encoder, detented or smooth as ordered) or a blank. Modules lift out from
+the top with the case closed, so you can start with one or two knobs and
+add more later.
 
 ![Full device](cad/out/freecad_three_quarter.png)
 
@@ -49,26 +51,28 @@ the + XL.
 
 ## Cost (rough estimates)
 
-| | ~Cost |
-|---|---|
-| **Build one, with your own 3D printer** | **$475–710** |
-| Build one, case ordered from JLC3DP | $530–825 |
-| Per unit, 5 people ordering together (not planned until a device works) | $280–400 |
-| **Lite tier** (push encoders, no haptics): build one / 5 together | $355–555 / $195–285 |
-| Stream Deck + XL (36 keys, 6 dials), for comparison | ~$350 |
-| Development (designer's): test kit, tools, Rev A and one board revision | ~$700–1,300 |
+| | Build one (own 3D printer) | 100 ordered together |
+|---|---|---|
+| Base device: display, keys, case, backplane, cables, no knobs | $345–540 | $125–180 |
+| + haptic module, each | ~$20–27, plus ~$51–77 once per order | ~$16–21 |
+| + lite module, each | ~$6–8, plus ~$39–50 once per order | ~$4–5 |
+| **First build: 2 haptic + 3 blanks** | **$440–675** | $160–225 |
+| All 5 haptic | $495–750 | $205–285 |
+| Stream Deck + XL (36 keys, 6 dials), for comparison | ~$350 | |
+| Development (designer's): test kit, tools, Rev A and one board revision | ~$715–1,280 | |
 
-At 25 or 100 units the estimates are ~$200–310 (haptic) and ~$140–215
-(lite) per device. **A single build costs more than a Stream Deck + XL.** Cost isn't what this
+A case ordered from JLC3DP adds ~$35–75 to a single build. Nothing is
+planned past one build until a device works. **A single build costs more
+than a Stream Deck + XL.** Cost isn't what this
 project optimizes, but the numbers try to be honest. They cover parts, PCBs
 (JLC's 5-board minimum and 2-board assembly minimum included), prints,
 ready-made internal cables, shipping and **US import duty** (the de minimis
 exemption is gone; JLC's DDP duty is about 35% typical), in two orders:
-JLC (all PCBs in one panel, plus prints) and AliExpress/Waveshare. Get a
+JLC (the base boards in one panel, the module boards, prints) and AliExpress/Waveshare. Get a
 real JLC quote before ordering. No crimping, and the goal is no soldering:
 JLC fits every part, and every cable inside plugs in. The biggest costs
 are JLC's boards (fees and parts), the duty, the motors and the display board.
-Breakdown: [docs/cost.md](docs/cost.md); every part: [docs/bom.md](docs/bom.md).
+Breakdown, with 5 and 25 units: [docs/cost.md](docs/cost.md); every part: [docs/bom.md](docs/bom.md).
 
 ## Design
 
@@ -81,39 +85,37 @@ base, plus a printed knob test stand with bought breakouts):
 
 ![Prototype](cad/out/proto_exploded.png)
 
-Inside, with the panel removed: Waveshare's board at the back, the knob
-board across the front, the USB board (hub) in the back-left corner with the
+Inside, with the panel removed: Waveshare's board at the back, the
+backplane and the knob slots across the front, the USB board (hub) in the back-left corner with the
 USB-C port in the back wall:
 
 ![Inside](cad/out/inside_layout.png)
 
 Cabling from above (display and top plate removed): one USB-C cable in, a
 hub on the USB board, a short USB-C cable to the display board and a
-latching JST-GH cable to the knob board. Every cable is bought and plugged
+latching JST-GH cable to the backplane. Every cable is bought and plugged
 in ([docs/wiring.md](docs/wiring.md)):
 
 ![Cabling](cad/out/cabling.png)
 
-Knob board (one PCB, five knobs, every part on the top side). Each knob
-sits on a hinged tongue; pressing it pushes an arm on the motor spacer onto
-a switch on the board's front border. Motors lifted to show the tongues:
+Knob modules (D23), lifted out of their slots: haptic, lite and a blank.
+The backplane under the slots has 18 pogo pins per slot; they press gold
+pads under each module. A haptic module's motor sits on a hinged tongue
+cut into the module board; pressing the knob pushes an arm on the motor
+spacer onto a switch on the board's front border. Two screws through the
+cover hold each module. Both knob types sit at the same height (checked in
+the model):
 
-![Knob board](cad/out/knob_board_detail.png)
-
-Lite knob board (D22): same outline, holes and connectors, five push
-encoders instead of the tongues and motors. The knob caps sit at the same
-height (checked in the model):
-
-![Lite knob board](cad/out/knob_board_lite_detail.png)
+![Knob modules](cad/out/modules_detail.png)
 
 - [docs/assembly.md](docs/assembly.md): assembly and service guide, with pictures and an animation (generated from the CAD)
 - [docs/plan.md](docs/plan.md): goals, architecture, and the staged build plan
 - [docs/parts.md](docs/parts.md): prototype parts list with links (final parts bought early + a throwaway test kit)
 - [docs/cost.md](docs/cost.md): cost breakdown
-- [docs/bom.md](docs/bom.md): full-build bill of materials (generated from the CAD); lite tier: [docs/bom-lite.md](docs/bom-lite.md)
+- [docs/bom.md](docs/bom.md): bill of materials, base device and each module (generated from the CAD)
 - [docs/lessons.md](docs/lessons.md): lessons from related projects, so we don't relearn them
 - [docs/wiring.md](docs/wiring.md): power path, cables and connectors, strain relief, key matrix, pin budget
-- [docs/knob-module.md](docs/knob-module.md): one knob channel of the knob board: netlist, parts and design notes
+- [docs/knob-module.md](docs/knob-module.md): the knob modules (haptic, lite, blank): mechanics, netlist, parts and design notes
 - [docs/configurator.md](docs/configurator.md): web configurator, optional host daemon, Linux udev rule
 - [docs/recovery.md](docs/recovery.md): recovery and factory reset (start here if something's stuck)
 - [docs/protocol.md](docs/protocol.md): USB protocol draft (two USB devices behind a hub, WebUSB)
@@ -123,8 +125,8 @@ height (checked in the model):
 - [docs/pcb.md](docs/pcb.md): how the PCBs get designed and ordered
 - [cad/](cad/): parametric CAD (build123d). STEP files for FreeCAD/Fusion 360 in `cad/out/`
 
-Status (2026-10-19): design stage, nothing built. Added a lite knob tier
-(push encoders, D22) next to the haptic one. Done on paper: CAD for
+Status (2026-10-19): design stage, nothing built. Knobs are now modules
+in five slots (D23): haptic, lite (push encoders, D22) or blank. Done on paper: CAD for
 the full device and prototype (real Waveshare 7B dimensions), prototype
 frame PCB (generated, DRC clean), knob channel spec, wiring/power spec
 (internal USB hub, plug-in cables only), USB protocol draft, design review

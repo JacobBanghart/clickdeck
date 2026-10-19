@@ -8,10 +8,12 @@ says which:
   driven by the SparkFun TMC6300 breakout from the WeAct RP2350B core
   board; the 7B and the core board behind the CH334F hub module; the two
   keys on the rev C frame PCB on the 7B. These decide go/no-go.
-- **Rev A:** needs our own boards: the hinge and press, the knob board's
-  CC sensing, the touch band, the connectors and cables, the crystal, the
-  pinholes. A failure here means one revision of that board, not a new
-  prototype.
+- **Rev A:** needs our own boards: the base with the backplane, 2 haptic
+  modules, 1 lite module and blanks (D23). The hinge and press, the slot
+  connector and module swaps, the backplane's CC sensing, the touch band,
+  the connectors and cables, the crystal, the pinholes. A failure here
+  means one revision of that board (the backplane and each module type are
+  separate designs), not a new prototype.
 - **Free:** the scrap-FR-4 hinge test, before the Rev A order.
 
 The targets are starting points, not specs. Adjust them once there's
@@ -36,8 +38,8 @@ force, a thermocouple or IR thermometer, and a logic analyzer (a cheap
 | Current at an end stop | Kit | Lean on the stop for 30 s | Driver case < 70 °C; the firmware time limit keeps current within the budget |
 | Standby back-power | Kit | `NSTDBY` low, one PWM pin high | VIO stays below 0.4 V |
 | Wake latency | Kit | Turn from rest | No dead zone or delay you can feel before the first click |
-| Hinge, before ordering | Free (scrap FR-4) | Saw a tongue into scrap FR-4 with the planned neck; load its tip on the kitchen scale | Record the force for 0.15 mm of travel; size Rev A's hinge perforations from it |
-| Press feel | Rev A | Kitchen scale under the knob; tune the hinge perforations and the set-screw striker | Clicks at roughly 150–400 g, one clear click, no rocking |
+| Hinge, before ordering | Free (scrap FR-4) | Saw the haptic module's tongue and its two torsion necks into scrap FR-4; load the tongue at the motor axis on the kitchen scale | Record the force for 0.15 mm of travel at the striker; size the necks (or a 1.0 mm module PCB) from it |
+| Press feel | Rev A | Kitchen scale under the knob; tune the set-screw striker | Clicks at roughly 150–400 g, one clear click, no rocking |
 | Press while turning | Rev A | Turn hard without pressing; push sideways on the knob rim | No accidental press events (if sideways force clicks, plan a parallel-guided flexure) |
 | Calibration | Kit | Store, power-cycle 10× | Knob never twitches at power-on; angle and direction stay correct |
 | Plug reversed | Kit | Reseat the motor plug the other way, power up | Direction check catches it and recalibrates; the motor never runs away |
@@ -45,18 +47,22 @@ force, a thermocouple or IR thermometer, and a logic analyzer (a cheap
 | Loop timing | Kit | RP2350B running 1 real + 4 dummy FOC loops, 15 PWM outputs, 5 sensor reads | ≥ 2 kHz per motor (aim for 5 kHz) |
 | Noise | Kit | Listen up close in a quiet room | No audible whine or buzz at rest or while turning |
 
-### Lite tier encoders (D22)
+### Knob modules and slots (D23)
 
-No prototype of its own: an EC11 on a breadboard with the WeAct RP2350B
-bench covers the firmware; the lite knob board is first built whole.
+Lite modules have no prototype of their own: an EC11 on a breadboard with
+the WeAct RP2350B bench covers the firmware. Slots and modules are first
+built on Rev A (2 haptic, 1 lite, blanks).
 
 | Test | Where | How | Pass |
 |---|---|---|---|
 | Quadrature | Kit (bench) | EC11 on two consecutive GPIOs with the 10 kΩ / 10 nF filter, PIO reader; turn slowly, then spin fast | Every detent counts once, no steps lost or doubled, none while flash is written |
 | Press | Kit (bench) | Encoder switch wired as row 4 with a diode, next to held keys | Press reported with keys held; no ghosting |
-| Tier report | Kit (bench) | Board-ID pin strapped high, then low | `HELLO_ACK` says `lite` / `haptic`; the configurator hides knob feel on `lite` |
-| Knob fit | First lite board | `knob_lite.stl` on the real encoder, top plate on | Knob top level with a haptic knob's (±0.2 mm by calipers); press clicks without touching the plate |
-| Default port | First lite board | 500 mA port, A-to-C cable, full brightness | No resets, no brownouts |
+| Slot detection | Kit (bench), then Rev A | Kit: a diode from a column to ID row A, then B, then none. Rev A: haptic, lite and blank in different slots, power-cycle | `HELLO_ACK` lists each slot right (`haptic` / `lite` / `empty`); the configurator shows knob feel only on haptic slots and hides empty ones |
+| Module swap | Rev A | USB unplugged: pull the cap, undo the two screws, lift the module out, drop it back in; 30 times on one slot, then swap slots | Comes out and goes in straight with the case closed; the key pins stop it turned round; every slot still reads right and every knob works after each swap |
+| Slot contact | Rev A | Meter each pogo contact through a seated module (pad to backplane net); then turn a haptic knob hard, press it, and push it sideways while logging SSI CRC errors | Every contact < 0.2 Ω; no CRC errors or dropouts while the knob is worked |
+| Pins at full current | Rev A | Lean on an end stop on a 3 A port for 30 s | The VMOT pins and pads stay below ~50 °C; no brownout |
+| Knob fit | Rev A | Calipers: haptic and lite knob tops, blank and covers against the plate | Knob tops level with each other (±0.2 mm); covers and blanks flush (±0.2 mm); a lite press clicks without touching the cover |
+| Default port | Rev A | Only lite modules and blanks: 500 mA port, A-to-C cable, full brightness | No resets, no brownouts |
 
 ## Keys
 
@@ -102,7 +108,7 @@ panel interference, so the kit skips it.
 | Standalone | Kit | Set keys, a macro and knob feel in the configurator; close it; plug into another computer with no software | Keys, macros and knob feel all work; the display shows the stored page; no key stays held |
 | Idle | Kit | Leave untouched: with the daemon running, with the GPIO6 link and no host, and with neither | Blanks and wakes on touch, key or knob in the first two cases; never blanks in the third |
 | Offline pages | Kit | Link fitted, no host: press a page-switch key | Images, keymap and knob feel all change together |
-| Two devices, one hub | Kit, then Rev A | RP2350B (core board, then the knob board) and display (ESP32-S3) behind the CH334F (hub module, then the USB board); replug in a different port | The configurator pairs them every time; images and events land on the right device |
+| Two devices, one hub | Kit, then Rev A | RP2350B (core board, then the backplane) and display (ESP32-S3) behind the CH334F (hub module, then the USB board); replug in a different port | The configurator pairs them every time; images and events land on the right device |
 | Browsers and OSes | Kit | Configurator in Chrome and Edge on Linux (with the udev rule), Windows and macOS | Both devices open; no driver installs |
 | Power descriptors | Kit | `lsusb -v`, `lsusb -t`, `dmesg` on Linux | Both devices declare ≤ 100 mA; no "insufficient available bus power" |
 | Connectors | Rev A | JST-GH link, FFC + ZIF to the frame PCB, JST-SH to the touch strip | All work; footprints and pin 1 match the bought cables |
@@ -148,7 +154,7 @@ the JST-GH contacts aren't staggered.
    input ceramics fitted. The peak stays under 6 V; if not, fit the
    polymer cap.
 7. PC unplugged: plug in a reversed GH cable, then power up. Nothing gets
-   hot; the knob board doesn't enumerate; no damage after the straight
+   hot; the backplane doesn't enumerate; no damage after the straight
    cable goes back.
 8. Electronic-load sweep of each motor budget for 10 min on real laptop
    ports.

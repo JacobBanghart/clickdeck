@@ -19,8 +19,9 @@ Python), plus the project's `.venv` for the CAD.
 |---|---|---|
 | Prototype frame PCB, rev C (2 keys on the 7B) | Generated, DRC clean, untested | [`proto-frame/`](proto-frame/) |
 | Rev A frame PCB (21 keys) | After the prototype. Outline: `cad/out/full_frame_pcb_outline.dxf` | — |
-| Rev A knob board | After the prototype; first build of the knob circuit ([knob-module.md](../docs/knob-module.md)). Outline: `cad/out/full_knob_board_outline.dxf` | — |
-| Lite knob board (D22: push encoders, no motors) | After Rev A's knob board, from the same schematic minus the motor channels ([knob-module.md](../docs/knob-module.md), end). Outline: `cad/out/full_knob_board_lite_outline.dxf` | — |
+| Rev A backplane (D23: RP2350B, connectors, a pogo-pin slot connector per knob slot) | After the prototype ([pcb.md](../docs/pcb.md), [wiring.md](../docs/wiring.md)). Outline: `cad/out/full_backplane_outline.dxf` | — |
+| Rev A haptic module (one knob: TMC6300, MT6701, press switch, motor header) | After the prototype; first build of the knob circuit ([knob-module.md](../docs/knob-module.md)). Outline: `cad/out/module_haptic_pcb_outline.dxf` | — |
+| Rev A lite module (D22: push encoder) | With the haptic module; same outline and pads ([knob-module.md](../docs/knob-module.md), end). Outline: `cad/out/module_lite_pcb_outline.dxf` | — |
 | Rev A USB board (CH334F hub) | After the prototype. Outline: `cad/out/full_usb_board_outline.dxf` | — |
 | Rev A touch band | After the prototype (optional, D12). Outline: `cad/out/full_touch_band_outline.dxf` | — |
 
@@ -85,27 +86,32 @@ separate schematic for a 4-switch board).
 ## Notes for the boards still to draw
 
 - **Top side only (D6).** Every part goes on one side so JLC's single-side
-  assembly covers each board. The CAD now models the knob board that way:
-  the press switch sits on the fixed front border and an arm on the printed
-  motor spacer presses it (an M2 set screw in the arm is the striker); the
-  motor headers are SMD right-angle; BOOTSEL is a reverse-mount tact switch
-  (or, if none is found, a plain one on the bottom: the only bottom part).
-- **Drivers off the tongues (D16):** the model puts each TMC6300 on the back
-  strip beside its motor header. Only the MT6701's lines cross a hinge.
+  assembly covers each board. The CAD models the boards that way: on each
+  haptic module the press switch sits on the fixed front border and an arm
+  on the printed motor spacer presses it (an M2 set screw in the arm is the
+  striker); the motor header is a vertical SMD part; the slot connector is
+  SMD pogo pins on the backplane's top pressing ENIG pads under the module;
+  BOOTSEL is a reverse-mount tact switch (or, if none is found, a plain one
+  on the bottom: the only bottom part).
+- **Drivers off the tongue (D16):** the model puts each TMC6300 on its
+  module's fixed front border. Only the MT6701's lines cross a hinge neck.
+- **Slot connector (D23):** 18 pogo pins per slot, 3 × 6 at 3.0 × 2.5 mm,
+  under each module's front border; pinout in [wiring.md](../docs/wiring.md).
+  The module's pads are 1.8 mm across. Two key-pin holes (2.1 and 1.5 mm
+  NPTH) and two 6.1 mm holes for the slot bosses per slot.
 - **Frame PCB supports (D8):** besides the pan-head screws along the back
   and left edges, countersunk M2 holes at the four webs between the knob
   windows, three on the right margin and two strip crossings (x = ±33 mm,
   between key rows 2 and 3). Those crossings can't carry traces: route the
   matrix around them. Keep copper 0.3 mm outside each countersink.
-- **GPIO6 link (D5):** HY2.0 3-pin side-entry header on the knob board's back
+- **GPIO6 link (D5):** HY2.0 3-pin side-entry header on the backplane's back
   edge (x = 57 mm), footprint always, fitted optionally.
 - **PD sink (D9):** a CH224-class footprint area beside the external USB-C
   on the USB board, on its CC lines, not fitted by default.
-- **Lite knob board (D22):** same outline, holes and connector positions as
-  the knob board, without the tongues. Encoders are through-hole (one
-  footprint for the detented and smooth Bourns PEC11R); JLC hand-solders
-  them, so the board stays top-side assembly. A board-ID strap (10 kΩ to
-  GND on the haptic board, to 3V3 on the lite one) tells the firmware which
-  board it's on.
+- **Lite module (D22):** the haptic module's outline, holes and pads,
+  without the tongue. The encoder is through-hole (one footprint for the
+  detented and smooth Bourns PEC11R); JLC hand-solders it, so the board
+  stays top-side assembly. Each module has an ID diode from its column to
+  ID row A (haptic) or B (lite), so the firmware knows what's in each slot.
 - **Touch band (D12):** optional; `TOUCH_BAR = False` in `cad/params.py`
-  removes the band, its cable and the knob board's SH header from the model.
+  removes the band, its cable and the backplane's SH header from the model.

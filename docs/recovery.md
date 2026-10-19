@@ -7,7 +7,7 @@ clickdeck has two chips, each on its own USB connection through the internal
 hub ([wiring.md](wiring.md)):
 
 - **Display board** (Waveshare 7B, ESP32-S3): images, pages, brightness.
-- **Knob board** (RP2350B): keys, knobs, touch band, keymap, knob feel.
+- **Backplane** (RP2350B): keys, knobs, touch band, keymap, knob feel.
 
 Both chips have a bootloader in ROM. Nothing we flash can overwrite it, so
 a bad update can always be retried. The only way to truly brick a chip is
@@ -42,7 +42,7 @@ What it clears: the keymap, macros, knob feel, pages, images and display
 settings. What it keeps: the firmware, and each knob's calibration (that's
 measured on your hardware, not a setting; the configurator can redo it).
 
-The knob board reads the key. With the optional GPIO6 link fitted
+The backplane reads the key. With the optional GPIO6 link fitted
 ([wiring.md](wiring.md)), it passes the reset to the display board. Without
 the link, reset the display side from the web configurator ("Reset display
 settings"), or use Level 2.
@@ -68,7 +68,7 @@ Use this when firmware is broken, or to undo your own builds.
      the display board can't see the hold, so the page asks you to use its
      BOOT pinhole (below) instead;
    - flashes the display board with esptool-js over Web Serial (ESP32-S3
-     download mode) and the knob board over WebUSB (RP2350B UF2 bootloader);
+     download mode) and the backplane over WebUSB (RP2350B UF2 bootloader);
    - offers to erase stored settings as well (off by default).
 
 If a chip's firmware is too broken to answer, the page tells you to use the
@@ -77,7 +77,7 @@ pinholes below to start its bootloader by hand, then carries on.
 ## Level 3: pinholes (manual bootloader entry)
 
 Three pinholes on the outside of the case. BOOT and RESET are in the back
-wall. BOOTSEL is in the case floor under the knob board's left end, 11 mm
+wall. BOOTSEL is in the case floor under the backplane's left end, 11 mm
 from the left edge and 30.5 mm from the front: lift the slab off the stand
 to reach it. Pictures: [assembly.md](assembly.md). Use a paper clip or a
 SIM tool.
@@ -86,13 +86,13 @@ SIM tool.
 |---|---|---|
 | BOOT | ESP32-S3 (display board) | Held while powering up (or while tapping RESET): starts ROM download mode |
 | RESET | ESP32-S3 (display board) | Restarts the display board |
-| BOOTSEL | RP2350B (knob board) | Held while plugging in: starts the RP2350B's ROM UF2 bootloader |
+| BOOTSEL | RP2350B (backplane) | Held while plugging in: starts the RP2350B's ROM UF2 bootloader |
 
 **Display board:** do Step 0. Hold BOOT, plug in, release BOOT. The board
 shows up as an Espressif USB serial device; the configurator (or plain
 esptool) can flash it.
 
-**Knob board:** do Step 0. Hold BOOTSEL, plug in, release. The board shows
+**Backplane:** do Step 0. Hold BOOTSEL, plug in, release. The board shows
 up as an "RP2350" USB drive. The configurator flashes it, or drag a UF2 file
 onto the drive. The motor drivers stay off in the bootloader (hardware
 pull-downs hold them in standby).

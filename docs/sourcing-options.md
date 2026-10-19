@@ -236,7 +236,8 @@ One order, 5 panels made and 5 assembled. Fixed costs are paid once.
 
 Per device total: ~$95–145 boards + ~$175–275 for the rest (shared
 shipping, bulk hardware packs) = **~$270–420 each**, in line with
-cost.md's $280–400. The lite tier (D22) is ~$195–285 each
+cost.md's estimate before the knobs became modules (D23). With five haptic
+modules, cost.md now gives ~$295–425 each for 5 devices, five lite ~$210–310
 ([cost.md](cost.md)).
 
 Options for the group:

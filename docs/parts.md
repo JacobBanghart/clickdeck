@@ -36,7 +36,7 @@ are searches: pick a listing with good ratings and a clear pinout photo.
 
 | Qty | Part | ~Price | Search |
 |---|---|---|---|
-| 6 (5 + 1 spare), from two sellers | **Mitoot 2204 260KV gimbal motor**, ~28 × 13 mm, 3.4 mm hollow shaft (or the same spec from a second seller) | $45–75 | [listing](https://www.aliexpress.us/item/2251832766811717.html) |
+| 4 (2 for Rev A's haptic modules + 2 spare), from two sellers | **Mitoot 2204 260KV gimbal motor**, ~28 × 13 mm, 3.4 mm hollow shaft (or the same spec from a second seller). More come with each haptic module added later (D23) | $30–50 | [listing](https://www.aliexpress.us/item/2251832766811717.html) |
 | 1 pack | Diametric (side-magnetized) magnets, 6 × 2.5 mm, for the MT6701 | $3–6 | [diametric magnet 6x2.5mm](https://www.aliexpress.us/w/wholesale-diametric-magnet-6x2.5mm.html) |
 | 1 | **USB-C to USB-C cable, ~10 cm, one 90° side-exit (left/right) end**, USB 2.0. The full build's display cable: measure its plugs against the CAD (12.5 × 6.5 mm overmold assumed) and check the bend | $2–4 | [usb c to usb c 90 degree 10cm](https://www.aliexpress.us/w/wholesale-usb-c-to-usb-c-90-degree-10cm.html) |
 
@@ -48,7 +48,7 @@ are searches: pick a listing with good ratings and a clear pinout photo.
 | 1 | **CH334F USB hub module** (the full build's hub chip). The 7B and the core board sit behind it, so the configurator's two-device pairing gets built on the real hub chip. Also stays on the bench. US option: [Adafruit 5997](https://www.adafruit.com/product/5997) | $3–6 | [ch334f usb hub](https://www.aliexpress.us/w/wholesale-ch334f-usb-hub.html) |
 | 1 | **MT6701 breakout** (magnetic angle sensor). Sits under the motor in the knob test stand. Set its mode pad for SSI (many default to ABZ/I²C). Measure its width: the stand's rails assume 16 mm (`MT6701_BREAKOUT` in `cad/params.py`) | $2–4 | [mt6701 magnetic encoder module](https://www.aliexpress.us/w/wholesale-mt6701-magnetic-encoder-module.html) |
 | 1 | Breadboard + jumper wire kit (M-M, M-F, F-F) | $3–5 | [breadboard jumper kit](https://www.aliexpress.us/w/wholesale-breadboard-jumper-wire-kit.html) |
-| 1–2 (optional) | **EC11 push encoder** (or the lite tier's Bourns PEC11R from LCSC), for the lite tier (D22): PIO quadrature and the press in the key matrix on the core board. No other lite-tier prototype is needed | $1–3 | [ec11 rotary encoder switch](https://www.aliexpress.us/w/wholesale-ec11-rotary-encoder-switch.html) |
+| 1–2 (optional) | **EC11 push encoder** (or the lite module's Bourns PEC11R from LCSC), for the lite module (D22, D23): PIO quadrature, the press and the module-ID rows in the key matrix on the core board. No other lite prototype is needed | $1–3 | [ec11 rotary encoder switch](https://www.aliexpress.us/w/wholesale-ec11-rotary-encoder-switch.html) |
 | optional | A few same-size alternatives to the B3U (XKB TS-3025-B-A-B and others, see [open-questions.md](open-questions.md)), to feel on the desk next to the frame PCB's B3Us | $2–4 | [3x2.5 tactile switch](https://www.aliexpress.us/w/wholesale-3x2.5-tactile-switch.html) |
 
 ### Tools (kept; skip what you have)
@@ -67,7 +67,7 @@ are searches: pick a listing with good ratings and a clear pinout photo.
 
 | Qty | Part | ~Price | Link |
 |---|---|---|---|
-| 1 | **SparkFun TMC6300 brushless motor driver breakout, ROB-21867** (2–11 V, 2 A peak). The same driver chip as the knob board. It takes 6 PWM inputs (UH/UL, VH/VL, WH/WL). Headers aren't fitted: solder them (iron above) or use a makerspace | $17.95 + ~$5–9 shipping | [SparkFun](https://www.sparkfun.com/sparkfun-brushless-motor-driver-3-phase-tmc6300.html) |
+| 1 | **SparkFun TMC6300 brushless motor driver breakout, ROB-21867** (2–11 V, 2 A peak). The same driver chip as the haptic module. It takes 6 PWM inputs (UH/UL, VH/VL, WH/WL). Headers aren't fitted: solder them (iron above) or use a makerspace | $17.95 + ~$5–9 shipping | [SparkFun](https://www.sparkfun.com/sparkfun-brushless-motor-driver-3-phase-tmc6300.html) |
 
 ## Order 4: JLCPCB + JLC3DP (~$50–90 with shipping and duty, after the motor arrives)
 
@@ -92,7 +92,7 @@ the knob test stand's screw holes come from measuring it.
   `knob.stl` and `knob_hub.stl`: a 40 × 40 mm block. The 2204 screws onto
   its deck with 4 × M2 × 5 from below (heads in counterbores); the MT6701
   breakout slides in on two rails under the deck, chip up, 1 mm below the
-  magnet, as on the knob board. Solder its header pointing down or back so
+  magnet, as on the haptic module. Solder its header pointing down or back so
   the pins clear the rails. Knob and hub are the full build's.
 - **Prototype top plate** (`print_proto_top_plate.stl`, 3 mm, PETG or
   resin; a home print works too). It carries the cap guides: each key hole
@@ -127,7 +127,7 @@ force for 0.15 mm of travel; it sizes Rev A's hinge perforations.
   standby) and MT6701 breakout (SSI: CS, CLK, DO). 5 V for the driver
   comes from the bench supply with short, thick leads, not breadboard
   jumpers ([lessons.md](lessons.md) #2).
-- **3-PWM on the breakout:** the knob board drives each low side from an
+- **3-PWM on the breakout:** the haptic module drives each low side from an
   inverter. On the breakout, drive each low-side input from the inverted
   output of the same PWM slice, which is what the inverter does. Keep the
   standby rule: no input high while standby is low

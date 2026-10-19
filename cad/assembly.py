@@ -14,9 +14,13 @@ Checks:
   threading into their target part)
 - tool access: every screw can be reached with a straight screwdriver at the
   step that installs it
-- service: the top plate, display and knob board lift out in that order;
-  a paperclip reaches the display board's BOOT/RESET through the back wall
-  and the knob board's BOOTSEL through the floor
+- service: each knob module (or blank) lifts straight out of its slot with
+  the case closed (D23); the top plate, display and backplane lift out in that
+  order; a paperclip reaches the display board's BOOT/RESET through the back
+  wall and the backplane's BOOTSEL through the floor
+- knob slots (D23): every knob top matches the haptic knob's position, covers
+  and blanks sit flush, the pogo pins are compressed inside their stroke and
+  land on the module's pads; run on the default build and on CHECK_CONFIGS
 - key stack (D8): every cap's down-stop lands on the frame PCB, every key has
   its guide skirt on all four sides, and the worst cap drop (guide tilt, switch
   bottomed, down-stop) plus the frame PCB's flex at a firm press stays short of
@@ -37,7 +41,7 @@ from pathlib import Path
 sys.path.insert(0, str(Path(__file__).parent))
 
 import numpy as np  # noqa: E402
-from build123d import Box, Cylinder, Pos, Rot  # noqa: E402
+from build123d import Box, Circle, Cylinder, Pos, Rot  # noqa: E402
 
 import model  # noqa: E402
 import params as P  # noqa: E402
@@ -71,13 +75,22 @@ class Step:
     fixed: tuple = ()                  # labels (prefixes) that are new but don't move
 
 
-KNOB_SUB = starts("knob_board_pcb", "knob_board_rp2350b", "knob_board_conn", "knob_board_bootsel",
-                  "cable_motor")
+def slot_part(lb, n=None):
+    """A knob slot's contents (D23): module parts, cover or blank, knob cap, motor plug,
+    lead coil. n: only slot n."""
+    if lb.startswith("cable_motor"):
+        return n is None or lb.startswith(f"cable_motor{n}_")
+    return lb.startswith("knob") and lb[4:5].isdigit() and (n is None or lb.startswith(f"knob{n}_"))
 
 
-def knob_sub(lb):
-    return KNOB_SUB(lb) or (lb.startswith("knob") and lb[4:5].isdigit()
-                            and not lb.endswith("_knob"))
+def module_sub(lb):
+    """Built on the bench: a module's own parts, without its cover and knob cap."""
+    return slot_part(lb) and not lb.endswith(("_knob", "_cover", "_blank"))
+
+
+def modules(lb):
+    """Dropped into the slots: modules (with their covers) and blanks."""
+    return slot_part(lb) and not lb.endswith("_knob")
 
 
 GH_LINK = starts("plug_usb_board_gh", "plug_knob_gh", "cable_usb_knob_gh")
@@ -85,7 +98,7 @@ DISPLAY_CABLE = starts("plug_display_usb", "plug_usb_board_display", "cable_usb_
                        "plug_display_j8", "plug_knob_hy", "cable_hy_link")
 TOP_SUB = starts("top_plate", "cap_", "frame_pcb", "switch_", "touch_bar", "knob_window",
                  "cable_keys", "cable_touch", "plug_ffc", "plug_touch_band", "plug_knob_touch")
-# Plugs that stay on the knob board when the top plate lifts (their cable comes with the plate)
+# Plugs that stay on the backplane when the top plate lifts (their cable comes with the plate)
 KNOB_SIDE = ("plug_ffc_knob", "plug_knob_touch")
 
 STEPS = [
@@ -98,8 +111,10 @@ STEPS = [
          "(insert tip, ~240 °C), press an M3 heat-set insert "
          f"({P.INSERT_M3[0]:g} mm hole, {P.INSERT_M3[1]:g} mm long) into the bottom end of "
          "each of the top plate's four posts, flush with the end: the case screws go into "
-         "these, so they survive being undone for every service.",
-         starts("case_tray", "magnet_tray", "foot_front"), move=(0, 0, -25), view=(-60, -30),
+         "these, so they survive being undone for every service. Press an M2 insert "
+         f"({P.INSERT_M2[0]:g} mm hole, {P.INSERT_M2[1]:g} mm long) into the top of each of the "
+         "ten slot bosses along the front, flush: the knob modules' screws go into these.",
+         starts("case_tray", "magnet_tray", "foot_front", "slot_insert"), move=(0, 0, -25), view=(-60, -30),
          fixed=("case_tray",)),
     Step("usb_board", "Screw in the USB board",
          "Lower the USB board into the back-left corner, external USB-C socket first: the "
@@ -108,31 +123,15 @@ STEPS = [
          "four M2 screws into the floor bosses (two of them either side of the socket). The "
          "hub chip sits on the arm next to the socket, so the high-speed upstream run is short.",
          starts("usb_board"), move=(0, 0, 40), view=(-60, 40), screw_view=(-60, 45)),
-    Step("knob_sub", "Build the knob board (on the bench)",
-         "Glue a diametric magnet to the bottom end of each motor shaft. Set a printed spacer "
-         "ring on each tongue (its two pins drop into the holes beside the MT6701 and center "
-         "the motor, so the magnet sits within 0.3 mm of the sensor axis), put the motor on it "
-         "with its lead pointing back, and drive four M2×8 screws up from under the tongue into "
-         "the motor base. Never use longer screws: a tip past the base's thread can short a "
-         "winding. The spacer's arm reaches forward over the slot to above the knob's press "
-         "switch on the board's front border: thread an M2×3 set screw (the striker) down "
-         "through the arm's tip. Screw a printed hub onto each bell with four M2×3 countersunk "
-         "screws (its spigot centers it in the shaft bore). Plug each motor's 3-pin plug onto "
-         "the header behind its tongue (any way round: the firmware finds the phase order), coil "
-         "the spare lead flat on the back strip and strap it through the two slots with a "
-         "hook-and-loop tie. Keep the lead clear of the bell. Calibrate each knob now, before "
-         "it's buried in the case: turn its striker until the knob clicks after a light press "
-         "on the hub, then back it off a quarter turn.",
-         knob_sub, move=(0, 0, 35), bench=True, view=(120, 40)),
-    Step("knob_board", "Screw the knob board into the tray; plug in the USB link",
-         "With the PC unplugged: lower the knob board in with its back strip resting on the "
-         "floor ribs, and screw it down along its front edge and behind each hinge into the "
-         "floor bosses (thread-forming, don't overtighten). Before the first power-up, check "
-         "the JST-GH cable pin 1 to pin 1 with a meter. Plug it into the knob board's "
-         "back-left corner and into the USB board (both click), and press it into its floor "
-         "clip. The BOOTSEL button on the board's left end sits over the small hole in the "
-         "floor (for recovery).",
-         lambda lb: knob_sub(lb) or GH_LINK(lb), move=(0, 0, 40), view=(-60, 40),
+    Step("backplane", "Screw in the backplane; plug in the USB link",
+         "With the PC unplugged: lower the backplane in over the ten slot bosses (they come up "
+         "through its holes and locate it), with its back strip on the floor ribs, and screw it "
+         "down at both ends and along the back strip (thread-forming, don't overtighten). Before "
+         "the first power-up, check the JST-GH cable pin 1 to pin 1 with a meter. Plug it into "
+         "the backplane's back-left corner and into the USB board (both click), and press it "
+         "into its floor clip. The BOOTSEL button on the backplane's left end sits over the "
+         "small hole in the floor (for recovery).",
+         lambda lb: lb.startswith("backplane") or GH_LINK(lb), move=(0, 0, 40), view=(-60, 40),
          screw_view=(-60, 45)),
     Step("display", "Mount the display; plug in its USB cable",
          "Stand the tray upright on two blocks (~50 mm high) under its left and right walls, "
@@ -142,9 +141,9 @@ STEPS = [
          "face, short of the LCD's back sheet: don't substitute longer screws). Plug the right-angle "
          "end of the USB-C cable into the display board's USB port (the one nearer the back; "
          "the cable points forward), loop it round in the bay and plug the straight end into "
-         "the USB board. Press the cable into its two floor clips, clear of the knob board. "
+         "the USB board. Press the cable into its two floor clips, clear of the backplane. "
          "Optional GPIO6 link: before laying the panel down, plug the HY2.0 3-pin lead into the "
-         "3-pin header on the knob board's back edge, then into J8 on the display board's right "
+         "3-pin header on the backplane's back edge, then into J8 on the display board's right "
          "edge (check the silkscreen: J8 is the GPIO6 port).",
          lambda lb: lb.startswith(("display_board", "panel7")) or DISPLAY_CABLE(lb),
          move=(0, 0, 45), view=(-60, 35), screw_view=(-60, -35)),
@@ -165,15 +164,46 @@ STEPS = [
     Step("close", "Close the case",
          "With the PC unplugged: shake out any loose screws or debris. Rest the top plate on "
          "the two printed props (`print_plate_prop.stl`) on the tray's walls, which hold it "
-         "~40 mm up with its cables plugged in. Plug the key cable into the knob board's ZIF "
+         "~40 mm up with its cables plugged in. Plug the key cable into the backplane's ZIF "
          "connector at its right end and the touch cable into the header beside it; the spare "
-         "cable folds into the gap by the right wall, outside the fence next to knob 4. Take "
-         "the props out and lower the top plate over the knob hubs (its tabs register it inside "
-         "the walls). With the tray still on its blocks, drive the four M3 screws up from "
-         "underneath into the inserts in its posts.",
+         "cable folds into the gap by the right wall, outside the fence next to slot 4. Take "
+         "the props out and lower the top plate (its tabs and the dividers between the slot "
+         "openings register it). With the tray still on its blocks, drive the four M3 screws up "
+         "from underneath into the inserts in its posts. The slots are still empty: the knob "
+         "modules go in from the top, with the case closed.",
          TOP_SUB, move=(0, 0, 50), view=(-60, 35), screw_view=(-60, -35)),
+    Step("module_sub", "Build the knob modules (on the bench)",
+         "Each slot takes a haptic module, a lite module or a blank (D23). **Haptic module:** lay "
+         "the module PCB in its printed base (the pads underneath face down through the base's "
+         "window). Glue a diametric magnet to the bottom end of the motor shaft. Set a printed "
+         "spacer ring on the tongue (its two pins drop into the holes beside the MT6701 and center "
+         "the motor, so the magnet sits within 0.3 mm of the sensor axis), put the motor on it with "
+         "its lead pointing forward, and drive four M2×8 screws up from under the tongue into the "
+         "motor base. Never use longer screws: a tip past the base's thread can short a winding. "
+         "The spacer's arm reaches forward over the slot to above the press switch on the front "
+         "border: thread an M2×3 set screw (the striker) down through the arm's tip. Screw a "
+         "printed hub onto the bell with four M2×3 countersunk screws (its spigot centers it). "
+         "Plug the motor's 3-pin plug onto the upright header on the front border (any way round: "
+         "the firmware finds the phase order) and coil the spare lead flat in the space right of "
+         "it, in front of the bell, clear of the bell. Calibrate: turn the striker until the knob "
+         "clicks after a light press on the hub, then back it off a quarter turn. **Lite module:** "
+         "the encoder comes soldered to the module PCB; lay the PCB in its base. **Blank:** "
+         "nothing to build.",
+         module_sub, move=(0, 0, 35), bench=True, view=(120, 40)),
+    Step("modules", "Drop in the knob modules and blanks; screw them down",
+         "With the PC unplugged (no hot-plugging): drop each module, base first, straight down "
+         "through its opening in the top plate. The dividers either side guide it, and the two "
+         "key pins under the base only fit the backplane's holes one way round, so a module "
+         "turned back to front won't seat. Its pads land on the slot's pogo pins as it goes down. "
+         "Set the printed cover on it (the bezel sits flush in the opening, around the hub) and "
+         "drive the two countersunk M2 screws through the bezel's corners into the inserts in the "
+         "slot bosses, until the bezel is flush with the plate. A blank is one printed part: drop "
+         "it in and screw it down the same way. Swapping later is the same in reverse: pull the "
+         "knob cap, undo the two screws, lift the module out by its cover.",
+         modules, move=(0, 0, 45), view=(-60, 40), screw_view=(-60, 45)),
     Step("knobs", "Press on the knob caps",
-         "Press each knob cap onto its hub. They pull straight off for service.",
+         "Press each knob cap onto its hub (haptic) or encoder shaft (lite). They pull straight "
+         "off for service.",
          lambda lb: lb.startswith("knob") and lb.endswith("_knob"), move=(0, 0, 30),
          view=(-60, 35)),
     Step("stand", "Put it on the stand",
@@ -187,7 +217,8 @@ STEPS = [
     Step("plug_in", "Plug it in",
          "Plug a USB-C cable from the computer into the port in the back wall. A C-to-C "
          "cable lets the device see how much current the port offers; an A-to-C cable "
-         "works too, with weaker haptics (500 mA budget).",
+         "works too, with weaker haptics (500 mA budget). With only lite modules and blanks, "
+         "any port and cable will do.",
          starts("plug_usb_ext", "cable_usb_ext"), move=(0, 30, 27), view=(115, 28), tilted=True),
 ]
 
@@ -195,10 +226,8 @@ STEPS = [
 def step_of(lb, flat_labels):
     for s in STEPS:
         if not s.tilted and s.parts(lb) and not lb.startswith("screw_"):
-            if s.key == "knob_sub":
-                continue                      # bench step; installed in "knob_board"
-            if s.key == "top_plate_sub":
-                continue                      # bench step; installed in "close"
+            if s.bench:
+                continue                      # bench steps; installed in "close" and "modules"
             return s.key
     return None
 
@@ -317,35 +346,41 @@ def check_tilted(tilted, info, screws):
 
 
 # Minimum gaps between mating parts that must not touch (prefixes, min mm, note)
-KNOB_CAPS = tuple(f"knob{n}_knob" for n in range(P.KNOBS))
-ENCODERS = tuple(f"knob{n}_encoder" for n in range(P.KNOBS))
+SLOTS = range(P.KNOBS)
+KNOB_CAPS = tuple(f"knob{n}_knob" for n in SLOTS)
+ENCODERS = tuple(f"knob{n}_encoder" for n in SLOTS)
+MOTORS = tuple(f"knob{n}_motor_2204" for n in SLOTS)
+COVERS = tuple(f"knob{n}_cover" for n in SLOTS) + tuple(f"knob{n}_blank" for n in SLOTS)
+MODULE_BODIES = COVERS + tuple(f"knob{n}_{p}" for n in SLOTS for p in ("pcb", "base"))
 GAPS = [
-    (("knob0_motor", "knob1_motor", "knob2_motor", "knob3_motor", "knob4_motor"), ("top_plate",),
-     P.MOTOR_TO_PLATE - 0.05, "motor bells ↔ top plate"),
-    (("knob0_hub", "knob1_hub", "knob2_hub", "knob3_hub", "knob4_hub"), ("top_plate",), 0.4,
-     "knob hubs (flange, column) ↔ top plate"),
-    (KNOB_CAPS, ("top_plate", "knob_window"), 0.5, "knob caps ↔ top plate"),
-    (tuple(f"knob{n}_press" for n in range(P.KNOBS)), tuple(f"knob{n}_striker" for n in range(P.KNOBS)),
+    (MOTORS, COVERS, P.MOTOR_TO_PLATE - 0.05, "motor bells ↔ module covers (bezel above)"),
+    (MOTORS, ("top_plate",), 0.5, "motor bells ↔ top plate (slot dividers beside them)"),
+    (tuple(f"knob{n}_hub" for n in SLOTS), ("top_plate",) + COVERS, 0.4,
+     "knob hubs (flange, column) ↔ covers"),
+    (KNOB_CAPS, ("top_plate", "knob_window") + COVERS, 0.5, "knob caps ↔ top plate and covers"),
+    (tuple(f"knob{n}_press" for n in SLOTS), tuple(f"knob{n}_striker" for n in SLOTS),
      P.KNOB_PRESS_GAP - 0.05, "knob press switches ↔ strikers (set at calibration)"),
+    (MODULE_BODIES, ("top_plate",), P.BEZEL_GAP - 0.05, "modules and blanks ↔ top plate (openings, dividers)"),
+    (tuple(f"backplane_pogo{n}" for n in SLOTS), tuple(f"knob{n}_base" for n in SLOTS) + COVERS, 0.3,
+     "pogo pins ↔ module bases and blanks (D23)"),
+    (ENCODERS, ("top_plate",) + COVERS, 0.5, "encoder shafts ↔ covers"),
+    (ENCODERS, ("backplane_pcb",), 0.3, "encoder pins (trimmed) ↔ backplane"),
     (("frame_pcb",), ("panel7_module",), P.GLASS_GAP - 0.01, "frame PCB ↔ glass (D8)"),
     (("cap_",), ("panel7_module",), P.GLASS_GAP - 0.01, "key caps ↔ glass, at rest (D8)"),
     (("screw_frame_csk",), ("panel7_module",), P.GLASS_GAP - 0.01, "countersunk frame screws ↔ glass"),
     (("screw_frame_pan",), ("panel7_module",), 0.5, "pan-head frame screws ↔ panel edge (off the glass)"),
     *([(("touch_bar_pcb",), ("frame_pcb_zif", "frame_pcb"), 0.3, "touch band ↔ frame PCB and its ZIF"),
-       (("touch_bar_pcb",), ("knob0_motor", "knob1_motor", "knob2_motor", "knob3_motor", "knob4_motor"),
-        0.5, "touch band ↔ motor bells")] if P.TOUCH_BAR else []),
-    (("display_board",), ("usb_board",), 0.5, "display board ↔ USB board"),
-    (("display_board",), ("knob_board",), 0.5, "display board ↔ knob board"),
-]
-# Lite tier (D22): the encoders and their knobs, with the knob pressed (pressed gaps in check_knob_match)
-GAPS_LITE = [
-    (KNOB_CAPS, ("top_plate", "knob_window"), 0.5, "knob caps ↔ top plate"),
-    (ENCODERS, ("top_plate",), 0.5, "encoder shafts ↔ top plate"),
-    (ENCODERS, ("case_tray",), 0.3, "encoder pins (trimmed) ↔ tray floor"),
-    *([(ENCODERS + KNOB_CAPS, ("touch_bar_pcb",), 0.5, "encoders and knob stems ↔ touch band")]
+       (("touch_bar_pcb",), MOTORS, 0.5, "touch band ↔ motor bells"),
+       (("touch_bar_pcb",), COVERS, 0.3, "touch band ↔ module covers (D11)"),
+       (("touch_bar_pcb",), ENCODERS + KNOB_CAPS, 0.5, "touch band ↔ encoders and knob stems")]
       if P.TOUCH_BAR else []),
-    (("display_board",), ("knob_board",), 0.5, "display board ↔ knob board"),
+    (("display_board",), ("usb_board",), 0.5, "display board ↔ USB board"),
+    (("display_board",), ("backplane",), 0.5, "display board ↔ backplane"),
 ]
+# The slot-only gaps, for the other module configurations (assembly checks on the rest once)
+GAPS_SLOTS = [g for g in GAPS if g[0][0].startswith(("knob", "backplane_pogo"))
+              or g[1][0].startswith("knob") or "D11" in g[3] or "motor bells" in g[3]
+              or "encoders and knob" in g[3]]
 
 
 def check_gaps(items, gaps=None):
@@ -405,8 +440,8 @@ def present_at(step_key, items):
     labels = {it.label for it in items}
     if step_key == "top_plate_sub":
         return {lb for lb in labels if TOP_SUB(lb) and not lb.startswith("cable_")}
-    if step_key == "knob_sub":
-        return {lb for lb in labels if knob_sub(lb) and not lb.startswith("cable_")}
+    if step_key == "module_sub":
+        return {lb for lb in labels if module_sub(lb) and not lb.startswith("cable_")}
     if step_key == "plug_in":
         step_key = "knobs"
     order = [s.key for s in STEPS if not s.bench and not s.tilted]
@@ -570,10 +605,11 @@ def swept(part, d, dist):
         hi[0] - lo[0], hi[1] - lo[1], hi[2] - lo[2])
 
 
-def check_insertion(items, info):
-    """Each plug slides straight in along its socket's axis at the step that connects it."""
+def check_insertion(items, info, only=None):
+    """Each plug slides straight in along its socket's axis at the step that connects it.
+    only: check just the plugs whose labels pass."""
     by = {it.label: it for it in items}
-    plugs = info["plugs"]
+    plugs = [pl for pl in info["plugs"] if only is None or only(pl["label"])]
     order = {pl["label"]: i for i, pl in enumerate(plugs)}
     problems, ok = [], 0
     for pl in plugs:
@@ -603,8 +639,7 @@ def check_cables(items, info):
     probs = []
     ends = {name: set(c["ends"]) for name, c in info["cables"].items()}
     for n in info["leads"]:
-        ends[f"cable_motor{n}"] = {f"knob{n}_motor_2204", f"knob{n}_motor_plug", f"knob{n}_header"}
-        ends[f"cable_motor{n}_coil"] = set()
+        ends[f"cable_motor{n}_coil"] = {f"knob{n}_motor_plug", f"knob{n}_header"}
     for it in items:
         if not it.label.startswith("cable_") or it.label not in ends:
             continue
@@ -625,75 +660,150 @@ def check_cables(items, info):
     return probs
 
 
-def check_knob_match(h_items, l_items, l_info):
-    """Lite tier (D22): each knob top sits where the haptic knob's does (same top plate,
-    same knob windows), the shaft fills the knob's bore past its flat, and a full press
-    (the encoder's switch travel) keeps the knob off the plate and the stem off the bushing."""
-    def caps(items):
-        return {it.label.split("_")[0]: it.part for it in items
-                if it.label.startswith("knob") and it.label[4:5].isdigit() and it.label.endswith("knob")}
-    hc, lc = caps(h_items), caps(l_items)
-    by = {it.label: it for it in l_items}
-    h, tol, travel = l_info["lite"], P.KNOB_TOP_TOL, P.ENC_PRESS_TRAVEL
-    probs, worst = [], 0.0
-    if set(hc) != set(lc) or len(lc) != P.KNOBS:
-        probs.append(f"knob caps: haptic {sorted(hc)}, lite {sorted(lc)}")
-    for k in sorted(set(hc) & set(lc)):
-        a, b = hc[k].bounding_box(), lc[k].bounding_box()
-        d = max(abs(a.max.Z - b.max.Z), abs(a.min.X - b.min.X), abs(a.max.X - b.max.X),
-                abs(a.min.Y - b.min.Y), abs(a.max.Y - b.max.Y))
-        worst = max(worst, d)
-        if d > tol:
-            probs.append(f"{k}: lite knob top is {d:.2f} mm off the haptic knob (max {tol:g})")
-    engage = h["shaft_top"] - h["stem_bot"]
-    if engage < P.ENC_SHAFT_FLAT[0]:
-        probs.append(f"encoder shaft only {engage:.1f} mm into the knob, less than its {P.ENC_SHAFT_FLAT[0]:g} mm flat")
-    stem_gap = h["stem_bot"] - travel - h["bushing_top"]
-    if stem_gap < 0.3 - 1e-6:
-        probs.append(f"pressed knob stem is {stem_gap:.2f} mm above the encoder bushing (min 0.3)")
-    near = [it for it in l_items if it.label.startswith(("top_plate", "knob_window", "touch_bar_pcb"))]
-    plate_gap = None
-    for k, part in lc.items():
-        pressed = Pos(0, 0, -travel) * part
-        pb = pressed.bounding_box()
-        for it in near:
-            if not bbox_overlap(pb, it.part.bounding_box(), eps=-1.0):
+def check_slots(items, info):
+    """Knob slots (D23), every configuration: each knob's top sits where the haptic knob's
+    does (same XY, KNOB_GAP + KNOB_H above the plate); each cover and blank is flush with
+    the plate; the pogo pins' compression is inside their stroke and every pin lands
+    fully on a pad of the module PCB (not on a slot or hole); the key pins only fit one
+    way round. Lite modules: the shaft fills the knob's bore past its flat, and a full
+    press keeps the knob off the cover and the stem off the bushing."""
+    st, slots = info["stack"], info["slots"]
+    by = {it.label: it for it in items}
+    probs, rows = [], dict(top_diff=0.0, flush=0.0, pads=0, pressed_gap=None)
+    ref_z = st.plate_top + P.KNOB_GAP + P.KNOB_H
+    for n, ((kx, ky), kind) in enumerate(zip(info["knob_xy"], slots)):
+        if kind == "blank":
+            top = by[f"knob{n}_blank"].part.bounding_box().max.Z
+            rows["flush"] = max(rows["flush"], abs(top - st.plate_top))
+            if abs(top - st.plate_top) > P.KNOB_TOP_TOL:
+                probs.append(f"slot {n}: blank top is {top - st.plate_top:+.2f} mm off the plate (flush)")
+            continue
+        top = by[f"knob{n}_cover"].part.bounding_box().max.Z
+        rows["flush"] = max(rows["flush"], abs(top - st.plate_top))
+        if abs(top - st.plate_top) > P.KNOB_TOP_TOL:
+            probs.append(f"slot {n}: cover top is {top - st.plate_top:+.2f} mm off the plate (flush)")
+        b = by[f"knob{n}_knob"].part.bounding_box()
+        d = max(abs(b.max.Z - ref_z), abs((b.min.X + b.max.X) / 2 - kx), abs((b.min.Y + b.max.Y) / 2 - ky))
+        rows["top_diff"] = max(rows["top_diff"], d)
+        if d > P.KNOB_TOP_TOL:
+            probs.append(f"slot {n} ({kind}): knob top is {d:.2f} mm off the haptic knob's (max {P.KNOB_TOP_TOL:g})")
+        sk = info["module_pcb_sketch"][kind]
+        for px, py in model.pogo_xy(0.0, 0.0):
+            pad = Pos(px, py) * Circle(P.POGO_PAD_D / 2)
+            over = pad & sk
+            if over is None or over.area < 0.999 * pad.area:
+                probs.append(f"slot {n} ({kind}): pogo pin at ({px:.1f}, {py:.1f}) isn't fully on the module PCB")
+            else:
+                rows["pads"] += 1
+    gap = st.knob_pcb_bot - st.bp_top
+    comp = P.POGO[1] - gap
+    rows["compress"] = comp
+    if not P.POGO_COMPRESS[0] - 1e-6 <= comp <= P.POGO_COMPRESS[1] + 1e-6:
+        probs.append(f"pogo pins compressed {comp:.2f} mm, outside {P.POGO_COMPRESS} (stroke {P.POGO[2]:g})")
+    big, small = max(P.KEY_PIN_D), min(P.KEY_PIN_D)
+    if big <= small + 0.1 + 0.2:
+        probs.append(f"key pins {P.KEY_PIN_D}: the big one fits the small one's hole, a module turned round seats")
+    # Lite modules (D22): shaft engagement and the pressed knob
+    if "lite" in slots:
+        h, travel = info["lite"], P.ENC_PRESS_TRAVEL
+        engage = h["shaft_top"] - h["stem_bot"]
+        stem_gap = h["stem_bot"] - travel - h["bushing_top"]
+        rows.update(engage=engage, stem_gap=stem_gap)
+        if engage < P.ENC_SHAFT_FLAT[0]:
+            probs.append(f"encoder shaft only {engage:.1f} mm into the knob, less than its {P.ENC_SHAFT_FLAT[0]:g} mm flat")
+        if stem_gap < 0.3 - 1e-6:
+            probs.append(f"pressed knob stem is {stem_gap:.2f} mm above the encoder bushing (min 0.3)")
+        near = [it for it in items if it.label.startswith(("top_plate", "knob_window", "touch_bar_pcb") + COVERS)]
+        for n, kind in enumerate(slots):
+            if kind != "lite":
                 continue
-            dd = pressed.distance_to(it.part)
-            plate_gap = dd if plate_gap is None else min(plate_gap, dd)
-            if dd < 0.2:
-                probs.append(f"{k} pressed {travel:g} mm: {dd:.2f} mm from {it.label} (min 0.2)")
-    rows = dict(top_diff=worst, engage=engage, stem_gap=stem_gap, pressed_gap=plate_gap,
-                shaft_top=h["shaft_top"], knob_z=h["knob_z"], stem_bot=h["stem_bot"],
-                encoders=len([lb for lb in by if lb.endswith("_encoder")]))
+            pressed = Pos(0, 0, -travel) * by[f"knob{n}_knob"].part
+            pb = pressed.bounding_box()
+            for it in near:
+                if not bbox_overlap(pb, it.part.bounding_box(), eps=-1.0):
+                    continue
+                dd = pressed.distance_to(it.part)
+                g_ = rows["pressed_gap"]
+                rows["pressed_gap"] = dd if g_ is None else min(g_, dd)
+                if dd < 0.2:
+                    probs.append(f"knob{n} pressed {travel:g} mm: {dd:.2f} mm from {it.label} (min 0.2)")
     return probs, rows
 
 
-def run_checks_lite(items, info, haptic_items):
-    """Lite tier (D22): only the knob board and what sits on it differ, so check the
-    parts that touch them; the rest is checked once on the haptic tier."""
+def check_slot_lift(items, screws, slots, dz=(0.5, 2, 5, 10, 20, 30, 40)):
+    """Swap from the top (D23): with the top plate on, each slot's module (or blank) lifts
+    straight out of its opening once its knob cap and two screws are off. The parts that
+    stay are cropped to the module's column first, so the big plate and tray booleans
+    stay small."""
+    from build123d import Compound
+    by = {it.label: it for it in items}
+    probs = []
+    for n in range(len(slots)):
+        moving = [lb for lb in by if (slot_part(lb, n) and not lb.endswith("_knob"))
+                  or lb.startswith((f"screw_motor{n}_", f"screw_hub{n}_"))]
+        staying = [lb for lb in by if lb not in moving and not lb.startswith(OVERLAYS + ("cable_",))
+                   and not lb.endswith("_knob") and not lb.startswith(f"screw_slot{n}_")]
+        parts = [by[m].part for m in moving]
+        mb = Compound(children=parts).bounding_box()
+        col = Pos((mb.min.X + mb.max.X) / 2, (mb.min.Y + mb.max.Y) / 2, mb.min.Z) * Box(
+            mb.size.X + 1.0, mb.size.Y + 1.0, mb.size.Z + max(dz) + 1.0, align=model.MIN)
+        cb = col.bounding_box()
+        near = {}
+        for s in staying:
+            if not bbox_overlap(cb, by[s].part.bounding_box()):
+                continue
+            try:
+                c = by[s].part & col
+            except Exception:
+                c = by[s].part
+            if c is not None and c.volume > 1e-4:
+                near[s] = c
+        hits = []
+        for d in dz:
+            for m, mp0 in zip(moving, parts):
+                mp = Pos(0, 0, d) * mp0
+                bb = mp.bounding_box()
+                for s, c in near.items():
+                    if bbox_overlap(bb, c.bounding_box()) and vol(mp, c) > 0.01:
+                        hits.append(f"slot {n} ({slots[n]}) lift-out: {m} hits {s} when lifted {d} mm")
+            if hits:
+                break
+        probs += hits
+    return probs
+
+
+def run_checks_slots(items, info):
+    """Another slot configuration (D23): only the slots' contents differ, so check the
+    parts in and around the slots; the rest is checked once on the default build."""
     screws = info["screws"]
-    knobish = starts("knob")
+    slotish = lambda lb: slot_part(lb) or lb.startswith(("backplane_pogo", "screw_slot", "screw_motor",  # noqa: E731
+                                                          "screw_hub", "slot_insert"))
     t = time.time()
+    # Crop the big printed parts and boards to the band the slots sit in (one boolean
+    # each): every check here only looks at parts in and around the slots
+    ky = info["knob_xy"][0][1]
+    band = Pos(0, ky + (P.SLOT_OPEN[2] - P.SLOT_OPEN[1]) / 2, -50) * Box(
+        1000, P.SLOT_OPEN[1] + P.SLOT_OPEN[2] + 12.0, 300, align=(model.Align.CENTER, model.Align.CENTER,
+                                                                  model.Align.MIN))
+    big = ("top_plate", "case_tray", "backplane_pcb", "touch_bar_pcb", "panel7_module")
+    items = [model.Item(it.part & band, it.label, it.color, it.explode) if it.label in big else it
+             for it in items]
     res = {}
-    res["interference"] = check_interference(items, screws, info, only=knobish)
-    kb_screws = [sc for sc in screws if sc.step == "knob_board"]
-    res["screws"], _ = check_screws(items, kb_screws)
-    res["gaps"], res["gap_rows"] = check_gaps(items, GAPS_LITE)
-    res["floating"] = [m for m in check_floating(items) if m.startswith("knob")]
-    res["access"], res["access_ok"] = check_access(items, kb_screws)
-    labels = {it.label for it in items}
-    res["cables"] = [m for m in check_cables(items, info) if " knob" in m]
-    knobs = [lb for lb in labels if knob_sub(lb)]
-    rest = [lb for lb in labels if lb not in knobs and not lb.startswith(
-        OVERLAYS + ("cable_", "plug_", "screw_plate", "screw_knobboard", "top_plate", "cap_", "frame_pcb",
-                    "switch_", "touch_bar", "knob_window", "display_board", "panel7_module", "screw_panel",
-                    "screw_frame"))
-        and not lb.endswith("_knob")]
-    res["service"] = check_lift(items, knobs, rest, "lite knob board lift-out")
-    res["knob_match"], res["knob_rows"] = check_knob_match(haptic_items, items, info)
-    res["problems"] = [f"lite: {m}" for k in ("interference", "screws", "gaps", "floating", "access", "cables",
-                                               "service", "knob_match") for m in res[k]]
+    res["interference"] = check_interference(items, screws, info, only=slotish)
+    sl_screws = [sc for sc in screws if sc.step in ("module_sub", "modules")]
+    res["screws"], _ = check_screws(items, sl_screws)
+    res["gaps"], res["gap_rows"] = check_gaps(items, GAPS_SLOTS)
+    res["floating"] = [m for m in check_floating([it for it in items if slotish(it.label)
+                                                  or it.label in big + ("case_tray",)])
+                       if m.startswith(("knob", "backplane_pogo"))]
+    res["access"], res["access_ok"] = check_access(items, sl_screws)
+    res["insertion"], _ = check_insertion(items, info, only=lambda lb: lb.startswith("knob"))
+    res["cables"] = [m for m in check_cables(items, info) if "motor" in m]
+    res["service"] = check_slot_lift(items, screws, info["slots"])
+    res["slots"], res["slot_rows"] = check_slots(items, info)
+    keys = ("interference", "screws", "gaps", "floating", "access", "insertion", "cables", "service", "slots")
+    name = "+".join(sorted(set(info["slots"])))
+    res["problems"] = [f"{name}: {m}" for k in keys for m in res[k]]
     res["seconds"] = time.time() - t
     return res
 
@@ -717,22 +827,25 @@ def run_checks(items, info, tilted=None, tinfo=None, proto=None):
     rest = [lb for lb in labels if lb not in plate and lb not in caps
             and not lb.startswith(OVERLAYS + ("cable_", "screw_plate", "plug_usb_ext"))]
     res["service"] = check_lift(items, plate, rest, "top plate lift-off")
+    res["service"] += check_slot_lift(items, screws, info["slots"])
     rest = [lb for lb in rest if not lb.startswith("plug_")]     # unplugged before lifting more out
     display = [lb for lb in labels if lb.startswith(("display_board", "panel7_module"))]
     rest2 = [lb for lb in rest if lb not in display and not lb.startswith("screw_panel")]
     res["service"] += check_lift(items, display, rest2, "display lift-out")
-    knobs = [lb for lb in labels if knob_sub(lb)] + [s.label for s in screws if s.step == "knob_sub"]
-    rest3 = [lb for lb in rest2 if lb not in knobs and not lb.startswith("screw_knobboard")]
-    res["service"] += check_lift(items, knobs, rest3, "knob board lift-out")
+    bp = [lb for lb in labels if lb.startswith("backplane")]
+    rest3 = [lb for lb in rest2 if lb not in bp and not slot_part(lb)
+             and not lb.startswith(("screw_backplane", "screw_slot", "screw_motor", "screw_hub"))]
+    res["service"] += check_lift(items, bp, rest3, "backplane lift-out (modules out)")
     res["pinholes"] = check_pinholes(items, info)
     res["keystack"], res["keystack_rows"] = check_keystack(items, info)
+    res["slots"], res["slot_rows"] = check_slots(items, info)
     if proto is not None:
         p_items, p_info = proto
         pk, res["keystack_proto"] = check_keystack(p_items, p_info, nubs=2 if P.PROTO_SECOND_SWITCH else 1)
         res["keystack"] += [f"prototype: {m}" for m in pk]
     res["problems"] = (res["interference"] + res["screws"] + res["gaps"] + res["floating"] + res["tilted"]
                        + res["access"] + res["insertion"] + res["cables"] + res["service"] + res["pinholes"]
-                       + res["keystack"])
+                       + res["keystack"] + res["slots"])
     res["seconds"] = time.time() - t
     return res
 
@@ -834,7 +947,7 @@ def animate(scene, tilted_scene, info, path_gif, size=(960, 630), frames_move=10
 
     everything = [lb for lb in labels if not lb.startswith(OVERLAYS)]
     for s in STEPS:
-        if s.tilted or s.key in ("knob_sub", "top_plate_sub"):
+        if s.tilted or s.bench:
             continue
         new = [lb for lb in labels if s.parts(lb) and not lb.startswith("screw_")]
         if s.key == "close":
@@ -901,15 +1014,15 @@ CABLES = {   # name: (type, connects)
     "cable_usb_display": ("USB-C to USB-C, USB 2.0 (3 A), one 90° side-exit end + one straight end",
                           "display board USB port ↔ USB board"),
     "cable_usb_knob_gh": ("JST-GH 1.25 mm 8-pin, plugs both ends, pin 1 to pin 1 (\"same direction\"), 26 AWG",
-                          "USB board ↔ knob board"),
+                          "USB board ↔ backplane"),
     "cable_keys_ffc": ("FFC, 12-pin, 1.0 mm pitch, contacts on opposite sides (type B)",
-                       "frame PCB ↔ knob board"),
+                       "frame PCB ↔ backplane"),
     "cable_touch": ("JST-SH 1.0 mm 6-pin, plugs both ends, pin 1 to pin 1",
-                    "touch band ↔ knob board"),
+                    "touch band ↔ backplane"),
     "cable_hy_link": ("HY2.0 (2.0 mm) 3-pin, plugs both ends, pin 1 to pin 1 (optional)",
-                      "knob board ↔ display board J8 (GPIO6 link)"),
+                      "backplane ↔ display board J8 (GPIO6 link)"),
 }
-STEP_OF_CABLE = {"cable_usb_display": "display", "cable_usb_knob_gh": "knob_board",
+STEP_OF_CABLE = {"cable_usb_display": "display", "cable_usb_knob_gh": "backplane",
                  "cable_keys_ffc": "top_plate_sub", "cable_touch": "top_plate_sub",
                  "cable_hy_link": "display"}
 
@@ -925,6 +1038,7 @@ def screw_table(rows):
         into = "motor (base)" if sc.label.startswith("screw_motor") else (
             "motor (bell)" if sc.label.startswith("screw_hub") else
             "heat-set insert (top plate post)" if sc.target.startswith("top_plate_insert") else
+            "heat-set insert (slot boss)" if sc.target.startswith("slot_insert") else
             {"panel7_module": "panel tab (metal)", "case_tray": "tray boss", "top_plate": "top plate boss"
              }.get(sc.target, sc.target))
         lim = f"{sc.engage[0]:g}–{sc.engage[1]:g} mm" if sc.engage[1] is not None else f"≥ {sc.engage[0]:g} mm"
@@ -964,6 +1078,7 @@ def keystack_lines(checks):
 
 def write_guide(info, checks, shots, service):
     screws = info["screws"]
+    n_hap = info["slots"].count("haptic")
     n_frame = sum(1 for sc in screws if sc.label.startswith("screw_frame"))
     counts = {}
     for sc in screws:
@@ -1021,8 +1136,13 @@ def write_guide(info, checks, shots, service):
         f"| Cables clear every part (motor bells included); bends ≥ {P.USB_BEND_R:g} mm on the "
         f"USB-C cable; plate cables reach with the plate lifted {P.LIFT_SERVICE:g} mm | "
         f"{status(checks['cables'], 'all clear')} |",
-        f"| Service: top plate, then display, then knob board lift straight out | "
-        f"{status(checks['service'], 'all three lift out')} |",
+        f"| Service: each slot's module or blank lifts straight out with the case closed (D23); top "
+        f"plate, then display, then backplane lift straight out | "
+        f"{status(checks['service'], 'all lift out')} |",
+        f"| Knob slots (D23): knob tops within {P.KNOB_TOP_TOL:g} mm of the haptic knob's position, covers "
+        f"and blanks flush with the plate, pogo pins compressed {checks['slot_rows']['compress']:.2f} mm "
+        f"(stroke {P.POGO[2]:g} mm) and each on a pad; also checked with every slot haptic and every slot "
+        f"lite | {status(checks['slots'], 'all match')} |",
         f"| A paperclip reaches BOOT and RESET through the back wall, and BOOTSEL through the floor | "
         f"{status(checks['pinholes'], 'all three reachable')} |",
         f"| Key stack (D8): every cap's down-stop lands on the frame PCB, and the worst cap drop plus "
@@ -1051,18 +1171,20 @@ def write_guide(info, checks, shots, service):
         "| Part | Qty | Used in step |",
         "|---|---|---|",
         hw_rows,
-        f"| Hook-and-loop cable ties, ~10 mm wide (strap each motor lead coil through its two slots) | 5 | {num['knob_sub']} |",
         f"| Magnets {P.MAGNET_TRAY[0]:g}×{P.MAGNET_TRAY[1]:g} mm (tray) | 4 | {num['tray']} |",
         f"| Magnets {P.MAGNET_STAND[0]:g}×{P.MAGNET_STAND[1]:g} mm (stand) | 4 | {num['stand']} |",
         f"| Rubber feet {P.FOOT[0]:g}×{P.FOOT[1]:g} mm | 6 | {num['tray']}, {num['stand']} |",
-        f"| M2×{P.STRIKER_LEN:g} set screws (press strikers, in the spacer arms) | 5 | {num['knob_sub']} |",
+        f"| M2×{P.STRIKER_LEN:g} set screws (press strikers, in the spacer arms) | {n_hap} | {num['module_sub']} |",
         f"| M3 heat-set inserts, {P.INSERT_M3[0]:g} mm hole × {P.INSERT_M3[1]:g} mm long | 4 | {num['tray']} |",
+        f"| M2 heat-set inserts, {P.INSERT_M2[0]:g} mm hole × {P.INSERT_M2[1]:g} mm long (slot bosses) | "
+        f"{2 * P.KNOBS} | {num['tray']} |",
         f"| M2 shim washers 0.1 / 0.2 mm (tune the key stack at the frame bosses) | a few | {num['top_plate_sub']} |",
         f"| Epoxy | — | magnets |",
         "",
         "Thread-forming screws go into printed plastic (PT/WN 1411-style K30, K20, or ST2.9/ST2.2",
-        "DIN 7981 pan heads): drive them slowly and stop when snug. The four case screws go into",
-        "brass heat-set inserts, so they can be undone for every service.",
+        "DIN 7981 pan heads): drive them slowly and stop when snug. The four case screws and the",
+        "modules' screws go into brass heat-set inserts, so they can be undone for every service",
+        "and every module swap.",
         "Panel screws thread into the display's metal tabs (check the thread on the real",
         "board; the drawing says M3).",
         "",
@@ -1076,16 +1198,15 @@ def write_guide(info, checks, shots, service):
         "| Cable | Connects | Buy | Route in the model | Step |",
         "|---|---|---|---|---|",
         cable_rows,
-        f"| Motor leads (on the motors) | motor ↔ knob board header | {P.MOTOR_LEAD_LEN:.0f} mm assumed | "
-        f"~{max(v['routed'] for v in info['leads'].values()):.0f} mm routed; the rest coils on the back strip "
-        f"({max(v['coil_h'] for v in info['leads'].values()):.1f} mm high, "
-        f"{min(v['room'] for v in info['leads'].values()):.1f} mm room) | {num['knob_sub']} |",
+        f"| Motor leads (on the motors) | motor ↔ its module's header | {P.MOTOR_LEAD_LEN:.0f} mm assumed | "
+        f"the spare coils flat in front of the bell, in a {P.LEAD_COIL[0]:g} × {P.LEAD_COIL[1]:g} × "
+        f"{P.LEAD_COIL[2]:g} mm space | {num['module_sub']} |",
         "",
         "Pinouts and the strain-relief measures: [wiring.md](wiring.md). Every part with",
         "sources: [bom.md](bom.md).",
         "",
         "The HY2.0 lead is optional (the GPIO6 link: page and wake signals to the display board",
-        "without a host). Its header footprint is always on the knob board.",
+        "without a host). Its header footprint is always on the backplane.",
         "",
         "## Assembly",
         "",
@@ -1100,14 +1221,24 @@ def write_guide(info, checks, shots, service):
         "### Open the case",
         "",
         "1. Pull the slab off the stand (magnets).",
-        "2. Pull the five knob caps straight up.",
+        "2. Pull the knob caps straight up.",
         "3. Undo the four M3 screws under the tray (the top plate's posts).",
-        "4. Lift the top plate straight up, with the caps, frame PCB and touch band on it.",
-        f"   Its two cables reach {P.LIFT_SERVICE:.0f} mm; at that height unplug them at the knob",
-        "   board's right end (flip the ZIF latch up to free the key cable; pull the touch",
+        "4. Lift the top plate straight up, with the caps, frame PCB and touch band on it. The",
+        "   modules and blanks stay in their slots; the plate's openings lift over them.",
+        f"   Its two cables reach {P.LIFT_SERVICE:.0f} mm; at that height unplug them at the",
+        "   backplane's right end (flip the ZIF latch up to free the key cable; pull the touch",
         "   plug straight up).",
         "",
         f"![Top plate lifted off](../cad/out/assembly/{service['open']})",
+        "",
+        "### Swap a knob module (case closed)",
+        "",
+        "No hot-plugging: unplug USB first. Pull the knob cap, undo the two countersunk M2 screws",
+        "in the cover's corners, and lift the module (or blank) straight up by its cover. Drop",
+        "the new one in the same way round (the key pins only fit one way), set its cover on, and",
+        "drive the two screws until the bezel is flush. Plug USB back in: the device reads which",
+        "module is in each slot at power-up. Checked in the model for every slot of the default",
+        "build, all-haptic and all-lite: each module lifts straight out with the plate on.",
         "",
         "### Swap a key cap or switch",
         "",
@@ -1125,7 +1256,7 @@ def write_guide(info, checks, shots, service):
         "   pinned release builds to both chips through their ROM bootloaders.",
         "4. **If a chip doesn't answer,** start its bootloader by hand with a paperclip: BOOT (and",
         "   RESET) for the display board through the two holes in the back wall; BOOTSEL for the",
-        "   knob board through the hole in the floor under its left end (pull the slab off the",
+        "   backplane through the hole in the floor under its left end (pull the slab off the",
         "   stand first). Hold the button while plugging in. Checked in the model: a straight",
         "   1 mm clip reaches each button and touches nothing else.",
         "5. **Never burn ESP32 eFuses or RP2350 OTP** (secure boot, flash encryption, disabling",
@@ -1138,13 +1269,18 @@ def write_guide(info, checks, shots, service):
         "",
         f"![BOOTSEL pinhole in the floor](../cad/out/assembly/{service['bootsel']})",
         "",
-        "### Replace a motor or the knob board",
+        "### Replace a motor",
         "",
-        "Open the case (PC unplugged). Unplug the USB-C cable at the display board, remove the display",
-        "(four M3 screws from underneath), unplug the JST-GH cable at the knob board (press",
-        "the latch), then undo the knob board's screws along its front edge and lift it out.",
-        "Its back strip sits under the display, which is why the display comes out first.",
-        "A motor unplugs from its header; cut its hook-and-loop tie free.",
+        "Lift its module out (above), take the cover off and unplug the motor from the upright",
+        "header on the module's front border. Undo the four screws under the tongue.",
+        "",
+        "### Replace the backplane",
+        "",
+        "Take every module and blank out, then open the case (PC unplugged). Unplug the USB-C",
+        "cable at the display board, remove the display (four M3 screws from underneath), unplug",
+        "the JST-GH cable at the backplane (press the latch), undo the backplane's screws at both",
+        "ends and along its back strip, and lift it off the slot bosses. Its back strip sits",
+        "under the display, which is why the display comes out first.",
         "",
     ]
     GUIDE.write_text("\n".join(lines) + "\n")
@@ -1156,7 +1292,6 @@ def write_guide(info, checks, shots, service):
 # ~Price is per device, rough, USD; "(V)" = unverified, check before ordering.
 # --------------------------------------------------------------------------
 BOM_PATH = ROOT / "docs" / "bom.md"
-BOM_LITE_PATH = ROOT / "docs" / "bom-lite.md"
 LC = "https://www.lcsc.com/product-detail/{}.html"
 
 
@@ -1166,8 +1301,9 @@ def lcsc(c):
 
 BOM_JLC_BOARDS = [
     # qty, part, spec, source, ~price, used in
-    ("1 panel", "PCBs: knob board, frame PCB, touch band, USB board, panelized",
-     "2-layer FR-4 1.6 mm, ENIG (owner decision: flat pads for the 0.4 mm QFNs); outlines from `cad/out/*.dxf`. Every part on one side of "
+    ("1 panel", "PCBs: backplane, frame PCB, touch band, USB board, panelized",
+     "2-layer FR-4 1.6 mm, ENIG (owner decision: flat pads for the 0.4 mm QFNs and the pogo contacts); "
+     "outlines from `cad/out/*.dxf`. Every part on one side of "
      "each board (D6), so JLC's Economic (single-side) assembly can take them. The frame PCB has "
      "countersunk M2 holes (JLC countersink option, V: fee) so its screws sit flush over the glass. "
      "JLC makes 5 panels and assembles at least 2", "JLCPCB",
@@ -1175,10 +1311,10 @@ BOM_JLC_BOARDS = [
      "all boards"),
 ]
 BOM_JLC_PARTS = [
-    # Knob board
+    # Backplane
     ("1", "RP2350B, stepping A4 (erratum E9 fixed)", "QFN-80 microcontroller, 48 GPIO, native USB",
      lcsc("C42415655") + " (stepping A4 per LCSC; 4,720 in stock, 2026-10-17) (V: A4 marking)", "~$1.3",
-     "knob board"),
+     "backplane"),
     ("1", "RP2350B support parts", "16 MB QSPI flash W25Q128JVSIQ " + lcsc("C97521") + "; 12 MHz crystal "
      "X322512MSB4SI " + lcsc("C9002") + " (basic, 20 pF load, 80 Ω ESR) with 2 × 33 pF C0G "
      + lcsc("C1562") + " and the 1 kΩ series resistor. Raspberry Pi's reference is the ABM8-272-T3 "
@@ -1188,58 +1324,48 @@ BOM_JLC_PARTS = [
      "Raspberry Pi requires a polarity-marked, shielded 3.3 µH ±20%, DCR ≤ 250 mΩ, Isat ≥ 1.5 A, and "
      "only this part is marked. 3.3 V regulator AMS1117-3.3 " + lcsc("C6186") + " (basic, 1 A) with "
      "22 µF on its output. Flash, crystal, caps and regulator are basic parts",
-     "JLC (V: inductor stock on order day)", "$3–4", "knob board"),
-    ("5", "TMC6300-LA-T", "3-phase motor driver, 2–11 V", lcsc("C5274455") + " (201 in stock, 2026-10-17; "
-     "DigiKey ~4,100)", "~$12 from DigiKey via Global Sourcing ($2.44); ~$25 at LCSC", "knob board"),
-    ("5", "MT6701CT-STD", "magnetic angle sensor, SSI, SOP-8 (not the QT: that's a 3×3 QFN-16)",
-     lcsc("C3003196") + " (V: JLC stock)", "~$8", "knob board"),
-    ("5", "SN74LVC3G04DCTR", "triple inverter (3-PWM drive), SM8 (DCT) package", lcsc("C139324"), "~$1",
-     "knob board"),
-    ("5", "B3U-1000P", "knob press switch, top side on the board's front border (the motor spacer's arm "
-     "presses it)", lcsc("C231329"), "~$0.8", "knob board"),
-    ("5", "1N4148W", "SOD-123 diodes for the knob press switches (in the key matrix)", "JLC basic part",
-     "~$0.1", "knob board"),
-    ("5", "1×3 right-angle pin header, 2.54 mm, SMD", "motor plug sockets, top side (D6: no through-hole "
-     "pins); must match the motor's plug; prefer a shrouded/keyed one so the plug can't go on offset",
-     "LCSC (V: SMD right-angle part not chosen; THT fallback " + lcsc("C2886703") + ")", "~$0.5",
-     "knob board"),
+     "JLC (V: inductor stock on order day)", "$3–4", "backplane"),
     ("1", "GH 8-pin header, HCTL HC-GH-8PWT", "1.25 mm GH, side entry, latching (USB link). Clone of "
      "JST SM08B-GHS-TB: 13.25 mm wide with solder tabs, 4.25 mm tall, mates with JST GH plugs",
      lcsc("C3011950") + " (1,726 in JLC stock, $0.18, 2026-10-17; the JST part " + lcsc("C265111")
-     + " has 0) (V: pad drawing on layout day)", "~$0.2", "knob board"),
+     + " has 0) (V: pad drawing on layout day)", "~$0.2", "backplane"),
     ("1", "FFC/FPC connector, 12-pin 1.0 mm, flip-lock ZIF, right angle",
-     "e.g. XUNPU FPC-1.0FX-12PWCR-H20 (V: contact side, height)", lcsc("C19269355"), "~$0.2", "knob board"),
+     "e.g. XUNPU FPC-1.0FX-12PWCR-H20 (V: contact side, height)", lcsc("C19269355"), "~$0.2", "backplane"),
     ("1", "JST BM06B-SRSS-TB", "6-pin SH header, top entry (touch cable; leave off without the band)",
-     lcsc("C160392"), "~$0.4", "knob board"),
+     lcsc("C160392"), "~$0.4", "backplane"),
     ("1 (optional)", "HY2.0 3-pin header, 2.0 mm, SMD side entry", "GPIO6 link to the 7B's J8 (D5); the "
      "footprint is always on the board, fit it if you use the link", "LCSC (V: part not chosen)", "~$0.1",
-     "knob board"),
+     "backplane"),
     ("1", "BOOTSEL button", "reverse-mount SMD tact switch (plunger through the board, pressed through the "
      "floor pinhole). If none is found: a plain SMD tact switch on the bottom side, the board's only "
-     "bottom-side part", "LCSC (V: part not chosen)", "~$0.1", "knob board"),
+     "bottom-side part", "LCSC (V: part not chosen)", "~$0.1", "backplane"),
     ("4", "SRV05-4-P-T7 ESD arrays", "4 lines each, SOT-23-6, pin 5 to 3V3. Three on the 10 key-matrix "
      "lines at the ZIF, one on SDA/SCL at the SH header; series resistors on every line",
      lcsc("C85364") + " (preferred extended: no loading fee; 36,942 in JLC stock, 2026-10-17)", "~$0.8",
-     "knob board"),
-    ("1 set", "Knob board passives", "2 × 22 µF 0805 per driver; 10 kΩ pull-downs on NSTDBY and every PWM "
-     "net; ~1 kΩ series on the high-side inputs; 0 Ω/shunt on each driver's BRUV/BRW; ~470 µF bulk; "
-     "decoupling; 1 kΩ BOOTSEL resistor at the MCU end; the board-ID strap (10 kΩ to GND; D22); "
-     "CC sense filters; "
-     "I²C pull-ups for the touch band", "JLC basic parts", "$3–5", "knob board"),
-    ("1", "TPS259470ARPWR eFuse (motor rail)", "soft-start switch for the motor rail only, enabled by "
-     "firmware after reading CC. Same part as the USB board's two VBUS switches: true reverse blocking, "
+     "backplane"),
+    ("90", "Pogo pin, SMD, BAT WIRELESS BWCD-L3W2.0H1.0", "slot connectors (D23): 18 per slot, upright on "
+     f"the top side (D6), {P.POGO[1]:g} mm tall, {P.POGO[0]:g} mm barrel, {P.POGO[2]:g} mm stroke, ~1 N, 1.5 A, "
+     "10,000 cycles, gold-plated brass. They press the ENIG pads under each module; pinout in wiring.md",
+     lcsc("C2988082") + " (32,763 in JLC stock, $0.0596 at 50–149, 2026-10-19; extended) (V: drawing, "
+     "force at 0.5 mm)", "~$5.4", "backplane"),
+    ("1 set", "Backplane passives", "~470 µF bulk on the motor rail; decoupling; 1 kΩ BOOTSEL resistor at "
+     "the MCU end; pull-downs on the five SSI data lines and the two ID rows; CC sense filters; I²C "
+     "pull-ups for the touch band (the drivers' pull-downs sit on the haptic modules)",
+     "JLC basic parts", "$2–4", "backplane"),
+    ("1", "TPS259470ARPWR eFuse (motor rail)", "soft-start switch for the motor rail only (to the slots' "
+     "VMOT pins), enabled by firmware after reading CC and only with a haptic module fitted. Same part as the USB board's two VBUS switches: true reverse blocking, "
      "current limit set by RILM (0.5–6 A), slew rate set by a dVdt cap", lcsc("C3662799")
-     + " (4,468 in JLC stock, $1.29, 2026-10-17)", "~$1.3", "knob board"),
+     + " (4,468 in JLC stock, $1.29, 2026-10-17)", "~$1.3", "backplane"),
     # Frame PCB
     ("21", "B3U-1000P", "key switches (buy spares and sort by feel)", lcsc("C231329"), "~$3", "frame PCB"),
-    ("21", "1N4148W", "SOD-123 matrix diodes (26 in all with the knob board's 5)", "JLC basic part", "~$0.5",
+    ("21", "1N4148W", "SOD-123 matrix diodes (each module adds 2: press and ID)", "JLC basic part", "~$0.5",
      "frame PCB"),
-    ("1", "FFC/FPC connector, 12-pin 1.0 mm, flip-lock ZIF", "same as on the knob board",
+    ("1", "FFC/FPC connector, 12-pin 1.0 mm, flip-lock ZIF", "same as on the backplane",
      lcsc("C19269355"), "~$0.2", "frame PCB"),
     # Touch band
     ("1", "Touch controller: AT42QT2120 (or none)", "capacitive slider controller, I²C, on the band's "
      "parts side. Optional (D12): if it's expensive or out of stock, drop the band "
-     "(`TOUCH_BAR = False` in params.py removes the band, its cable and the knob board's SH header)",
+     "(`TOUCH_BAR = False` in params.py removes the band, its cable and the backplane's SH header)",
      lcsc("C614938") + " (V: stock; 69 on 2026-10-17)", "~$1.9", "touch band"),
     ("1", "JST SM06B-SRSS-TB", "6-pin SH header, side entry", lcsc("C160405"), "~$0.9", "touch band"),
     ("1 set", "Touch band passives", "1–10 kΩ in series with each electrode; ferrite bead + 10 µF on 3V3",
@@ -1256,10 +1382,10 @@ BOM_JLC_PARTS = [
      lcsc("C2894902") + "; fallback top-mount TYPE-C-31-M-12 " + lcsc("C165948"), "~$0.2", "USB board"),
     ("1", "USB-C receptacle, 16-pin, TYPE-C-31-M-12", "internal port to the display board; SMD signals, "
      "4 through-hole shell legs", lcsc("C165948"), "~$0.2", "USB board"),
-    ("1", "GH 8-pin header, HCTL HC-GH-8PWT", "USB link to the knob board; same as on the knob board",
+    ("1", "GH 8-pin header, HCTL HC-GH-8PWT", "USB link to the backplane; same as on the backplane",
      lcsc("C3011950"), "~$0.2", "USB board"),
     ("2", "TPS259470ARPWR eFuses (VBUS)", "one per downstream VBUS branch: display port (RILM 3.32 kΩ, "
-     "~1 A) and knob board (RILM ~1.87 kΩ, ~1.8 A). Back-to-back FETs block reverse current while on, "
+     "~1 A) and backplane (RILM ~1.87 kΩ, ~1.8 A). Back-to-back FETs block reverse current while on, "
      "so the 7B can't back-feed the PC. Enable delayed by an RC. QFN-10 2 × 2 mm, 0.45 mm pitch",
      lcsc("C3662799") + " (one type for all three switches)", "~$2.6", "USB board"),
     ("1", "SRV05-4-P-T7", "USB ESD, external port, at the socket: D+, D−, CC1, CC2 on its four lines, "
@@ -1293,12 +1419,6 @@ BOM_PRINTS = [
      "home printer or JLC3DP", "$3–5 / $15–30", "Print the case"),
     ("1", "Stand", "`cad/out/print_stand.stl` (a shell, open underneath, with ribs); PETG",
      "home printer or JLC3DP (get a quote)", "$2–4 / $10–25", "Put it on the stand"),
-    ("5", "Knob caps", "`cad/out/knob.stl` (D-bore with crush ribs); PETG", "home printer or JLC3DP", "$1–5",
-     "Press on the knob caps"),
-    ("5", "Knob hubs", "`cad/out/knob_hub.stl`: D-flat column, flange screwed to the bell; PETG",
-     "home printer or JLC3DP", "<$1", "Build the knob board"),
-    ("5", "Motor spacer rings", "`cad/out/motor_spacer.stl`: set the sensor gap, center the magnet; the arm "
-     "carries the press striker. PETG", "home printer or JLC3DP", "<$1", "Build the knob board"),
     ("2", "Plate props (tool)", "`cad/out/print_plate_prop.stl`: hold the top plate 40 mm up while you "
      "plug its cables in", "home printer", "<$1", "Close the case"),
     ("1", "Fit coupon (optional)", "`cad/out/print_fit_coupon.stl`: cap holes, magnet pocket and hub fit "
@@ -1308,31 +1428,99 @@ BOM_PRINTS = [
 BOM_ALI = [
     ("1", "Waveshare ESP32-S3-LCD-7B (non-touch, SKU 31727)", "7\" 1024×600 display board. No battery on "
      "J3", "Waveshare", "$34", "Mount the display"),
-    ("5", "2204 gimbal motor (Mitoot 2204 260KV or similar)", "~28 × 13 mm, hollow shaft; lead ~30 cm with a "
-     "3-pin 2.54 mm servo-style (Futaba/JR) plug per one listing (V: check plug and lead on arrival; "
-     "measure base/bell hole patterns and thread depths against params.py)",
-     "AliExpress (two sellers)", "$40–60", "Build the knob board"),
-    ("5", "Diametric magnets 6 × 2.5 mm", "for the MT6701 sensors", "AliExpress", "~$5", "Build the knob board"),
 ]
-# Lite tier (D22): knob-board rows that go, and what replaces them (after the RP2350B support parts)
-LITE_DROP = {("5", "TMC6300-LA-T"), ("5", "MT6701CT-STD"), ("5", "SN74LVC3G04DCTR"), ("5", "B3U-1000P"),
-             ("5", "1×3 right-angle pin header, 2.54 mm, SMD"), ("1 set", "Knob board passives"),
-             ("1", "TPS259470ARPWR eFuse (motor rail)")}
-LITE_JLC_PARTS = [
-    ("5", "Push encoder, Bourns PEC11R, vertical, 15 mm flatted 6 mm shaft, push switch",
-     "Pick one when ordering, all five the same (D22): **detented** PEC11R-4215F-S0024 (24 detents, 24 "
-     "pulses) or **smooth** PEC11R-4015F-S0024 (no detents, 24 pulses). Same body, shaft and footprint; the "
-     "push switch is the knob press. Through-hole: JLC hand-solders it under Economic assembly (7 joints "
-     "each, ~$0.0173 per joint; V: on the quote). Leads trimmed to ≤ 1.2 mm under the board (the floor is "
-     "2 mm below). SMD option for the detented build only: Alps EC11J1525402 " + lcsc("C209762") + " (30 "
-     "detents, 1,666 in JLC stock, $2.59 at 10, 2026-10-19; other footprint); no stocked SMD part without "
-     "detents was found", lcsc("C143790") + " detented (5,485 in JLC stock, $1.99 at 10) / " + lcsc("C143789")
-     + " smooth (3,748, $2.31 at 10), 2026-10-19 (V: body height, shaft length)", "~$10–12", "knob board"),
-    ("1 set", "Knob board passives (lite)", "per encoder: 10 kΩ pull-ups to 3V3 on A and B, then 10 kΩ in "
-     "series and 10 nF to GND at the RP2350B (Bourns' suggested filter); the board-ID strap (10 kΩ to 3V3 "
-     "on the lite board); decoupling; 1 kΩ BOOTSEL resistor at the MCU end; CC sense filters; I²C pull-ups "
-     "for the touch band", "JLC basic parts", "~$1", "knob board"),
-]
+# Knob slots (D23): what one module or blank adds. Screws come from the model.
+MODULE_JLC = {
+    "haptic": [
+        ("1", "Module PCB, haptic", f"{P.MODULE_W:g} × {P.MODULE_FRONT + P.MODULE_BACK:g} mm, 2-layer 1.6 mm, ENIG; "
+         "`cad/out/module_haptic_pcb_outline.dxf`. The motor's tongue hangs on two torsion necks (the hinge, "
+         "D10); 18 ENIG pads underneath meet the slot's pogo pins (pads aren't parts, so every part is on "
+         "top, D6). Its own JLC design: 5 made, at least 2 assembled (cost.md)", "JLCPCB",
+         "$4–8 of a $20–40 order", "Build the knob modules"),
+        ("1", "TMC6300-LA-T", "3-phase motor driver, 2–11 V, on the fixed front border (D16)",
+         lcsc("C5274455") + " (201 in stock, 2026-10-17; DigiKey ~4,100)",
+         "~$2.4 from DigiKey via Global Sourcing; ~$5 at LCSC", "Build the knob modules"),
+        ("1", "MT6701CT-STD", "magnetic angle sensor, SSI, SOP-8 (not the QT: that's a 3×3 QFN-16), on the "
+         "tongue under the magnet", lcsc("C3003196") + " (V: JLC stock)", "~$1.6", "Build the knob modules"),
+        ("1", "SN74LVC3G04DCTR", "triple inverter (3-PWM drive), SM8 (DCT) package", lcsc("C139324"), "~$0.2",
+         "Build the knob modules"),
+        ("1", "B3U-1000P", "knob press switch on the front border (the spacer's arm presses it)",
+         lcsc("C231329"), "~$0.2", "Build the knob modules"),
+        ("2", "1N4148W", "press switch and module-ID diodes (key matrix; wiring.md)", "JLC basic part",
+         "~$0.02", "Build the knob modules"),
+        ("1", "Pin header 1×3, 2.54 mm, vertical SMD (HX PZ2.54-1x3P TP-YQ)", "motor plug, upright on the "
+         "front border; staggered SMD pins (D6)", lcsc("C41417360") + " (47,856 in JLC stock, $0.039, "
+         "2026-10-19) (V: fits the motor's plug)", "~$0.04", "Build the knob modules"),
+        ("1 set", "Module passives", "2 × 22 µF 0805 at the driver; 10 kΩ pull-downs on NSTDBY and the three "
+         "PWM nets (RP2350 erratum E9: they live with the driver, so a lite module's lines stay free); "
+         "~1 kΩ series on the high-side inputs; BRUV/BRW to GND; 10 kΩ CSN pull-up; decoupling",
+         "JLC basic parts", "~$0.3", "Build the knob modules"),
+    ],
+    "lite": [
+        ("1", "Module PCB, lite", f"{P.MODULE_W:g} × {P.MODULE_FRONT + P.MODULE_BACK:g} mm, 2-layer 1.6 mm, ENIG; "
+         "`cad/out/module_lite_pcb_outline.dxf`: the haptic outline, pads and holes, no tongue. Its own JLC "
+         "design: 5 made, at least 2 assembled", "JLCPCB", "$3–6 of a $15–30 order", "Build the knob modules"),
+        ("1", "Push encoder, Bourns PEC11R, vertical, 15 mm flatted 6 mm shaft, push switch",
+         "Pick one when ordering (D22): **detented** PEC11R-4215F-S0024 (24 detents, 24 pulses) or **smooth** "
+         "PEC11R-4015F-S0024 (no detents, 24 pulses). Same body, shaft and footprint; the push switch is the "
+         "knob press. Through-hole: JLC hand-solders it under Economic assembly (7 joints, ~$0.0173 per "
+         f"joint; V: on the quote). Leads trimmed to ≤ {P.ENC_PIN_STUB:g} mm (the backplane is "
+         f"{P.POGO_WORK:g} mm below). SMD option for the detented build only: Alps EC11J1525402 "
+         + lcsc("C209762") + " (30 detents, 1,666 in JLC stock, $2.59 at 10, 2026-10-19; other footprint)",
+         lcsc("C143790") + " detented (5,249 in stock, $2.00 at 10) / " + lcsc("C143789")
+         + " smooth (3,748, $2.73 at 1), 2026-10-19 (V: body height, shaft length)", "~$2–3",
+         "Build the knob modules"),
+        ("2", "1N4148W", "push switch and module-ID diodes (key matrix)", "JLC basic part", "~$0.02",
+         "Build the knob modules"),
+        ("1 set", "Module passives (lite)", "10 kΩ pull-ups to 3V3 on A and B, then 10 kΩ in series (it also "
+         "limits the current if a misread slot drives these lines as PWM) and 10 nF to GND (Bourns' filter)",
+         "JLC basic parts", "~$0.1", "Build the knob modules"),
+    ],
+    "blank": [],
+}
+MODULE_PRINTS = {
+    "haptic": [
+        ("1", "Module base", "`cad/out/module_base.stl`: under the PCB, sets the pogo pins' "
+         f"{P.POGO_WORK:g} mm working height; two key pins ({P.KEY_PIN_D[0]:g} and {P.KEY_PIN_D[1]:g} mm) "
+         "underneath. PETG", "home printer or JLC3DP", "<$1", "Build the knob modules"),
+        ("1", "Module cover", "`cad/out/module_cover.stl`: bezel flush with the plate, four posts, front "
+         "wall. PETG, black like the plate", "home printer or JLC3DP", "<$1", "Drop in the knob modules"),
+        ("1", "Motor spacer ring", "`cad/out/motor_spacer.stl`: sets the sensor gap, centers the magnet; "
+         "the arm carries the press striker. PETG", "home printer or JLC3DP", "<$1", "Build the knob modules"),
+        ("1", "Knob hub", "`cad/out/knob_hub.stl`: D-flat column, flange screwed to the bell; PETG",
+         "home printer or JLC3DP", "<$1", "Build the knob modules"),
+        ("1", "Knob cap", "`cad/out/knob.stl` (D-bore with crush ribs); PETG", "home printer or JLC3DP",
+         "<$1", "Press on the knob caps"),
+    ],
+    "lite": [
+        ("1", "Module base", "`cad/out/module_base.stl`, the same as the haptic module's", "home printer or JLC3DP",
+         "<$1", "Build the knob modules"),
+        ("1", "Module cover", "`cad/out/module_cover.stl`, the same as the haptic module's",
+         "home printer or JLC3DP", "<$1", "Drop in the knob modules"),
+        ("1", "Knob cap (lite)", "`cad/out/knob_lite.stl`: the same cap with a stem through the cover's hub "
+         "hole; D-bore with crush ribs that seats on the encoder's shaft tip; PETG", "home printer or JLC3DP",
+         "<$1", "Press on the knob caps"),
+    ],
+    "blank": [
+        ("1", "Blank cover", "`cad/out/blank_cover.stl`: bezel flush with the plate, four posts down to the "
+         "backplane, front wall. PETG", "home printer or JLC3DP", "<$1", "Drop in the knob modules"),
+    ],
+}
+MODULE_BOUGHT = {
+    "haptic": [
+        ("1", "2204 gimbal motor (Mitoot 2204 260KV or similar)", "~28 × 13 mm, hollow shaft; lead ~30 cm with a "
+         "3-pin 2.54 mm servo-style (Futaba/JR) plug per one listing (V: check plug and lead on arrival; "
+         "measure base/bell hole patterns and thread depths against params.py)", "AliExpress (two sellers)",
+         "$8–12", "Build the knob modules"),
+        ("1", "Diametric magnet 6 × 2.5 mm", "for the MT6701", "AliExpress", "~$1", "Build the knob modules"),
+        ("1", f"M2×{P.STRIKER_LEN:g} set screw", "press striker, in the spacer's arm", "hardware kit", "~$0.1",
+         "Build the knob modules"),
+        ("—", "Epoxy", "the magnet", "any", "—", "Build the knob modules"),
+    ],
+    "lite": [],
+    "blank": [],
+}
+MODULE_TITLES = {"haptic": "Haptic module", "lite": "Lite module", "blank": "Blank cover"}
 BOM_EXTERNAL = [
     ("1", "USB-C to USB-C cable (to the computer)", "USB 2.0 is enough; a C-to-C cable lets the device read "
      "the port's 1.5 A / 3 A offer. An A-to-C cable works, with weaker haptics (500 mA). Plug overmold "
@@ -1378,24 +1566,27 @@ def proto_bom_lines(pinfo):
     return out
 
 
-def lite_rows(rows, drop=(), add=(), after=None):
-    out = [r for r in rows if (r[0], r[1]) not in drop and r[1] not in drop]
-    if add:
-        i = next(i for i, r in enumerate(out) if r[1] == after) + 1
-        out[i:i] = list(add)
-    return out
-
-
-def write_bom(info, proto_info=None):
-    """docs/bom.md for the haptic tier, docs/bom-lite.md for the lite tier (D22)."""
-    lite = info.get("tier") == "lite"
+def write_bom(info, proto_info=None, infos=None):
+    """docs/bom.md: the base device, then what each knob module and blank adds (D23).
+    infos: model infos with every slot "haptic" and every slot "lite" (their screws)."""
+    infos = infos or {}
     screws = info["screws"]
     num = {s.key: s.title for s in STEPS}
-    counts = {}
-    for sc in screws:
-        kind = screw_name(sc)
-        counts.setdefault(kind, {})
-        counts[kind][sc.step] = counts[kind].get(sc.step, 0) + 1
+    slot_steps = ("module_sub", "modules")
+
+    def screw_rows(scs):
+        counts = {}
+        for sc in scs:
+            kind = screw_name(sc)
+            counts.setdefault(kind, {})
+            counts[kind][sc.step] = counts[kind].get(sc.step, 0) + 1
+        return [(str(sum(st.values())), f"{kind.split()[0]} screw", " ".join(kind.split()[1:]),
+                 "hardware kit", "~$1 (pack of 50)" if "M2x30" not in kind else "~$2 (pack of 20)",
+                 ", ".join(num[k] for k in st)) for kind, st in counts.items()]
+
+    def slot_screws(inf, n):
+        return [sc for sc in inf["screws"] if sc.label.startswith((f"screw_motor{n}_", f"screw_hub{n}_",
+                                                                    f"screw_slot{n}_"))]
     price = {"cable_usb_display": "$2–4", "cable_usb_knob_gh": "$1–2 (26 AWG)", "cable_keys_ffc": "$0.5–1",
              "cable_touch": "$0.5–1", "cable_hy_link": "~$0.5 (optional)"}
 
@@ -1409,88 +1600,85 @@ def write_bom(info, proto_info=None):
                    + (f", {c['lift']:.0f} mm with the plate lifted" if c["lift"] else "") + ")",
                    "AliExpress (search the spec)", price[n], num[STEP_OF_CABLE[n]])
                   for n, c in info["cables"].items() if c["buy"]]
-    hw_rows = [(str(sum(st.values())), f"{kind.split()[0]} screw", " ".join(kind.split()[1:]),
-                "hardware kit", "~$1 (pack of 50)", ", ".join(num[k] for k in st)) for kind, st in counts.items()]
-    hw_rows += [r for r in [
+    hw_rows = screw_rows([sc for sc in screws if sc.step not in slot_steps])
+    hw_rows += [
         ("4", f"Magnets {P.MAGNET_TRAY[0]:g} × {P.MAGNET_TRAY[1]:g} mm", "tray", "AliExpress", "~$1",
          num["tray"]),
         ("4", f"Magnets {P.MAGNET_STAND[0]:g} × {P.MAGNET_STAND[1]:g} mm", "stand", "AliExpress", "~$1",
          num["stand"]),
         ("6", f"Rubber feet {P.FOOT[0]:g} × {P.FOOT[1]:g} mm", "self-adhesive", "AliExpress", "~$1",
          f"{num['tray']}, {num['stand']}"),
-        ("5", "Hook-and-loop cable ties", "~10 mm wide, reusable; strap the motor lead coils",
-         "AliExpress", "~$1", num["knob_sub"]),
-        ("5", f"M2×{P.STRIKER_LEN:g} set screws", "press strikers, threaded into the motor spacers' arms",
-         "hardware kit", "~$1", num["knob_sub"]),
         ("4", f"M3 heat-set inserts, {P.INSERT_M3[0]:g} mm hole × {P.INSERT_M3[1]:g} mm", "top plate posts "
          "(e.g. Ruthex RX-M3x5.7 or CNC Kitchen M3 short)", "AliExpress / Amazon", "~$1", num["tray"]),
+        (str(2 * P.KNOBS), f"M2 heat-set inserts, {P.INSERT_M2[0]:g} mm hole × {P.INSERT_M2[1]:g} mm",
+         "slot bosses: the modules' and blanks' screws go into these (D23; V: an M2 × 4 mm insert, ~3.5 mm "
+         "outside)", "AliExpress", "~$1", num["tray"]),
         ("1 set", "M2 shim washers, 0.1 and 0.2 mm", "between the frame PCB and its bosses, to tune the key "
          "stack", "AliExpress", "~$1", num["top_plate_sub"]),
         ("1", "3M 467MP or 468MP transfer tape", "full coverage under the touch band (no air gaps)",
          "AliExpress / DigiKey", "~$3", num["top_plate_sub"]),
-        ("—", "Epoxy", "magnets", "any", "~$3", num["tray"] if lite else f"{num['knob_sub']}, {num['tray']}"),
+        ("—", "Epoxy", "magnets", "any", "~$3", num["tray"]),
         ("— (optional)", "Thin foam or silicone ring", "on each key cap's flange, against rattle", "any", "~$1",
          num["top_plate_sub"]),
-    ] if not (lite and r[1] in ("Hook-and-loop cable ties", f"M2×{P.STRIKER_LEN:g} set screws"))]
-    jlc_parts, prints, ali, external = BOM_JLC_PARTS, BOM_PRINTS, BOM_ALI, BOM_EXTERNAL
-    n_ext = 19
-    if lite:
-        jlc_parts = lite_rows(BOM_JLC_PARTS, LITE_DROP, LITE_JLC_PARTS, after="RP2350B support parts")
-        prints = lite_rows(BOM_PRINTS, {"Knob hubs", "Motor spacer rings", "Knob caps"}, [
-            ("5", "Knob caps (lite)", "`cad/out/knob_lite.stl`: the same cap with a stem through the plate's "
-             "hub hole; D-bore with crush ribs that seats on the encoder's shaft tip; PETG",
-             "home printer or JLC3DP", "$1–5", num["knobs"])], after="Stand")
-        ali = [r for r in BOM_ALI if r[0] == "1"]
-        external = [("1", "USB cable to the computer", "USB 2.0; C-to-C or A-to-C, any port (the lite tier "
-                     "draws under 500 mA). Plug overmold "
-                     f"≤ {P.USB_EXT_POCKET[0] - 0.5:g} × {P.USB_EXT_POCKET[1] - 0.5:g} mm to seat in the back-wall "
-                     "opening", "any", "$3–8", "Plug it in")]
-        n_ext = 15
+    ]
+    first = {k: (inf, inf["slots"].index(k)) for k, inf in [("haptic", infos.get("haptic", info)),
+                                                           ("lite", infos.get("lite", info)),
+                                                           ("blank", info)] if k in inf["slots"]}
+
+    def module_lines(kind):
+        rows = list(MODULE_JLC[kind]) + list(MODULE_PRINTS[kind]) + list(MODULE_BOUGHT[kind])
+        if kind in first:
+            inf, n = first[kind]
+            rows += screw_rows(slot_screws(inf, n))
+        return [f"### {MODULE_TITLES[kind]}", "", *table(rows), ""]
+
+    cfg = ", ".join(info["slots"])
     lines = [
-        "# Bill of materials (full build" + (", lite knob board)" if lite else ")"),
+        "# Bill of materials",
         "",
         "> [!CAUTION]",
         "> Generated by `cad/assembly.py` from the CAD model; nothing has been built or",
         "> ordered. **(V)** marks parts to verify before ordering. LCSC numbers were looked up",
-        "> on 2026-10-17" + (" (encoders 2026-10-19)" if lite else "")
-        + "; stock moves, so check each one in JLC's parts library when ordering.",
+        "> on 2026-10-17 (encoders, pogo pins and the module header 2026-10-19); stock moves, so",
+        "> check each one in JLC's parts library when ordering.",
         "",
-        *(["The lite tier (D22): push encoders instead of the motors, drivers and sensors. Everything",
-           "else is the same as the haptic build in [bom.md](bom.md): case, top plate, display, frame PCB,",
-           "keys, USB board, touch band, cables.", ""] if lite else
-          ["The haptic tier. The lite tier (push encoders, no motors; D22) has its own list:",
-           "[bom-lite.md](bom-lite.md).", ""]),
-        "Everything a builder buys for one device, grouped by order. The builder solders and",
-        "crimps nothing: JLC fits every board-mounted part, and every cable is bought ready-made.",
-        "Screws, cable types and lengths come from the model, so they match",
-        "[assembly.md](assembly.md). Totals: [cost.md](cost.md).",
+        "Knobs are modules in slots (D23). This list has two parts: the **base device** (display,",
+        "keys, case, backplane, USB board, touch band, cables: no knobs) and what **each knob",
+        "module or blank** adds. Every slot takes a haptic module, a lite module or a blank.",
+        f"The model's default build is the owner's first: {cfg}.",
         "",
-        "## Order 1: JLC (PCBs, assembly, prints)",
+        "The builder solders and crimps nothing: JLC fits every board-mounted part, and every",
+        "cable is bought ready-made. Screws, cable types and lengths come from the model, so they",
+        "match [assembly.md](assembly.md). Totals: [cost.md](cost.md).",
         "",
-        "### PCBs",
+        "## Base device",
+        "",
+        "### Order 1: JLC (PCBs, assembly, prints)",
+        "",
+        "#### PCBs",
         "",
         *table(BOM_JLC_BOARDS),
         "",
-        "### Parts JLC fits (per device)",
+        "#### Parts JLC fits (per device)",
         "",
-        *table(jlc_parts),
+        *table(BOM_JLC_PARTS),
         "",
         "JLC's assembly minimum is 2 boards, so you pay for the parts on a spare set too",
         "(see [cost.md](cost.md)). JLC charges a setup fee once for the panel, plus a fee per",
-        f"\"extended\" part type: {n_ext} types with the parts above (list and fees in cost.md).",
+        "\"extended\" part type: 16 types with the parts above (list and fees in cost.md).",
         "Prices are LCSC's at the quantity for 2 boards, 2026-10-17.",
         "",
-        "### 3D prints",
+        "#### 3D prints",
         "",
-        *table(prints),
+        *table(BOM_PRINTS),
         "",
-        "## Order 2: AliExpress / Waveshare",
+        "### Order 2: AliExpress / Waveshare",
         "",
-        "### Bought parts",
+        "#### Bought parts",
         "",
-        *table(ali),
+        *table(BOM_ALI),
         "",
-        "### Internal cables (ready-made, plug-in)",
+        "#### Internal cables (ready-made, plug-in)",
         "",
         *table(cable_rows),
         "",
@@ -1499,44 +1687,65 @@ def write_bom(info, proto_info=None):
         "cable 10cm\" (same direction, 26 AWG); \"FFC 12 pin 1.0mm 80mm\" (reverse/opposite side); "
         "\"JST SH 1.0 6 pin double head 8cm\"; optional: \"HY2.0 3 pin double head 5cm\" (GPIO6 link).",
         "",
-        "### Hardware",
+        "#### Hardware",
         "",
         *table(hw_rows),
         "",
-        "## Not in the kit",
+        "### Not in the kit",
         "",
-        *table(external),
+        *table(BOM_EXTERNAL),
         "",
-        *([] if lite else [*proto_bom_lines(proto_info), ""]),
+        "## Knob modules and blanks (per slot)",
+        "",
+        "One of these per slot. Each module type is its own small JLC design (5 PCBs made, at",
+        "least 2 assembled), ordered with the base or later; the motors, magnets and screws come",
+        "with order 2. Modules have no MCU: the backplane runs every slot (D23).",
+        "",
+        *module_lines("haptic"),
+        *module_lines("lite"),
+        *module_lines("blank"),
+        *proto_bom_lines(proto_info),
+        "",
         "## Totals",
         "",
-        *(["One device: **~$355–555** with your own 3D printer, ~$410–670 with the case from",
-           "JLC3DP, ~$195–285 each when 5 people order together (none planned until a device works), US import "
-           "duty included."] if lite else
-          ["One device: **~$475–710** with your own 3D printer, ~$530–825 with the case from",
-           "JLC3DP, ~$280–400 each when 5 people order together (none planned until a device works), US import "
-           "duty included."]),
-        "Prices above are per part, per device. The totals also include JLC's PCB, setup and",
-        "extended-part fees, the parts on the spare board set, shipping and duty; the",
-        "breakdown is in [cost.md](cost.md) (\"Where the money goes\").",
+        "Base device **~$345–540** with your own 3D printer, plus per module (US import duty",
+        "included; one build, module boards ordered with the base): haptic ~$46–66 each for two",
+        "(~$30–42 each for five), lite ~$26–33 each for two, blank ~$1. The owner's first build",
+        "(2 haptic + 3 blank) comes to **~$440–675**. Prices above are per part; the totals also",
+        "include JLC's PCB, setup and extended-part fees, the parts on the spare boards, shipping and",
+        "duty. Breakdown and the 5, 25 and 100 unit figures: [cost.md](cost.md).",
         "",
     ]
-    (BOM_LITE_PATH if lite else BOM_PATH).write_text("\n".join(lines) + "\n")
+    BOM_PATH.write_text("\n".join(lines) + "\n")
+
+
+def slot_line(name, r):
+    """One summary line for a slot configuration's checks."""
+    out = (f"  slots {name}: knob tops within {r['top_diff']:.2f} mm of the haptic knob's (max "
+           f"{P.KNOB_TOP_TOL:g}), covers/blanks flush within {r['flush']:.2f} mm, pogo pins "
+           f"{r['compress']:.2f} mm in (stroke {P.POGO[2]:g}), {r['pads']} pins on pads")
+    if "engage" in r:
+        pg = "n/a" if r["pressed_gap"] is None else f"{r['pressed_gap']:.2f} mm"
+        out += (f"; lite: shaft {r['engage']:.1f} mm into the knob, pressed {P.ENC_PRESS_TRAVEL:g} mm: "
+                f"{pg} to the cover, stem {r['stem_gap']:.2f} mm above the bushing")
+    return out
 
 
 def main():
     check_only = "--check" in sys.argv
     t0 = time.time()
-    flat, L, info = model.full_device(tilt=False)
-    tilted, _, tinfo = model.full_device(tilt=True)
+    tilted, L, info = model.full_device(tilt=True)
+    flat = info["flat_items"]
+    tinfo = info
     proto, _, pinfo = model.prototype()
-    other = "lite" if info["tier"] == "haptic" else "haptic"
-    oflat, _, oinfo = model.full_device(tilt=False, tier=other)
     checks = run_checks(flat, info, tilted, tinfo, proto=(proto, pinfo))
-    h_flat, l_flat, l_info = (flat, oflat, oinfo) if other == "lite" else (oflat, flat, info)
-    lchecks = run_checks_lite(l_flat, l_info, h_flat)
-    problems = checks["problems"] + lchecks["problems"]
-    print(f"checks ({checks['seconds']:.0f}s + lite {lchecks['seconds']:.0f}s): {len(problems)} problem(s)")
+    others = {}
+    for cfg in P.CHECK_CONFIGS:                       # other slot configurations (D23)
+        o_flat, _, o_info = model.full_device(tilt=False, slots=cfg)
+        others[cfg] = (o_info, run_checks_slots(o_flat, o_info))
+    problems = checks["problems"] + [m for _, r in others.values() for m in r["problems"]]
+    secs = " + ".join(f"{r['seconds']:.0f}s" for _, r in others.values())
+    print(f"checks ({checks['seconds']:.0f}s + {secs}): {len(problems)} problem(s)")
     for p in problems:
         print("  -", p)
     print(f"  screws reachable: {checks['access_ok']}/{len(info['screws'])}, "
@@ -1553,17 +1762,14 @@ def main():
                   f"down-stop), glass margin {r['margin']:.2f} mm of {r['glass_gap']:.2f} mm")
     print(f"  key stack: cap drop {k['drop']:.2f} + frame {k['defl_max']:.3f} mm/N x {k['force']:g} N = "
           f"{k['need']:.2f} mm of {k['glass_gap']:.2f} mm to the glass")
-    r = lchecks["knob_rows"]
-    pg = "n/a" if r["pressed_gap"] is None else f"{r['pressed_gap']:.2f} mm"
-    print(f"  lite knobs (D22): top {r['top_diff']:.2f} mm off the haptic knob (max {P.KNOB_TOP_TOL:g}); "
-          f"shaft {r['engage']:.1f} mm into the knob; pressed {P.ENC_PRESS_TRAVEL:g} mm: {pg} to the plate, "
-          f"stem {r['stem_gap']:.2f} mm above the bushing; "
-          f"{lchecks['access_ok']} knob board screws reachable")
+    print(slot_line(",".join(info["slots"]), checks["slot_rows"]))
+    for cfg, (_, r) in others.items():
+        print(slot_line(",".join(cfg), r["slot_rows"]) + f"; {r['access_ok']} slot screws reachable")
+    infos = {cfg[0]: oi for cfg, (oi, _) in others.items()}
     if check_only:
         sys.exit(1 if problems else 0)
     if "--bom" in sys.argv:
-        write_bom(info, pinfo)
-        write_bom(oinfo, pinfo)
+        write_bom(info, pinfo, infos)
         sys.exit(0)
 
     import render
@@ -1573,8 +1779,7 @@ def main():
     shots = step_pictures(scene, flat, info, tscene)
     service = service_pictures(scene, flat, info)
     write_guide(info, checks, shots, service)
-    write_bom(info, pinfo)
-    write_bom(oinfo, pinfo)
+    write_bom(info, pinfo, infos)
     print(f"pictures + guide in {time.time() - t0:.0f}s")
     if "--animate" in sys.argv:
         t1 = time.time()

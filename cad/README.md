@@ -18,13 +18,13 @@ the motor diameter.
 
 | File | Use |
 |---|---|
-| `clickdeck_full.step` | Full device, every part named and colored. Open in FreeCAD or Fusion 360 |
-| `clickdeck_full_lite.step` | The same with the lite knob board (D22): push encoders instead of motors |
+| `clickdeck_full.step` | Full device (the default slots: 2 haptic modules + 3 blanks), every part named and colored. Open in FreeCAD or Fusion 360 |
+| `knob_modules.step` | The three slot types side by side (D23): haptic module, lite module, blank, each with its pogo pins |
 | `clickdeck_proto.step` | 2-key prototype on the real 7B, with the knob test stand beside it |
 | `key_cutaway.step` | One key cut in half, to inspect the cap/tab/switch stack |
 | `*_frame_pcb_outline.dxf` | Board outline with key windows. KiCad: File → Import → Graphics, layer Edge.Cuts |
-| `full_knob_board_outline.dxf` | Knob board outline with the tongue slots |
-| `full_knob_board_lite_outline.dxf` | Lite knob board outline (same outline and holes, no tongues) |
+| `full_backplane_outline.dxf` | Backplane outline: slot-boss and key-pin holes (the pogo pins go under each slot's front) |
+| `module_haptic_pcb_outline.dxf`, `module_lite_pcb_outline.dxf` | Module PCB outlines (haptic: the tongue on two torsion necks; lite: solid) |
 | `full_usb_board_outline.dxf` | USB board (hub) outline |
 | `full_touch_band_outline.dxf` | Touch band outline (stops short of the frame PCB's ZIF) |
 | `cabling.png` | Top view of the internal cabling, display and top plate removed |
@@ -39,26 +39,36 @@ the motor diameter.
 | `key_cap_two_nub_clear_resin.stl` | Prototype cap with a nub at both ends, for the two-switch test (D8) |
 | `knob.stl`, `knob_hub.stl`, `motor_spacer.stl` | Knob cap, hub (screws to the bell), motor spacer ring (its arm carries the press striker) |
 | `knob_lite.stl` | Lite knob: the same cap with a stem down to the encoder's 6 mm flatted shaft |
+| `module_base.stl`, `module_cover.stl`, `blank_cover.stl` | Module carrier (D23): base under the module PCB (sets the pogo height, key pins underneath), cover with the flush bezel (print bezel-down), and the blank. PETG |
 | `full_side.png`, `full_face.png` | Side profile and straight-on view of the angled device |
 | `*.png` | Quick previews from a small CPU renderer (`render.py`) |
 
-## Knob tiers (D22)
+## Knob slots (D23)
 
-`KNOB_TIER` in `params.py` is `"haptic"` (motors, the default) or `"lite"`
-(push encoders). It sets which knob board `model.full_device()` builds by
-default; `build.py` and `assembly.py --check` always build and check both.
-The lite tier only changes the knob board and what sits on it; its checks
-cover the parts near it, plus a check that each lite knob's top sits where
-the haptic knob's does (`KNOB_TOP_TOL`), that the shaft fills the knob's
-bore past its flat, and that a full press clears the plate and the
-encoder's bushing. Encoder dimensions are `ENC_*` (from the Bourns
+`KNOB_SLOTS` in `params.py` says what's in each of the five slots, left to
+right: `"haptic"`, `"lite"` or `"blank"`. The default is the owner's first
+build, `("haptic", "haptic", "blank", "blank", "blank")`; it's what
+`model.full_device()` builds (and the assembly guide's pictures).
+`build.py --strict` and `assembly.py --check` also build `CHECK_CONFIGS`:
+every slot haptic and every slot lite. The default build gets every check;
+the other two get the checks on and around the slots (interference,
+screws, gaps, floating parts, screwdriver access, the motor plug, the lead
+coil, each module lifting out, knob heights). The slot checks: every knob
+top sits where the haptic knob's does (`KNOB_TOP_TOL`), covers and blanks
+are flush with the plate, the pogo pins are compressed inside their stroke
+(`POGO_COMPRESS`) and each lands fully on a module pad, the key pins only
+fit one way, and every module lifts straight out with the plate on. Lite
+modules: the shaft fills the knob's bore past its flat, and a full press
+clears the cover and the encoder's bushing. Module and slot dimensions are
+`MODULE_*`, `SLOT_*`, `POGO*`; the encoder's are `ENC_*` (from the Bourns
 drawing; measure the real part).
 
 ## Files
 
 - `params.py`: all dimensions. Values marked (EST) are from listings/datasheets; measure the real parts.
-- `model.py`: parts and assemblies. The vertical stack is derived from the knob motor height,
-  and the key stack hangs from the top plate (`make_stack`).
+- `model.py`: parts and assemblies. The vertical stack is derived from the knob motor height
+  (backplane, pogo pins, module PCB, motor), and the key stack hangs from the top plate
+  (`make_stack`). Slots: `slot_items`, `backplane`, `module_cover`, `module_base`.
 - `build.py`: exports and previews.
 - `keystack.py`: key stack checks (D8): the cap's tilt in its guide (clearance over
   engagement), the worst cap drop for any press (a small linear program over the cap's
@@ -91,10 +101,11 @@ actually be built and serviced: no overlapping parts (screws may enter only
 their target, and only as deep as its thread allows; pilot holes run past the
 tips), minimum gaps between mating parts, nothing floating, nothing hitting the
 stand or below the desk in the tilted model, every screw reachable
-with a straight screwdriver at its step, the top plate, display and knob
-board lift out in order, a paperclip reaches the display board's
-BOOT/RESET through the back wall and the knob board's BOOTSEL through the
-floor, every cap's down-stop lands on the frame PCB and no press (plus the
+with a straight screwdriver at its step, every knob module and blank lifts
+out of its slot with the case closed, the top plate, display and backplane
+lift out in order, a paperclip reaches the display board's BOOT/RESET
+through the back wall and the backplane's BOOTSEL through the floor, the
+slot checks above, every cap's down-stop lands on the frame PCB and no press (plus the
 frame's flex at 3 N) brings a cap within 0.1 mm of the glass, every plug (modeled at full size,
 overmolds included) slides straight into its socket at the step that
 connects it, cables don't run through parts, and the top plate's cables
@@ -105,7 +116,7 @@ animation, [docs/assembly.md](../docs/assembly.md) and
 
 ```sh
 .venv/bin/python cad/assembly.py --check     # checks only (~30 s)
-.venv/bin/python cad/assembly.py --bom       # checks + docs/bom.md and docs/bom-lite.md
+.venv/bin/python cad/assembly.py --bom       # checks + docs/bom.md
 .venv/bin/python cad/assembly.py             # + pictures and the guide (~2 min)
 .venv/bin/python cad/assembly.py --animate   # + the animation (~15 min)
 ```
@@ -116,6 +127,6 @@ GitHub Actions ([`.github/workflows/cad.yml`](../.github/workflows/cad.yml))
 rebuilds the models on every change to `cad/` with the pinned toolchain in
 `requirements.txt`, and fails if:
 - any fit check warns (`--strict`), or a case part doesn't fit the print bed
-- any assembly check fails (`assembly.py --check`), for either knob tier
+- any assembly check fails (`assembly.py --check`), for the default slots, all haptic or all lite
 - `out/summary.md` doesn't match the committed one (outputs weren't rebuilt
   and committed after a parameter change)

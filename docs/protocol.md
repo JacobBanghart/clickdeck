@@ -10,11 +10,11 @@ from Stream32's documented protocol and Elgato's published HID docs
 The device has a USB 2.0 hub inside ([wiring.md](wiring.md)), so the PC sees
 two devices. Over USB they never talk to each other; the web configurator
 and the optional host daemon open both. An optional one-wire link inside
-the case (below) carries a few things from the knob board to the display.
+the case (below) carries a few things from the backplane to the display.
 
 | Device | Chip | Does |
 |---|---|---|
-| **Inputs** | RP2350B on the knob board | Keys, knob turns and presses, touch band, haptics, motor power budget, keymap and macros |
+| **Inputs** | RP2350B on the backplane | Keys, knob turns and presses, touch band, haptics, motor power budget, keymap and macros |
 | **Display** | ESP32-S3 on the Waveshare board | Key images and pages, knob display areas, brightness, idle blanking |
 
 Interfaces per chip:
@@ -63,14 +63,14 @@ Interfaces per chip:
 ### Pairing the two devices
 
 A host may have more than one clickdeck, so the software has to know which
-display goes with which knob board:
+display goes with which backplane:
 
 1. **Pairing ID** (first choice): on first contact the configurator writes
    a random 64-bit pairing ID to both devices (`PAIR`), stored in flash.
    Both report it in `HELLO_ACK`. This works in the browser, which can't
    see the USB topology, and through another hub or USB/IP. First pairing
    is interactive: the display shows a short code and the user presses a
-   key, so the page can't pair the wrong display with the wrong knob board.
+   key, so the page can't pair the wrong display with the wrong backplane.
 2. **Hub topology** (daemon check): both devices hang off the same hub, the
    CH334F (WCH vendor ID 0x1A86), on ports 1 (inputs) and 2 (display). On
    Linux the sysfs path shows it (`…-1.1` and `…-1.2` under the same
@@ -128,17 +128,23 @@ COBS( type u8 | seq u16 | len u16 | payload (len bytes) | crc16 u16 ) 0x00
 | Dir | Type | Payload |
 |---|---|---|
 | host → dev | `HELLO` | supported protocol version range (min, max), host kind (`configurator` / `daemon` / other) and version |
-| dev → host | `HELLO_ACK` | protocol version chosen (or `ERROR(version)` if the ranges don't overlap), role (`inputs` / `display`), firmware version, board ID (inputs: `haptic` or `lite` knob board, D22), device ID, pairing ID, **feature list** (strings, e.g. `image-rle`, `image-jpeg`, `knob-haptics`, `touch-band`, `brightness`, `link`), key grid (cols, rows); display: **key image size in px**, knob display size in px, free image storage; inputs: knob count, advertised USB current |
+| dev → host | `HELLO_ACK` | protocol version chosen (or `ERROR(version)` if the ranges don't overlap), role (`inputs` / `display`), firmware version, slot types (inputs: one per knob slot, `haptic`, `lite` or `empty`, D23), device ID, pairing ID, **feature list** (strings, e.g. `image-rle`, `image-jpeg`, `knob-haptics`, `touch-band`, `brightness`, `link`), key grid (cols, rows); display: **key image size in px**, knob display size in px, free image storage; inputs: knob count, advertised USB current |
 | host → dev | `PAIR` | pairing ID (both devices) |
 
 - The host only uses features in the list (additive versioning: new features
   never break old firmware).
 - The device reports key and knob-display sizes in pixels; the host renders
   artwork at exactly that size.
-- **Knob board tiers (D22):** one RP2350B firmware runs on both knob boards
-  and reads which one it's on from a board-ID strap pin. The haptic board
-  lists `knob-haptics`; the lite board (push encoders, no motors) doesn't,
-  and the host hides knob feel and motor power settings.
+- **Knob slots (D23):** the backplane's RP2350B reads what's in each of
+  the five slots at power-up from two ID rows in the key matrix (a haptic
+  module has a diode to ID row A, a lite module to ID row B, an empty slot
+  or blank has neither; [wiring.md](wiring.md)). A slot that reads haptic
+  but gives no valid MT6701 frame is reported `empty` and its motor stays
+  off. Modules aren't hot-plugged: the list is read once per power-up.
+  `knob-haptics` is listed when at least one slot is haptic. Knob indices
+  in `KNOB` and `KNOB_CONFIG` are slot numbers (0–4, left to right); empty
+  slots send nothing. The host hides empty slots, and shows knob feel and
+  motor power only for haptic slots.
 
 ## Trust and the optional lock
 
@@ -155,7 +161,7 @@ on the device (`LOCK`). With lock on, `KEYMAP` (when saved), `SAVE` of a
 keymap and `REBOOT_BOOTLOADER` need a 3 s knob hold:
 
 1. The host sends the request. The inputs device answers `PENDING`, gives
-   a short haptic tick (haptic tier), and the configurator shows "Hold any knob pressed
+   a short haptic tick (on a haptic slot), and the configurator shows "Hold any knob pressed
    for 3 s".
 2. The user holds a knob pressed for 3 s. The device applies the change and
    answers `OK`.
@@ -213,7 +219,7 @@ the screen shows the right page with no host.
 ## Link inside the case (optional)
 
 A one-wire UART from a spare RP2350B pin to the 7B's GPIO6 connector (J8),
-on a bought 3-pin HY2.0 lead ([wiring.md](wiring.md)). One way, knob board
+on a bought 3-pin HY2.0 lead ([wiring.md](wiring.md)). One way, backplane
 to display. Short binary messages, same CRC:
 
 | Message | Meaning |
@@ -274,10 +280,10 @@ Fields:
 | `marks` | positions (in detents) that give a tick as the knob passes them, e.g. a preset |
 | `position` | current position (so a knob can start at the app's current value) |
 
-These fields are the core knob feel (D20). The lite knob board (no
-`knob-haptics`) uses only `min`, `max` (limits in software, nothing to
-feel) and `position`, counted in encoder steps (24 per turn); its
-detents are fixed by the encoder ordered. Their behavior follows
+These fields are the core knob feel (D20). A lite slot uses only `min`,
+`max` (limits in software, nothing to feel) and `position`, counted in
+encoder steps (24 per turn); its detents are fixed by the encoder
+ordered. A config for an empty slot is stored and ignored. Their behavior follows
 SimpleFOC and SmartKnob's documented detent and end-stop profiles
 ([lessons.md](lessons.md)).
 
@@ -292,7 +298,7 @@ uses it only when the device lists that flag.
 | Type | Payload |
 |---|---|
 | `DISPLAY` (display) | brightness 0–100, idle timeout (s), `blank_now`, `wake` |
-| `POWER` (inputs) | motor current budget (mA); the default comes from the port's advertised current ([wiring.md](wiring.md)). Haptic tier only |
+| `POWER` (inputs) | motor current budget (mA); the default comes from the port's advertised current ([wiring.md](wiring.md)). Only with a haptic slot |
 | `SAVE` (inputs) | write the keymap, knob configs and `POWER` to flash, once every motor is asleep |
 | `RESET_SETTINGS` (both) | back to defaults; knob calibration kept |
 | `LOCK` (both) | lock on/off (off by default); on: keymap saves and `REBOOT_BOOTLOADER` need the 3 s knob hold |

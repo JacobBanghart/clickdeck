@@ -6,19 +6,19 @@ record the answer in the doc it affects.
 
 Status: ❓ open · ⚠️ risk to watch · ✅ answered
 
-## Answer before the knob board design
+## Answer before the backplane and module design
 
 | | Question | How we answer it | Affects |
 |---|---|---|---|
-| ✅ | Is the 7B's 3-pin sensor connector GPIO6? **Yes**: J8 = 3V3, GND, GPIO6 (schematic, 2026-10-17). Now used by the optional one-wire link from the knob board (D5) | — | [wiring.md](wiring.md) |
+| ✅ | Is the 7B's 3-pin sensor connector GPIO6? **Yes**: J8 = 3V3, GND, GPIO6 (schematic, 2026-10-17). Now used by the optional one-wire link from the backplane (D5) | — | [wiring.md](wiring.md) |
 | ✅ | Does the TMC6300 have built-in break-before-make, so one inverter can derive its low-side inputs (3-PWM plan A)? **Yes** (datasheet: "Internal break-before-make (BBM) logic ensures that no cross-conduction occurs"). Catch: in standby no input may be high, so the inverter is powered from the standby pin ([knob-module.md](knob-module.md)). Still verify: on the test kit with inverted PWM outputs, then on Rev A | — | Driver choice |
 | ✅ | TMC6300 sourcing (D2). LCSC had 59 TMC6300-LA-T (C5274455) at $5.93 on 2026-10-17; DigiKey lists ~4,100 at ~$2.44. **Answer:** source it through JLC Global Sourcing or consign it from DigiKey; reserve the Rev A quantity (10 per build) in JLC's parts library once the test kit passes. Keep the DRV8316 fallback drawn | Check JLC stock right before each order | Driver choice, cost |
-| ✅ | MT6701 package (D2). **Answer:** **MT6701CT-STD**, SOP-8 (JLC C3003196), not the QFN-16 MT6701QT. JLC's stock is separate from LCSC's | Confirm JLC stock on layout day; the package sets the magnet gap | Knob board, `params.py` |
-| ❓ | Mitoot 2204's real bolt pattern, height and KV (sellers disagree) | Calipers when the motor arrives | Knob board holes, `params.py` |
-| ✅ | ~~Can an RP2350B bootloader update reliably over the UART link from the ESP32-S3?~~ Not needed: the RP2350B now has its own USB connection through the internal hub and updates with its built-in UF2 bootloader (2026-10-17) | — | Knob board flashing ([plan.md](plan.md)) |
+| ✅ | MT6701 package (D2). **Answer:** **MT6701CT-STD**, SOP-8 (JLC C3003196), not the QFN-16 MT6701QT. JLC's stock is separate from LCSC's | Confirm JLC stock on layout day; the package sets the magnet gap | Backplane, `params.py` |
+| ❓ | Mitoot 2204's real bolt pattern, height and KV (sellers disagree) | Calipers when the motor arrives | Haptic module holes, `params.py` |
+| ✅ | ~~Can an RP2350B bootloader update reliably over the UART link from the ESP32-S3?~~ Not needed: the RP2350B now has its own USB connection through the internal hub and updates with its built-in UF2 bootloader (2026-10-17) | — | Backplane flashing ([plan.md](plan.md)) |
 | ✅ | Can we read the PC's USB-C current offer? **Yes, now**: the 7B can't (fixed 5.1 kΩ CC pull-downs), but the external port moved to our USB board, whose CC lines go to two RP2350B ADC pins. Motor budget 500 mA / 1.0 A / 1.5 A for default / 1.5 A / 3 A ports, brownout guard kept ([wiring.md](wiring.md)) | — | Power budget |
 | ⚠️ | Hub chip: **CH334F** (LCSC C5187527) 8,489 in stock, $0.63 (checked 2026-10-17). Its crystal-free mode isn't on by default on some packages, so the board fits a 12 MHz crystal (0 Ω link to try crystal-free). Still to confirm in its datasheet row: MTT and integrated terminations. Fallback: FE1.1s (C9359, SSOP-28, needs a 12 MHz crystal) | Check stock before ordering; datasheet; keep the FE1.1s footprint option in mind | USB board |
-| ❓ | 2204 motor lead: length and plug. One listing mentions ~30 cm with a 3-pin servo-style (Futaba/JR, 2.54 mm) plug; the knob board has matching 1×3 headers. A 30 cm lead coils 6.6 mm high in the 11.1 mm under the panel | Measure length and diameter on arrival; if the plug differs, change the header (JLC fits it, still no soldering) | Knob board headers, `MOTOR_*` in `params.py` |
+| ❓ | 2204 motor lead: length and plug. One listing mentions ~30 cm with a 3-pin servo-style (Futaba/JR, 2.54 mm) plug; each haptic module has a matching upright 1×3 header. The spare lead coils in a 7.4 × 3.8 × 13 mm space in front of the bell (D23), and a 30 cm lead may not fit: a shorter lead or a shortened one (by the seller) may be needed | Measure length and diameter on arrival; if the plug differs, change the header (JLC fits it, still no soldering) | Backplane headers, `MOTOR_*` in `params.py` |
 | ❓ | Where is the 7B's native USB-C port? The schematic confirms it's Type_C2 ("USB": Type_C2 → R65/R66 → U9 → GPIO19/20). The model puts it 36 mm from the board's back edge, from Waveshare's PCB view | Silkscreen on the real board, then close this | Display cable route |
 | ❓ | Mid-mount USB-C socket (C2894902): LCSC lists it as SMD-only, so the through-hole shell legs the strain relief relies on are unverified. Also how far it sticks out past the board edge, footprint | Get the HC-TYPE-C-16P-CB1.6 drawing; adjust `USB_C_SOCKET`/the board edge so the face lines up with the inside of the back wall; if it has no real legs, pick a mid-mount part that does | USB board, strain relief |
 | ⚠️ | B3U-1000P (LCSC C231329): 110,060 in stock at $0.19 (5+) with no lifecycle flag on 2026-10-17 (an older check saw "not recommended for new designs"). Operating force spreads 1.01–1.99 N. Same-size (3 × 2.5 mm) alternatives on LCSC: XKB TS-3025-B-A-B (C2885149, 160 gf, 1.5 mm tall), plus Hanxia, SAMZO, Zhongdi and G-Switch parts (2026-10-17) | Feel a few alternatives on the desk next to the rev C frame PCB's B3Us; check pad layouts | Key switches |
@@ -38,13 +38,13 @@ connectors) are first answered on Rev A.
 | ⚠️ | Does a press anywhere on the cap, including the far corners, click cleanly? Does the cap slide freely in its 0.05 mm guide? One switch or two per key? | Cap, guide, tab, frame support and down-stop (D8) |
 | ⚠️ | Is the 2204's cogging noticeable in smooth mode? | Motor choice (fallback: SparkFun ROB-20441) |
 | ❓ | Knob current at rest, while clicking, at an end stop | Power budget numbers |
-| ❓ | **Rev A.** Does the hinged tongue give a good press feel (force, travel, no wobble when turning), and does side force cause false clicks? | Hinge perforations and striker setting; parallel flexure if side force clicks (D10) |
+| ❓ | **Rev A.** Does the module's tongue on its two torsion necks give a good press feel (force, travel, no wobble when turning), and does side force cause false clicks? | Neck width, module PCB thickness, striker setting; parallel flexure if side force clicks (D10) |
 | ❓ | **Rev A.** Does the touch band work through the printed plate, next to a running motor and a lit panel, with no false touches from a hand on a knob? With the AT42QT2120, is the interpolated position within ±5%? | Touch band design; knobs move forward if it fails (D11) |
 | ❓ | How fast do images go over USB? (Plan on ~0.5 MB/s; target a full page < 300 ms) | Protocol (compression, framing) |
 | ❓ | Can the RP2350B run 5 FOC loops at ≥ 2–5 kHz each? | Knob firmware |
-| ❓ | Does the MT6701 breakout read all 14 bits over SSI on the RP2350B (SPI mode, last-bit clock edge, CRC)? See the notes in [parts.md](parts.md) | Sensor driver, knob board |
-| ❓ | Does the motor fit and center on the stand's deck as on the knob board (bolt pattern, magnet gap)? The board's own fit is first checked on Rev A | `MOTOR_*` in `params.py` |
-| ⚠️ | Rev A is the first build of the knob board, USB board and touch band. Which board needs its one planned revision? | [cost.md](cost.md) (single-board respin costs) |
+| ❓ | Does the MT6701 breakout read all 14 bits over SSI on the RP2350B (SPI mode, last-bit clock edge, CRC)? See the notes in [parts.md](parts.md) | Sensor driver, backplane |
+| ❓ | Does the motor fit and center on the stand's deck as on the haptic module (bolt pattern, magnet gap)? The board's own fit is first checked on Rev A | `MOTOR_*` in `params.py` |
+| ⚠️ | Rev A is the first build of the backplane, the knob modules, the USB board and the touch band. Which board needs its one planned revision? | [cost.md](cost.md) (single-board respin costs) |
 
 ## Answer before the full build
 
@@ -52,15 +52,15 @@ Cabling (new with the internal hub; [wiring.md](wiring.md)):
 
 | | Question | How we answer it | Affects |
 |---|---|---|---|
-| ✅ | **Offline page switching (D5).** **Answer:** an HY2.0 footprint on the knob board now for a one-wire link to the 7B's GPIO6 (J8), fitting optional. It carries page switches, activity, the knob-hold confirmation and settings reset. Without the link and without a host, the display never idle-blanks | Test with a jumper from the core board to J8 (kit), then the HY2.0 lead on Rev A | [protocol.md](protocol.md), [wiring.md](wiring.md) |
+| ✅ | **Offline page switching (D5).** **Answer:** an HY2.0 footprint on the backplane now for a one-wire link to the 7B's GPIO6 (J8), fitting optional. It carries page switches, activity, the knob-hold confirmation and settings reset. Without the link and without a host, the display never idle-blanks | Test with a jumper from the core board to J8 (kit), then the HY2.0 lead on Rev A | [protocol.md](protocol.md), [wiring.md](wiring.md) |
 | ❓ | Real USB-C plug sizes: the model uses 12.5 × 6.5 mm overmolds, 22 mm straight and 13 mm right-angle. The display end must be a side-exit (left/right) 90° plug, not up/down | Measure the cable that arrives; rerun `cad/assembly.py --check` with its sizes | Display cable, `USB_PLUG_*` |
 | ❓ | Is a 100 mm USB-C cable really ~100 mm plug tip to plug tip? (Sellers measure differently.) The loop takes 95–110 mm | Measure | Display cable |
-| ❓ | JST-GH carries 5 V on two 1 A contacts (26 AWG cable): knob board capped at ~1.8 A. Enough? | Prototype current measurements | Power budget |
+| ❓ | JST-GH carries 5 V on two 1 A contacts (26 AWG cable): backplane capped at ~1.8 A. Enough? | Prototype current measurements | Power budget |
 | ✅ | Power on default 500 mA ports (D9). **Answer:** full haptics need a 1.5 A+ port over C-to-C; on default ports haptics are nearly off; ~0.8 A motor budget on 1.5 A ports until measured; optional PD sink footprint ([wiring.md](wiring.md)) | Measure real motor current on the test kit, then on Rev A | Power budget |
 | ❓ | FFC contact side: type B (opposite sides) assumes top-contact ZIFs on both boards | ZIF datasheet | Key cable order |
 | ❓ | One JLC panel means one board thickness, but the touch band was planned at 0.8 mm | Rev A: the band is 1.6 mm in the panel; if it can't sense through the plate, its one revision is ordered separately at 0.8 mm | Touch band, cost |
-| ⚠️ | Extended-part fees: the whole panel has 19 extended part types after the basic/preferred swaps ($3.07 each per order at JLC; counted 2026-10-17, list in cost.md; was 24), not ~5. Cost isn't a design driver (D1), but [cost.md](cost.md) includes these and US import duty | Count from the BOM with JLC's BOM tool; get a real JLC cart quote with a US address | Cost |
-| ✅ | Can the knob board be top-side only (D6)? **Yes, in the model:** each press switch sits on the top side of the fixed 5 mm front border and an arm on the printed motor spacer presses it (an M2×3 set screw in the arm is the striker); the drivers moved to the back strip, so only sensor traces cross the hinges. Still to pick: SMD right-angle motor headers (THT fallback) and a reverse-mount BOOTSEL tact switch (fallback: a plain one on the bottom, the only bottom part) | Floorplan with real footprints before the full order | Knob board, assembly cost ([pcb.md](pcb.md)) |
+| ⚠️ | Extended-part fees: the base panel has 16 extended part types (19 on the old single knob board; 24 before the basic/preferred swaps), the haptic module design 5 and the lite module design 1 ($3.07 each per order and design at JLC; list in cost.md), not ~5. Cost isn't a design driver (D1), but [cost.md](cost.md) includes these and US import duty | Count from the BOM with JLC's BOM tool; get a real JLC cart quote with a US address | Cost |
+| ✅ | Can every board be top-side only (D6)? **Yes, in the model:** each haptic module's press switch sits on the top side of its fixed front border and an arm on the printed motor spacer presses it (an M2×3 set screw in the arm is the striker); the drivers sit on the same border, so only sensor traces cross the hinge. The slot connector's pogo pins are on the backplane's top and press pads under the module (D23); the motor header is a vertical SMD part (C41417360). Still to pick: a reverse-mount BOOTSEL tact switch (fallback: a plain one on the bottom, the only bottom part) | Floorplan with real footprints before the full order | Backplane, assembly cost ([pcb.md](pcb.md)) |
 
 Everything else:
 
@@ -74,15 +74,26 @@ Everything else:
 | ❓ | Case printing: does the stand print well on a home printer, and what does JLC3DP charge? | Slice the STLs; get a JLC3DP quote | Cost estimate |
 | ❓ | Real costs: JLC quotes for the panelized PCBs with assembly | Upload the real Gerbers/BOM | Cost estimate |
 
-## Lite tier (D22)
+## Knob modules and slots (D23)
+
+| | Question | How we answer it | Affects |
+|---|---|---|---|
+| ❓ | Slot connector: BAT WIRELESS BWCD-L3W2.0H1.0 pogo pin (C2988082, 32,763 in JLC stock, $0.0596 at 50+, 2026-10-19). The datasheet gives 3.0 mm, 1.0 mm stroke (from the part name), 100 ± 15 g, 1.5 A, 10,000 cycles; the drawing (tip diameter, travel, force at 0.5 mm, land pattern) is only an image. Does it seat upright under JLC's placement, and is its contact resistance stable on ENIG pads? | Get the drawing from LCSC/the maker; order 20 with the test kit and press a scrap ENIG board on them | Backplane footprint, `POGO*` in `params.py` |
+| ❓ | Module retention: two countersunk M2 × 30 screws into M2 × 4 heat-set inserts (V: insert size) against ~18 N of pins, plus pulling the knob cap off. Enough, or does the back of the module lift? Does the bezel stay flush? | Rev A: measure the bezel with a straightedge after 30 swaps | Cover, inserts |
+| ❓ | Module ID by two key-matrix rows (a diode per module to ID row A or B): reliable with the ESD series resistors on the key lines, and robust if a module sits a little high? Cross-check: a haptic ID must also give a valid MT6701 frame before its motor is enabled | Kit bench with diodes, then Rev A | Firmware, [wiring.md](wiring.md) |
+| ❓ | Alignment of printed carriers: the pads (1.8 mm) allow ±0.4 mm; the base's key pins, the plate's dividers and the slot bosses through the backplane locate the module. Is a home-printed PETG base and cover inside that, and is the base's 2.5 mm (the pins' working height, ±0.25 mm) held? The motor bell runs 0.67 mm from the plate's dividers (model): enough with real motors and prints? | Fit coupon, then the first module | `HOLE_COMP`, `POGO_WORK` |
+| ❓ | Mate cycles: the pins are rated 10,000 cycles; tens of swaps are expected. Do the ENIG pads wear through, or the inserts loosen, after ~50 swaps? | Rev A swap test ([prototype-tests.md](prototype-tests.md)) | Pads, inserts |
+| ❓ | Patent screen for swappable knob modules before selling | Before any sale | — |
+
+## Lite modules (D22)
 
 | | Question | How we answer it | Affects |
 |---|---|---|---|
 | ❓ | Encoder part: Bourns PEC11R-4215F-S0024 (C143790, 5,485 in JLC stock) detented / PEC11R-4015F-S0024 (C143789, 3,748) smooth, 2026-10-19. Body height (6.5 mm), shaft length (15 mm) and flat (7 mm) are from the Bourns drawing; tolerance ±0.3/±0.5 mm moves the knob | Buy a few of each with the next AliExpress/LCSC order; calipers; set `ENC_*` in `cad/params.py` and rerun `assembly.py --check` | Lite knob height, `knob_lite.stl` |
-| ❓ | Knob height: the lite knob seats on the shaft tip, 1 mm above the plate, 0.5 mm when pressed. Is that enough with a real part, and does the stem through the 11 mm hub hole wobble or rub? | Print `knob_lite.stl` on a real encoder under a plate offcut | Lite knob, plate hole (shared) |
-| ❓ | Does JLC fit the through-hole encoders under Economic assembly at the quoted ~$0.0173 per joint, and trim the leads to ≤ 1.2 mm (2 mm under the board to the floor)? | JLC quote with the lite BOM; ask about lead trimming | Lite cost, tray clearance |
+| ❓ | Knob height: the lite knob seats on the shaft tip, 1 mm above the cover, 0.5 mm when pressed. Is that enough with a real part, and does the stem through the cover's 11 mm hub hole wobble or rub? | Print `knob_lite.stl` on a real encoder under a plate offcut | Lite knob, plate hole (shared) |
+| ❓ | Does JLC fit the through-hole encoders under Economic assembly at the quoted ~$0.0173 per joint, and trim the leads to ≤ 1.2 mm (the backplane is 2.5 mm under the module)? | JLC quote with the lite BOM; ask about lead trimming | Lite cost, tray clearance |
 | ❓ | Encoder feel: the PEC11R's 24 detents and 0.5 mm, ~6 N push. Is the press too stiff next to the B3U keys? An Alps EC11 (e.g. EC11E15244B2, C470754, 30 detents; V: push switch, press force) is the alternative | Feel both on the desk | Lite encoder choice |
-| ❓ | SMD option: Alps EC11J1525402 (C209762, 1,666 in stock) has a push switch but only with detents; no stocked SMD part without detents. Worth a second footprint? | Only if THT assembly is a problem on the quote | Lite board |
+| ❓ | SMD option: Alps EC11J1525402 (C209762, 1,666 in stock) has a push switch but only with detents; no stocked SMD part without detents. Worth a second footprint? | Only if THT assembly is a problem on the quote | Lite module |
 | ❓ | PIO quadrature with the RC filter (10 kΩ, 10 nF): no missed steps when spun fast, no bounce at the detents | WeAct RP2350B bench with an EC11 on a breadboard | Lite firmware |
 
 ## Decided for now, revisit later
@@ -136,8 +147,8 @@ Options are in [design-review.md](design-review.md). ✅ All answered:
 - ✅ D14 case: M3 heat-set inserts (4.0 mm hole × 5.7 mm) in 8 mm plate
   posts, M3×6 screws, PETG
 - ✅ D15 look: one standard clear cap finish for now; revisit after seeing it
-- ✅ D16 floorplan: drivers off the tongue (on the back strip next to each
-  motor header), real-footprint floorplan first; no shunts on the knob board
+- ✅ D16 floorplan: drivers off the tongue (on the haptic module's front
+  border since D23), real-footprint floorplan first; no shunts
   (Rev 0 was dropped; current is measured on the test kit)
 - ✅ D17 security (changed 2026-10-18): VIA-style trust, the browser's device
   picker is the confirmation; optional on-device lock brings back the 3 s
@@ -150,5 +161,9 @@ Options are in [design-review.md](design-review.md). ✅ All answered:
   haptic notifications are an optional firmware module, off by default
 - ✅ D21 look (2026-10-18): clickdeck's own look; comparisons with the + XL
   are fine
-- ✅ D22 tiers (2026-10-19): a lite knob board with push encoders next to
-  the haptic flagship; everything else shared; the display stays the 7B
+- ✅ D22 tiers (2026-10-19): lite knobs with push encoders next to the
+  haptic flagship; since D23 a lite module type, not a second board; the
+  display stays the 7B
+- ✅ D23 modules (2026-10-19): knobs are modules in five slots (haptic,
+  lite or blank), swapped from the top; a backplane with the RP2350B under
+  them; modules have no MCU ([knob-module.md](knob-module.md))

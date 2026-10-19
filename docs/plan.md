@@ -41,20 +41,24 @@
   branding stay clickdeck's own. Comparisons with the Stream Deck + XL are
   fine; the case and stand aren't modeled to look like it.
 
-**Two knob tiers (owner, locked 2026-10-19; D22)**
-- **Haptic** (the flagship): everything on this page. Software clicky and
-  smooth is a haptic-tier feature.
-- **Lite** (cheaper): a second knob board with five EC11-size push
-  encoders, no motors. Detented or smooth is picked when ordering the
-  encoders and fixed after that. The encoder's switch is the knob press.
-- Everything else is the same part in both: case, top plate, display (the
-  7B stays), frame PCB, keys, USB board, touch band, cables. The lite board
-  keeps the knob board's outline, holes, connectors and RP2350B, so
-  firmware, protocol and configurator are shared; the firmware reports
-  which board it is and the configurator hides haptic settings on the lite
-  tier. Lite knobs sit at the same height and position, checked by
-  `cad/assembly.py --check`. Costs: [cost.md](cost.md); parts:
-  [bom-lite.md](bom-lite.md); board: [pcb.md](pcb.md).
+**Knobs are modules in slots (owner, locked 2026-10-19; D23, with D22)**
+- The case keeps five knob positions as **slots**. Each takes a **haptic
+  module** (motor, driver, sensor, press switch: software clicky and
+  smooth), a **lite module** (an EC11-size push encoder, detented or smooth
+  as ordered, D22) or a **blank** cover, flush with the plate.
+- The first build has two haptic modules and three blanks; knobs get added
+  later. Swap from the top with the case closed: pull the cap, undo two
+  screws, lift the module out, drop the new one in. Unplug USB first (no
+  hot-plugging).
+- The old knob board becomes the **backplane**: RP2350B, connectors and one
+  slot connector (18 pogo pins) per slot. Modules have no MCU; one firmware
+  reads each slot's type at power-up, and the configurator shows haptic
+  settings only for haptic slots and hides empty ones.
+- Both module types put the knob top where the haptic knob was, checked by
+  `cad/assembly.py --check` with every slot haptic, every slot lite and the
+  default build. Modules: [knob-module.md](knob-module.md); pinout:
+  [wiring.md](wiring.md); costs (base + per module): [cost.md](cost.md);
+  parts: [bom.md](bom.md).
 
 ## Architecture
 
@@ -63,10 +67,11 @@
    │  single USB-C cable, into the back wall
    ▼
  USB board: USB 2.0 hub (CH334F), reads the port's current offer (CC pins)
-   ├── USB ──► knob board: RP2350B (USB device 1)
+   ├── USB ──► backplane: RP2350B (USB device 1)
    │             ├── USB HID (keyboard + media) + WebUSB data channel → keymap, macros, knob settings
    │             ├── optional 1-wire link ──► display board GPIO6 (page, wake)
-   │             ├── 5 knobs: MT6701 sensor + motor driver + press switch each
+   │             ├── 5 knob slots (pogo pins): haptic module (MT6701 + driver + press switch),
+   │             │     lite module (push encoder) or blank
    │             ├── 21-key matrix (frame PCB, switches only)
    │             └── I²C ──► touch band (under the top plate)
    └── USB ──► ESP32-S3 + 7" display board (USB device 2; bought: Waveshare ESP32-S3-LCD-7B, 1024×600)
@@ -192,35 +197,48 @@ Firmware notes:
 - In free smooth mode the driver stays in standby (3-PWM shorts the windings
   at zero torque, which drags) and wakes only for effects.
 
-All five knobs share **one knob board** run by an **RP2350B**. Each motor is
-driven with 3 PWM signals (the TMC6300 needs 6, so an inverter derives the
-low sides; DRV8316 is the fallback). Details in [pcb.md](pcb.md).
+All five slots are run by the **RP2350B on the backplane** (D23). Each
+haptic module's motor is driven with 3 PWM signals through its slot (the
+TMC6300 on the module needs 6, so an inverter there derives the low sides;
+DRV8316 is the fallback). Details in [pcb.md](pcb.md) and
+[knob-module.md](knob-module.md).
 
-**Press to click:** each knob sits on a tongue cut into the knob board
-(U-shaped slot, hinged at the back). An arm on the printed motor spacer
-reaches forward over the slot to a B3U switch on the board's fixed front
-border (top side); pressing the knob flexes the tongue down and an M2×3 set
-screw in the arm presses the switch. A plain 8 × 1.6 mm FR-4 neck is likely several
-times too stiff (design review H3, decision D10), so:
-1. First a $0 test: saw a tongue into scrap FR-4 and load it on the kitchen
-   scale.
-2. Rev A's knob board gets a **tunable hinge** (perforations that can be
-   drilled or cut out) and an adjustable **set-screw striker** per switch,
-   so each knob's press gap is set on the bench, with the top plate off.
-   Rev A is the first real hinge (the Rev 0 knob module was dropped).
+**Slots and modules (D23).** Each slot has an opening in the top plate,
+29.2 × 34.1 mm, with printed dividers between the openings that stiffen the
+plate's front strip and guide the modules. A module is a printed base (it
+sets the pogo pins' working height and carries two key pins of different
+sizes), the module PCB, the knob parts, and a printed cover whose bezel is
+flush with the plate. Two countersunk M2 screws through the bezel go into
+heat-set inserts in the tray's slot bosses. The slot connector is 18 SMD
+pogo pins on the backplane (top side) pressing ENIG pads under the module,
+so every board stays top-side only (D6). The module stack makes the case
+3.1 mm taller; the knob tops stay 16 mm above the plate at the old XY.
+
+**Press to click:** each haptic knob sits on a tongue cut into its module
+PCB, held by two torsion necks near its back edge (the hinge). An arm on
+the printed motor spacer reaches forward over the slot to a B3U switch on
+the module's fixed front border (top side); pressing the knob tips the
+tongue down and an M2×3 set screw in the arm presses the switch. A plain
+8 × 1.6 mm FR-4 bending neck was likely several times too stiff (design
+review H3, decision D10), so:
+1. First a $0 test: saw the module's tongue into scrap FR-4 and load it on
+   the kitchen scale.
+2. Rev A's modules have the torsion necks and an adjustable **set-screw
+   striker**, so each knob's press gap is set on the bench. The module is a
+   small board of its own, so a softer neck (or a 1.0 mm board) is a cheap
+   reorder.
 3. If sideways force on the knob causes false clicks (the cap top is far
    above the hinge), the next revision moves to a parallel-guided flexure.
+Lite modules use the encoder's own push switch.
 
-**Knob board floorplan** (D16, D6): each driver sits on the 19 mm back
-strip next to its motor header, off the tongues, so only sensor traces
-cross each hinge. Before the full order, floorplan the board with real
-footprints (RP2350B QFN-80, TMC6300, connectors). Motor current is
-measured on the test kit at the bench supply and the USB power meter (the
-Rev 0 module and its shunt footprints were dropped). The knob board is
-**top-side only** (D6, shown feasible in the model), so JLC's cheaper
-single-side assembly fits everything. It needs SMD right-angle motor
-headers (part not chosen; THT is the fallback) and a reverse-mount BOOTSEL
-switch.
+**Module floorplan** (D16, D6): the driver, inverter, switch and motor
+header sit on the module's fixed front border, off the tongue, so only
+sensor traces cross a neck. Before ordering, floorplan the module and the
+backplane with real footprints (RP2350B QFN-80, TMC6300, the pad field).
+Motor current is measured on the test kit at the bench supply and the USB
+power meter. Every board is **top-side only** (D6), so JLC's cheaper
+single-side assembly fits everything; the backplane still needs a
+reverse-mount BOOTSEL switch.
 
 ### Power budget
 One USB-C cable feeds the display board, its backlight and 5 motors. One
@@ -243,7 +261,7 @@ worth (about 0.8–1.5 A, set by the port; below)**, enforced by a firmware arbi
 
 **Power policy (D9): full haptics need a USB-C port that offers 1.5 A or
 more, over a C-to-C cable.** The USB board reads the host port's
-advertised USB-C current (CC pins, polled all the time) and the knob board
+advertised USB-C current (CC pins, polled all the time) and the backplane
 sets the motor budget from it:
 - Default USB power (500 mA, or any A-to-C cable): haptics nearly off. The
   display, hub and logic already use about 0.5 A, so the motors only get
@@ -251,11 +269,12 @@ sets the motor budget from it:
 - 1.5 A port: about 0.8 A for the motors until real current is measured.
 - 3 A port: 1.5 A (capped by the internal cable).
 
-The lite tier has no motors and draws about 0.46 A in all, so it runs on
-any USB port, including 500 mA ports and A-to-C cables
-([wiring.md](wiring.md)).
+The motor budget is shared among the haptic slots, however many there are.
+A device with only lite modules and blanks has no motors and draws about
+0.46 A in all, so it runs on any USB port, including 500 mA ports and A-to-C
+cables ([wiring.md](wiring.md)).
 
-Until the knob board has read CC and been configured over USB, the motors
+Until the backplane has read CC and been configured over USB, the motors
 stay off and the backlight starts low. An optional USB-PD sink footprint
 (CH224-class, not fitted by default) on the USB board could ask a PD
 charger for 5 V at 3 A. A brownout guard on the 5 V input backs it all up
@@ -274,7 +293,7 @@ knob hold by default. An optional lock (stored on the device) brings back
 a 3 s knob hold for reflashes and keymap changes. Bootloaders stay unlocked.
 
 Three pinholes reach the display board's BOOT and RESET (back wall) and the
-knob board's BOOTSEL (case floor, under the knob board's left end; lift the
+backplane's BOOTSEL (case floor, under the backplane's left end; lift the
 slab off the stand to reach it). Settings live in flash that firmware updates don't
 erase; holding the top-left key while plugging in resets them. Step by
 step: [recovery.md](recovery.md).
@@ -288,9 +307,9 @@ plus temporary live-state overlays, separate key-down/key-up events, and
 keys that send their stored shortcuts with no host software.
 
 **Offline pages and screen wake (D5):** the two chips only meet over USB
-through the host. An optional one-wire link from the knob board to the
+through the host. An optional one-wire link from the backplane to the
 display board's GPIO6 connector carries page switches and activity, so
-pages change and the screen blanks and wakes with no host. The knob board
+pages change and the screen blanks and wakes with no host. The backplane
 has the footprint now; fitting the lead is optional. Without the link and
 without a host, the display never idle-blanks
 ([protocol.md](protocol.md)).
@@ -315,7 +334,7 @@ over ~155 mm), so all 12 channels run as separate electrodes and firmware
 works out the position from their signal levels. The band is a
 nice-to-have and unplugs; if the part can't be sourced, the band is
 dropped, not the build (`TOUCH_BAR = False` in `cad/params.py` removes the
-band, its cable and the knob board's SH header from the model).
+band, its cable and the backplane's SH header from the model).
 
 ### Case material
 The case holds about 2.3 W in a closed box, and the 7B is rated 0–65 °C.
@@ -327,9 +346,10 @@ for 2 h at full brightness on the first build.
 
 ## Stages (prototype: 2 keys on the 7B + a knob test stand, then Rev A)
 
-Plan changed 2026-10-18 (D3). Final parts are bought early, tested on the
-bench and reused in the full build: the Waveshare 7B, six 2204 motors (5 +
-1 spare), the magnets and the display cable. A throwaway test kit covers
+Plan changed 2026-10-18 (D3) and 2026-10-19 (D23). Final parts are bought
+early, tested on the bench and reused in the full build: the Waveshare 7B,
+four 2204 motors from two sellers (2 for Rev A's haptic modules + 2 spare),
+the magnets and the display cable. A throwaway test kit covers
 the rest: a SparkFun TMC6300 breakout, an MT6701 breakout, a WeAct RP2350B
 core board and a CH334F hub module (these two stay as the firmware dev
 bench), a printed knob test stand, and one custom PCB, the rev C 2-key
@@ -348,25 +368,28 @@ full build. Parts and costs: [parts.md](parts.md), [cost.md](cost.md).
    driven by the SparkFun TMC6300 from the core board. SimpleFOC closed
    loop; clicky/smooth/stops set from the PC; current, standby and wake;
    1 real + 4 dummy FOC loops for timing. Each low side runs from an
-   inverted PWM output, as the knob board's inverter will.
+   inverted PWM output, as the haptic module's inverter will.
 4. **Keys:** the two top-left keys on the rev C frame PCB + clear caps on
    the 7B; adjust until a press anywhere on the key clicks cleanly, and
    compare one switch per key with two. Caps are JLC3DP clear resin
    prints. The top plate is printed (it carries the cap guides); the base
    plate is laser-cut acrylic.
-5. **Hinge (free):** a tongue sawn into scrap FR-4, loaded on the kitchen
-   scale (D10).
+5. **Hinge (free):** the module's tongue and torsion necks sawn into scrap
+   FR-4, loaded on the kitchen scale (D10).
 6. **Decide go/no-go:** if the knob and cap feel are both good → Rev A.
-7. **Lite tier (D22):** no prototype of its own. An EC11 on a breadboard
-   with the WeAct RP2350B bench checks the PIO quadrature reader and the
-   press in the key matrix; the lite knob board is first built whole.
+7. **Lite modules (D22):** no prototype of their own. An EC11 on a
+   breadboard with the WeAct RP2350B bench checks the PIO quadrature
+   reader, the press and the module-ID rows in the key matrix.
 
-**Rev A (the full build):** first test of everything the kit can't
-show: the hinge and press feel, the motor mount fit, our RP2350B, hub,
-CC sensing and touch circuits, the connectors and cables, and the touch
-band next to a running motor ([prototype-tests.md](prototype-tests.md)).
-Plan on one revision of whichever board fails, and order only that board,
-not the whole panel ([cost.md](cost.md)).
+**Rev A (the full build):** the base and backplane, **2 haptic modules,
+1 lite module** (so both module types are proven) and blanks in the other
+slots. First test of everything the kit can't show: the hinge and press
+feel, the motor mount fit, the slot connector and module swaps, slot
+detection, our RP2350B, hub, CC sensing and touch circuits, the connectors
+and cables, and the touch band next to a running motor
+([prototype-tests.md](prototype-tests.md)). Plan on one revision of
+whichever board fails, and order only that board: the backplane and the
+module boards are separate designs now ([cost.md](cost.md)).
 
 Software: on the ESP32-S3, **ESP-IDF 5.x** (esp_lcd + esp_tinyusb; the
 7B's RGB panel needs sdkconfig options a precompiled Arduino core can't

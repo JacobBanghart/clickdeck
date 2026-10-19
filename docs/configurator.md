@@ -42,17 +42,20 @@ pages or swipes ([design-review.md](design-review.md), D4).
 - Knob calibration, power status (the port's advertised current, the motor
   budget) and import/export of a whole profile as a file.
 
-**Lite knob board (D22):** the device reports which knob board it has
-([protocol.md](protocol.md)). On the lite tier (push encoders, no motors)
-the page hides knob feel, calibration and the motor budget, and keeps what
+**Knob slots (D23):** the device reports what's in each slot: haptic,
+lite or empty ([protocol.md](protocol.md)). The page shows one knob per
+filled slot, in slot order, and hides empty slots. Knob feel, calibration
+and the motor budget appear only for haptic slots; a lite slot keeps what
 turning and pressing send and the software limits. Profiles move between
-tiers; the knob feel settings are kept but unused on the lite tier.
+configurations: a slot's settings are kept when its module changes, and
+unused until a matching module is back. Swapping a module means unplugging
+USB first; the page notices the new layout on reconnect.
 
 **Browsers:** Chromium-based only (Chrome, Edge, Brave, Opera). Firefox and
 Safari don't support WebUSB. The device itself works everywhere; only setup
 needs Chromium. The page can also be saved and run offline.
 
-**Both chips at once:** the page opens two USB devices, the knob board and
+**Both chips at once:** the page opens two USB devices, the backplane and
 the display board, and treats them as one clickdeck (pairing:
 [protocol.md](protocol.md)). The first time, the browser asks permission for
 each one; after that it remembers them.
@@ -75,7 +78,7 @@ update can always be retried:
   button needed. Only with lock on and no optional GPIO6 link, the display
   can't see the knob hold, so the page asks you to start its bootloader
   with the BOOT pinhole instead ([recovery.md](recovery.md)).
-- **Knob board (RP2350B):** the page asks it to reboot into its UF2
+- **Backplane (RP2350B):** the page asks it to reboot into its UF2
   bootloader, then writes the firmware over WebUSB (picotool-style). Drag
   and drop of a UF2 file onto the RP2350 drive works too.
 - Builds come from the project's GitHub Releases, pinned by version and

@@ -108,32 +108,23 @@ MT6701 = (4.9, 3.9, 1.5)                # MT6701CT-STD, SOP-8 body (the QT is a 
 # tall) and is screwed from under the tongue into the base's threaded holes. The
 # spacer has an arm forward over the slot that presses the knob's press switch (D6).
 MOTOR_SPACER_ID = 12.0                  # clears the sensor and the magnet
-MOTOR_SPACER_OD = 21.0                  # inside the base; clears the driver at (9, -9)
+MOTOR_SPACER_OD = 21.0                  # inside the base and the module's 22 mm tongue
 MOTOR_SCREW_BC = 16.0                   # base screw bolt circle, 4x M2 (EST: measure)
 MOTOR_THREAD_DEPTH = 3.0                # threaded depth in the stator base (EST: measure)
 MOTOR_LOCATE_PIN_D = 1.5                # two spacer pins into NPTH holes in the tongue (centering)
 MOTOR_SPACER_ARM_W = 5.0                # arm from the spacer to over the press switch
-TMC6300 = (3.0, 3.0, 0.9)               # QFN-20; on the back strip next to its motor header (D16)
-# Knob board: one PCB for all knobs (sensors, drivers, RP2350B). Each knob sits
-# on a tongue cut free by a U-shaped slot, hinged at the back. Every part is on
-# the top side (D6): pressing the knob flexes the tongue down, and the arm on
-# the motor spacer presses a B3U on the fixed front border (press-to-click).
-TONGUE = 26.0                           # tongue size (square), centered on the knob
-TONGUE_SLOT = 1.0                       # slot width around the tongue
-TONGUE_HINGE_W = 8.0                    # uncut neck at the back = the hinge
+TMC6300 = (3.0, 3.0, 0.9)               # QFN-20; on the module's fixed front border, off the tongue (D16)
 KNOB_PRESS_GAP = 0.2                    # press switch actuator to its striker (nominal)
 STRIKER_LEN = 3.0                       # M2x3 set screw in the spacer arm (striker); set at calibration
-KNOB_UNDER_CLEAR = 2.0                  # tongue underside to the floor: motor screw heads (1.3) + travel
-KNOB_BOARD_EDGE = 5.0                   # solid border outside the slots (front edge carries screws)
-KNOB_BOARD_BACK = 19.0                  # solid strip behind the tongues (RP2350B, drivers, connectors)
+KNOB_UNDER_CLEAR = 2.0                  # prototype stack only: board underside to the floor
 RP2350B = (10.0, 10.0, 0.85)            # QFN-80
-# BOOTSEL (recovery): a reverse-mount tact switch on the knob board's left border,
+# BOOTSEL (recovery): a reverse-mount tact switch on the backplane's left end,
 # its plunger through the board, pressed with a paperclip through a hole in the
 # case floor (lift the slab off the stand). A plain tact switch on the bottom side
 # fits the same spot if no reverse-mount part is found (it'd be the one bottom part).
 BOOTSEL_SW = (3.0, 4.0, 1.5)            # body on the top side (x, y, h) (EST: part not chosen)
 BOOTSEL_PLUNGER = (1.2, 0.3)            # plunger diameter, how far it reaches below the board
-BOOTSEL_FROM_KNOB0 = 8.0                # y offset from knob 0's center, on the left border
+BOOTSEL_FROM_KNOB0 = 8.0                # y offset from knob 0's center, on the left end
 # Knob: tapered, wider at the top (similar in size to common aluminum
 # encoder knobs). Printed (or CNC'd) as part of the build, so builders don't
 # need to buy knobs.
@@ -169,15 +160,61 @@ TOUCH_BAR_H = 11.2                      # knobs move forward as needed to make r
 TOUCH_BAR_RECESS = 0.4                  # flat pocket in the plate underside the band sits in
 MOTOR_TO_PLATE = 0.8                    # bell (hub flange) to plate underside
 
-# --- Knob tier (D22) --------------------------------------------------------
-# Two knob boards, everything else shared (case, top plate, display, frame PCB,
-# keys, USB board, touch band, cables):
-#   "haptic"  2204 motors, TMC6300, MT6701, hinged tongues (the flagship)
-#   "lite"    EC11-size push encoders, no motors; detent or smooth is chosen
-#             when ordering. Same outline, holes, connectors and RP2350B.
-# build.py and assembly.py --check always build and check both; this picks the
-# tier model.full_device() builds by default (and the assembly guide's pictures).
-KNOB_TIER = "haptic"
+# --- Knob slots and modules (D23) -------------------------------------------
+# The case keeps five knob positions as slots. Each slot takes a haptic module
+# (motor, driver, sensor, press switch), a lite module (push encoder, D22) or a
+# blank cover. Modules drop in from the top through an opening in the top plate,
+# mate with the backplane's pogo pins as they go down, and are held by two
+# screws through their cover; the case stays closed. Modules have no MCU: the
+# backplane's RP2350B runs every slot. Unplug USB before swapping (no hot-plug).
+# Left to right. The default is the owner's first build: two haptic modules on the
+# left, blanks in the rest. build.py and assembly.py --check also build and check
+# all-haptic and all-lite (CHECK_CONFIGS).
+KNOB_SLOTS = ("haptic", "haptic", "blank", "blank", "blank")
+SLOT_TYPES = ("haptic", "lite", "blank")
+CHECK_CONFIGS = (("haptic",) * 5, ("lite",) * 5)
+# Backplane: the old knob board's outline and connectors (RP2350B, motor-rail eFuse,
+# GH, ZIF, SH, HY2.0, BOOTSEL), with the slot connectors instead of the knobs.
+BP_UNDER = 1.0                          # backplane underside above the floor (1 mm bosses and ribs)
+BP_FRONT = 19.0                         # backplane front edge, from the knob axes
+BP_BACK = 33.0                          # back edge behind the axes (RP2350B, connectors, under the panel)
+BP_SIDE = 19.0                          # ends past the outer knob axes
+BP_BOSS_D = 5.5                         # floor bosses under the backplane (M2 from above)
+# Slot connector: SMD pogo pins on the backplane's top side (D6) press ENIG pads on
+# the module PCB's underside (pads aren't parts, so the module stays top-side only).
+# BAT WIRELESS BWCD-L3W2.0H1.0, LCSC C2988082: 3.0 mm tall, 2.0 mm barrel, 1.0 mm
+# stroke, ~1 N (100 g), 1.5 A, 10,000 cycles (V: drawing, force curve).
+POGO = (2.0, 3.0, 1.0)                  # barrel diameter, free height, stroke
+POGO_WORK = 2.5                         # working height = the module base's thickness (0.5 mm in)
+POGO_COMPRESS = (0.25, 0.75)            # allowed compression (check): stroke margin both ways
+POGO_GRID = (6, 3, 3.0, 2.5)            # columns, rows, x pitch, y pitch: 18 contacts per slot (docs/wiring.md)
+POGO_ROW0 = -18.3                       # first (front) row, y from the knob axis
+POGO_PAD_D = 1.8                        # pad on the module (±0.4 mm for the pin's 1.0 mm tip)
+# Module PCB (haptic and lite share the outline, pads and holes), from the knob axis
+MODULE_W = 28.4                         # passes the plate opening; 2.4 mm between neighbors
+MODULE_FRONT = 19.5                     # front edge (in front of the axis)
+MODULE_BACK = 11.0                      # back edge: the haptic tongue's back edge
+MODULE_TONGUE = 22.0                    # haptic: tongue under the motor (the spacer is 21)
+MODULE_SLOT = 1.0                       # slot around the tongue (front and sides)
+MODULE_NECK = (7.5, 9.5)                # y range of the two torsion necks (the hinge, D10)
+MODULE_BASE_BACK = 14.0                 # base and cover reach this far behind the axis
+# Top plate opening per slot and the module's cover (bezel flush with the plate)
+SLOT_OPEN = (14.6, 19.8, 14.3)          # half width, front, back (the touch band is behind)
+BEZEL_GAP = 0.3                         # cover to the opening, per side
+SLOT_WALL_GAP = 0.6                     # plate dividers between openings stop this far above the backplane
+MODULE_POSTS = ((-12.4, -17.6), (12.4, -17.6), (-12.6, 12.4), (12.6, 12.4))   # cover posts
+MODULE_POST_D = 3.0
+MODULE_SCREWS = (0, 3)                  # posts with the retention screws (diagonal)
+KEY_PIN_D = (2.0, 1.4)                  # pins under the base at posts 1 and 2 into backplane holes:
+KEY_PIN_L = 1.2                         # different sizes, so a module turned round won't seat
+INSERT_M2 = (3.2, 4.0)                  # M2 heat-set insert in the module bosses (hole, length)
+MODULE_WALL = 0.8                       # cover's front wall (ties the posts)
+MODULE_HEADER = (7.6, 2.5, 2.5)         # vertical SMD 1x3 2.54 mm header body (HX PZ2.54-1x3P TP-YQ)
+MODULE_HEADER_XY = (-6.5, -16.6)        # motor header on the front border
+MOTOR_PLUG_UP = (7.6, 2.6, 14.0)        # motor plug standing on it (w, d, h)
+LEAD_COIL = (7.4, 3.8, 13.0)            # spare motor lead, coiled flat in front of the bell (EST)
+LEAD_COIL_XY = (6.6, -16.7)
+LEAD_COIL_Z = 5.5                       # coil bottom above the module PCB (clears the spacer arm)
 # Lite encoder: Bourns PEC11R-4x15F-S0024 (vertical, 6 mm flatted metal shaft,
 # push switch). PEC11R-4215F-S0024 has 24 detents, PEC11R-4015F-S0024 none; same
 # body, shaft and footprint. From the Bourns drawing (V: measure the real part).
@@ -186,10 +223,10 @@ ENC_BUSHING = (7.0, 5.0)                # M7 bushing: diameter, length (LB, 15 m
 ENC_SHAFT_L = 15.0                      # shaft from the mounting surface (L)
 ENC_SHAFT_FLAT = (7.0, 4.5)             # flatted length (F), width across the flat
 ENC_PRESS_TRAVEL = 0.5                  # push switch travel (0.5 ± 0.3)
-ENC_PIN_STUB = 1.2                      # pins below the board after trimming (floor is 2 mm below)
+ENC_PIN_STUB = 1.2                      # pins below the module PCB after trimming
 LITE_KNOB_ENGAGE = 9.0                  # shaft length inside the knob's bore (the flat is 7)
-LITE_STEM_D = 9.0                       # knob stem through the plate's hub hole to the shaft
-KNOB_TOP_TOL = 0.05                     # lite knob top vs haptic knob top (check)
+LITE_STEM_D = 9.0                       # knob stem through the cover's hub hole to the shaft
+KNOB_TOP_TOL = 0.05                     # every knob top vs the haptic knob's position (check)
 
 # --- Case -----------------------------------------------------------------
 # Case parts should fit a common home 3D printer bed (Bambu A1/P1, Prusa MK4).
@@ -223,7 +260,6 @@ M3_HEAD = (6.0, 1.8)        # pan head (ISO 7045 / K30 thread-forming) diameter,
 M2_CLEAR, M2_PILOT = 2.2, 1.7
 M2_HEAD = (3.8, 1.3)
 M2_CSK_HEAD = (3.8, 1.2)    # countersunk (knob hub flange)
-KNOB_BOARD_BOSS_D = 5.5     # floor bosses under the knob board (M2 from above)
 FRAME_PCB_MARGIN_SIDE = 7.0 # frame PCB side margins carry its mounting holes
 FRAME_BOSS_D = 5.5          # top plate bosses the frame PCB screws into (M2 from below)
 FRAME_INNER_BOSS_D = 4.0    # bosses at strip crossings between keys (room between the caps' lugs)
@@ -298,19 +334,17 @@ GH_PLUG = (10.8, 4.3, 5.5)              # JST-GH 8-pin plug outside its header (
 GH_HEADER = (12.8, 4.3, 4.3)            # SM08B-GHS-TB side-entry header (w, h, depth)
 GH_CABLE_D = 3.0
 # 2204 motor leads: ~30 cm with a 3-pin 2.54 mm servo-style plug (Futaba/JR) per one
-# listing; VERIFY ON ARRIVAL. The knob board has a right-angle 1x3 header per motor.
-MOTOR_PLUG = (7.6, 2.6, 14.0)           # plug body (w, h, length)
+# listing; VERIFY ON ARRIVAL. Each haptic module has a vertical 1x3 header (MODULE_HEADER).
 MOTOR_LEAD_LEN = 300.0
 MOTOR_LEAD_D = 2.2
-HEADER_3P = (2.5, 7.6, 2.5)             # right-angle 1x3 header body (along the pins, w, h)
 # Keys: 12-pin 1.0 mm FFC between two flip-lock ZIF connectors. Touch: JST-SH 6-pin.
 ZIF_12P = (16.0, 4.6, 2.0)              # (length along the pins' row, depth, height) (EST)
-# Optional GPIO6 link (D5): HY2.0 3-pin, knob board header (side entry, top side) to the 7B's J8
+# Optional GPIO6 link (D5): HY2.0 3-pin, backplane header (side entry, top side) to the 7B's J8
 HY_LINK = True                          # model the optional lead (the header footprint is always there)
 HY_HEADER = (8.0, 4.0, 4.5)             # SMD side-entry header (w, depth, h) (EST)
 HY_PLUG = (8.0, 4.5, 6.0)               # HY2.0 3-pin plug body outside its socket (w, h, length) (EST)
 HY_CABLE_D = 2.4
-HY_KNOB_X = 57.0                        # header x on the knob board's back edge
+HY_KNOB_X = 57.0                        # header x on the backplane's back edge
 # Optional USB-PD sink (D9): CH224-class, not fitted by default; area on the USB board
 PD_SINK = (5.0, 4.0, 1.0)               # chip + passives keep-out (EST)
 SH_HEADER_SIDE = (9.0, 4.25, 2.9)       # SM06B-SRSS-TB, side entry (w, depth, h)

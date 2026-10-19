@@ -79,7 +79,9 @@ class Item:
 @dataclass
 class Stack:
     floor_top: float
-    knob_pcb_bot: float
+    bp_bot: float          # backplane (D23); the prototype stack has no backplane (= knob_pcb)
+    bp_top: float
+    knob_pcb_bot: float    # module PCB (the motor or encoder sits on it)
     knob_pcb_top: float
     motor_bot: float
     motor_top: float
@@ -94,9 +96,17 @@ class Stack:
     cap_top: float
 
 
-def make_stack(floor_t: float, plate_t: float) -> Stack:
-    # Top-side-only knob board (D6): under the tongues only the motor screw heads
-    knob_pcb_bot = floor_t + P.KNOB_UNDER_CLEAR
+def make_stack(floor_t: float, plate_t: float, modular: bool = True) -> Stack:
+    """modular: the full build's knob slots (D23): the backplane BP_UNDER above the floor,
+    its pogo pins, then the module PCB POGO_WORK above it. Otherwise (prototype) the old
+    single knob board KNOB_UNDER_CLEAR above the floor."""
+    if modular:
+        bp_bot = floor_t + P.BP_UNDER
+        bp_top = bp_bot + P.PCB_T
+        knob_pcb_bot = bp_top + P.POGO_WORK
+    else:
+        knob_pcb_bot = floor_t + P.KNOB_UNDER_CLEAR
+        bp_bot, bp_top = knob_pcb_bot, knob_pcb_bot + P.PCB_T
     knob_pcb_top = knob_pcb_bot + P.PCB_T
     motor_bot = knob_pcb_top + P.MT6701[2] + P.SENSOR_GAP + P.MAGNET_H
     motor_top = motor_bot + P.MOTOR_H
@@ -109,7 +119,7 @@ def make_stack(floor_t: float, plate_t: float) -> Stack:
     pcb_top = sw_top - P.SW_H
     pcb_bot = pcb_top - P.PCB_T
     glass = pcb_bot - P.GLASS_GAP
-    return Stack(floor_t, knob_pcb_bot, knob_pcb_top, motor_bot, motor_top,
+    return Stack(floor_t, bp_bot, bp_top, knob_pcb_bot, knob_pcb_top, motor_bot, motor_top,
                  plate_bot, plate_top, flange_top, flange_bot, sw_top,
                  pcb_top, pcb_bot, glass, plate_top + P.CAP_PROTRUDE)
 
@@ -294,9 +304,11 @@ def frame_pcb_sketch(rect: tuple[float, float, float, float],
 def plate_sketch(outline: tuple[float, float, float, float], radius: float,
                  key_xy, win_xy, win_size, knob_xy,
                  holes_xy=(), hole_d: float = 3.2, small_holes_xy=(),
-                 small_hole_d: float = P.FRAME_MOUNT_HOLE_D, win_ledge: float = 0.0) -> Sketch:
+                 small_hole_d: float = P.FRAME_MOUNT_HOLE_D, win_ledge: float = 0.0,
+                 openings=()) -> Sketch:
     """Top plate outline. win_ledge: the knob windows' through-holes are this much
-    smaller per side (the ledge their covers sit on; the pocket above is cut in 3D)."""
+    smaller per side (the ledge their covers sit on; the pocket above is cut in 3D).
+    openings: knob slot openings (cx, cy, w, h) (D23)."""
     x0, x1, y0, y1 = outline
     w = P.CAP_SIZE + 2 * P.KEY_GUIDE_CLEAR + P.HOLE_COMP     # the key holes are the cap guide (D8)
     with BuildSketch() as sk:
@@ -310,6 +322,9 @@ def plate_sketch(outline: tuple[float, float, float, float], radius: float,
         if knob_xy:
             with Locations(*knob_xy):
                 Circle(knob_hole_d() / 2, mode=Mode.SUBTRACT)
+        for cx, cy, w_, h_ in openings:
+            with Locations((cx, cy)):
+                RectangleRounded(w_, h_, 1.3, mode=Mode.SUBTRACT)
         if holes_xy:
             with Locations(*holes_xy):
                 Circle(hole_d / 2, mode=Mode.SUBTRACT)
@@ -390,7 +405,7 @@ def knob_parts(st: Stack, x: float, y: float, n: int, screws: list | None = None
         nominal = max(n_ for n_ in STD_LENGTHS if n_ - hh <= ft - hh + P.BELL_THREAD_DEPTH - 0.3)
         for k, (sx, sy) in enumerate(hub_screw_xy(x, y)):
             screws.append(Screw(f"screw_hub{n}_{k}", "", sx, sy, top - hh, False, nominal - hh,
-                                P.M2_CSK_HEAD, f"knob{n}_motor_2204", "knob_sub",
+                                P.M2_CSK_HEAD, f"knob{n}_motor_2204", "module_sub",
                                 engage=(0.8, P.BELL_THREAD_DEPTH - 0.3), style="countersunk",
                                 nominal=nominal))
     cap = tapered_knob()
@@ -407,14 +422,10 @@ def knob_parts(st: Stack, x: float, y: float, n: int, screws: list | None = None
             Item(Pos(x, y, knob_z) * cap, f"knob{n}_knob", C_KNOB, 6)]
 
 
-def motor_header_y(y: float) -> float:
-    """Center y of a knob's motor header (and its driver), on the back strip behind the tongue."""
-    return y + P.TONGUE / 2 + P.TONGUE_SLOT + 0.4 + P.HEADER_3P[1] / 2
-
-
 def press_switch_y(y: float) -> float:
-    """Center y of a knob's press switch, on the fixed front border in front of the tongue."""
-    return y - P.TONGUE / 2 - P.TONGUE_SLOT - P.KNOB_BOARD_EDGE / 2
+    """Center y of a haptic module's press switch, mid-way across its fixed front border."""
+    t = P.MODULE_TONGUE / 2 + P.MODULE_SLOT
+    return y - (t + P.MODULE_FRONT) / 2
 
 
 def motor_2204(x: float, y: float, z: float) -> Part:
@@ -426,17 +437,22 @@ def motor_2204(x: float, y: float, z: float) -> Part:
 
 
 def knob_stack(st: Stack, x: float, y: float, n: int, screws: list | None = None) -> list[Item]:
-    """Per-knob parts: MT6701, TMC6300, press switch + striker, magnet, spacer, 2204 motor, knob.
+    """Haptic module (D23) parts on its PCB: MT6701, driver, press switch + striker,
+    magnet, spacer, 2204 motor, motor header and plug, the spare lead, hub and knob.
 
-    Every board part is on the top side (D6). The driver sits on the back strip
-    next to the motor header, off the tongue (D16). The press switch sits on the
-    fixed front border; an arm on the motor spacer reaches over the slot, and an
-    M2 set screw in the arm's tip (the striker) presses it when the tongue flexes.
+    Every board part is on the top side (D6). The motor and the MT6701 sit on the
+    tongue; the driver, inverter, header and press switch on the fixed front border
+    (D16). The spacer's arm reaches forward over the slot, and an M2 set screw in the
+    arm's tip (the striker) presses the switch when the tongue flexes down.
     """
     kpt = st.knob_pcb_top
     sensor = Pos(x, y, kpt) * Box(*P.MT6701, align=MIN)
-    driver = Pos(x + 3.5, motor_header_y(y), kpt) * Box(*P.TMC6300, align=MIN)
     py = press_switch_y(y)
+    # Driver, inverter and the driver's two 22 µF on the front border, right of the arm
+    chips = Pos(x + 6.0, y - 17.4, kpt) * Box(*P.TMC6300, align=MIN)
+    chips += Pos(x + 9.2, y - 14.1, kpt) * Box(2.0, 3.1, 1.0, align=MIN)
+    for cx in (4.8, 7.4):
+        chips += Pos(x + cx, y - 14.0, kpt) * Box(1.25, 2.0, 1.25, align=MIN)
     body = Pos(x, py, kpt) * Box(P.SW_L, P.SW_W, P.SW_H - 0.35, align=MIN)
     stem = Pos(x, py, kpt + P.SW_H - 0.35) * Cylinder(0.6, 0.35, align=MIN)
     # Striker: M2 set screw down through the spacer arm, KNOB_PRESS_GAP above the switch
@@ -469,22 +485,38 @@ def knob_stack(st: Stack, x: float, y: float, n: int, screws: list | None = None
         ln = max(n_ for n_ in STD_LENGTHS if n_ - thru <= P.MOTOR_THREAD_DEPTH - 0.5)
         for k, (sx, sy) in enumerate(motor_screw_xy(x, y)):
             screws.append(Screw(f"screw_motor{n}_{k}", "", sx, sy, st.knob_pcb_bot, True, ln,
-                                P.M2_HEAD, f"knob{n}_motor_2204", "knob_sub",
+                                P.M2_HEAD, f"knob{n}_motor_2204", "module_sub",
                                 engage=(1.2, P.MOTOR_THREAD_DEPTH - 0.5)))
+    # Motor header (vertical SMD 1x3) on the front border, the plug standing on it; the
+    # spare lead coils flat in front of the bell, clear of it
+    hx, hy = P.MODULE_HEADER_XY
+    hw, hd, hh = P.MODULE_HEADER
+    header = Pos(x + hx, y + hy, kpt) * Box(hw, hd, hh, align=MIN)
+    cw, cd, ch = P.LEAD_COIL
+    coil = Pos(x + P.LEAD_COIL_XY[0], y + P.LEAD_COIL_XY[1], kpt + P.LEAD_COIL_Z) * Box(cw, cd, ch, align=MIN)
     return [
         Item(sensor, f"knob{n}_mt6701", C_CHIP, 0),
-        Item(driver, f"knob{n}_tmc6300", C_CHIP, 0),
+        Item(chips, f"knob{n}_chips", C_CHIP, 0),
         Item(body + stem, f"knob{n}_press_switch", C_SWITCH, 0),
         Item(striker, f"knob{n}_striker", C_SCREW, 1),
         Item(spacer, f"knob{n}_spacer", C_STANDOFF, 1),
         Item(magnet, f"knob{n}_magnet", C_MAGNET, 1),
         Item(motor, f"knob{n}_motor_2204", C_MOTOR, 2),
+        Item(header, f"knob{n}_header", C_CHIP, 0),
+        Item(coil, f"cable_motor{n}_coil", C_CABLE, 2),
     ] + knob_parts(st, x, y, n, screws)
 
 
+def motor_plug(st: Stack, x: float, y: float) -> Part:
+    """The motor's 3-pin plug, standing on the module's vertical header."""
+    hx, hy = P.MODULE_HEADER_XY
+    w, d, h = P.MOTOR_PLUG_UP
+    return Pos(x + hx, y + hy, st.knob_pcb_top + P.MODULE_HEADER[2]) * Box(w, d, h, align=MIN)
+
+
 def lite_heights(st: Stack) -> dict:
-    """Lite tier (D22) heights: the encoder sits on the knob board, its shaft tip seats in
-    the bottom of the knob's bore, so the knob lands where the haptic knob does."""
+    """Lite module (D22, D23) heights: the encoder sits on the module PCB, its shaft tip
+    seats in the bottom of the knob's bore, so the knob lands where the haptic knob does."""
     body_top = st.knob_pcb_top + P.ENC_BODY[2]
     shaft_top = body_top + P.ENC_SHAFT_L
     knob_z = st.plate_top + P.KNOB_GAP
@@ -493,10 +525,10 @@ def lite_heights(st: Stack) -> dict:
 
 
 def encoder_stack(st: Stack, x: float, y: float, n: int) -> list[Item]:
-    """Lite tier (D22): a vertical push encoder (EC11 size) on the knob board and a knob
-    whose stem reaches down through the plate's hub hole onto the 6 mm flatted shaft.
+    """Lite module (D22, D23): a vertical push encoder (EC11 size) on the module PCB and a
+    knob whose stem reaches down through the cover's hub hole onto the 6 mm flatted shaft.
 
-    The encoder's push switch is the knob press. The knob is the haptic tier's knob
+    The encoder's push switch is the knob press. The knob is the haptic knob's cap
     shape plus the stem; it seats on the shaft tip, so its top matches the haptic knob.
     """
     h = lite_heights(st)
@@ -531,68 +563,181 @@ def encoder_stack(st: Stack, x: float, y: float, n: int) -> list[Item]:
             Item(Pos(x, y, sb) * cap, f"knob{n}_knob", C_KNOB, 6)]
 
 
-def tongue_slots(x: float, y: float) -> list[tuple[float, float, float, float]]:
-    """Slot rectangles (cx, cy, w, h) that free a tongue around (x, y), hinged at the back."""
-    t, sl, hw = P.TONGUE, P.TONGUE_SLOT, P.TONGUE_HINGE_W
-    outer = t / 2 + sl
-    side_w = (outer - hw / 2)
-    return [
-        (x - t / 2 - sl / 2, y, sl, t + 2 * sl),           # left
-        (x + t / 2 + sl / 2, y, sl, t + 2 * sl),           # right
-        (x, y - t / 2 - sl / 2, t + 2 * sl, sl),           # front
-        (x - hw / 2 - side_w / 2, y + t / 2 + sl / 2, side_w, sl),  # back, left of hinge
-        (x + hw / 2 + side_w / 2, y + t / 2 + sl / 2, side_w, sl),  # back, right of hinge
-    ]
+# --------------------------------------------------------------------------
+# Knob slots (D23): backplane, slot connector, modules and blanks
+# --------------------------------------------------------------------------
+def pogo_xy(x: float, y: float) -> list[tuple[float, float]]:
+    """Slot connector contacts (pogo pins on the backplane, pads on the module), by row."""
+    nc, nr, px, py = P.POGO_GRID
+    return [(x + (c - (nc - 1) / 2) * px, y + P.POGO_ROW0 + r * py) for r in range(nr) for c in range(nc)]
 
 
-def knob_board(st: Stack, knob_xy: list, label: str, with_mcu: bool,
-               avoid_xy: list = (), screw_xy: list | None = None,
-               tabs: list = (), slots_xy: list = (),
-               mcu_xy: tuple | None = None,
-               screws: list | None = None,
-               holes_xy: list = (), tier: str = "haptic") -> tuple[list[Item], Sketch]:
-    """One PCB carrying every knob. Returns parts and the 2D outline (for KiCad).
+def pogo_window() -> tuple[float, float, float, float]:
+    """(x0, x1, y0, y1) around the pogo field, from the knob axis: the base's cut-out."""
+    nc, nr, px, py = P.POGO_GRID
+    m = P.POGO[0] / 2 + 0.6
+    hx = (nc - 1) / 2 * px + m
+    return (-hx, hx, -P.MODULE_FRONT - 1.0, P.POGO_ROW0 + (nr - 1) * py + m)
 
-    tier "lite" (D22): same outline, holes and connectors, no tongues or motor
-    holes; an encoder at each knob instead of the motor stack.
 
-    screw_xy: if given, the board's screw holes (bosses are printed in the tray
-    elsewhere); otherwise the board gets its own bosses (prototype).
-    tabs: extra rectangles (x0, x1, y0, y1) added to the outline.
-    slots_xy: tie-down slots for straps (cable ties) around the motor lead coils.
-    """
+def module_pcb_sketch(kind: str) -> Sketch:
+    """Module PCB outline (knob axis at the origin). Haptic: a tongue under the motor,
+    cut free at the front and sides, joined to the side borders by two torsion necks
+    near its back edge (the hinge, D10). Lite: the same outline, solid."""
+    w, f, b = P.MODULE_W / 2, P.MODULE_FRONT, P.MODULE_BACK
+    t, sl = P.MODULE_TONGUE / 2, P.MODULE_SLOT
+    n0, n1 = P.MODULE_NECK
+    with BuildSketch() as sk:
+        with Locations((0, (b - f) / 2)):
+            Rectangle(2 * w, f + b)
+        if kind == "haptic":
+            with Locations((0, -t - sl / 2)):
+                Rectangle(2 * t + 2 * sl, sl, mode=Mode.SUBTRACT)
+            for sx in (-1, 1):
+                with Locations((sx * (t + sl / 2), (-t - sl + n0) / 2)):
+                    Rectangle(sl, n0 + t + sl, mode=Mode.SUBTRACT)
+                with Locations((sx * (t + sl / 2), (n1 + b + 1.0) / 2)):
+                    Rectangle(sl, b + 1.0 - n1, mode=Mode.SUBTRACT)
+            with Locations(*motor_screw_xy(0, 0)):
+                Circle(P.M2_CLEAR / 2, mode=Mode.SUBTRACT)
+            with Locations(*motor_pin_xy(0, 0)):
+                Circle(P.MOTOR_LOCATE_PIN_D / 2 + 0.05, mode=Mode.SUBTRACT)
+        for sx in (-1, 1):                         # back corners: room for the cover's back posts
+            with Locations((sx * (w + t + sl) / 2 + sx * 0.1, b - 0.5)):
+                Rectangle(w - t - sl + 0.2, 1.0 + 0.01, mode=Mode.SUBTRACT)
+        holes = [P.MODULE_POSTS[k] for k in P.MODULE_SCREWS if -f < P.MODULE_POSTS[k][1] < b - 1.0]
+        if holes:
+            with Locations(*holes):
+                Circle(P.M2_CLEAR / 2, mode=Mode.SUBTRACT)
+    return sk.sketch
+
+
+def module_base(st: Stack) -> Part:
+    """Printed carrier base under the module PCB (knob axis at the origin): POGO_WORK
+    thick, so it sets the pogo pins' working height. Open over the pogo field and under
+    the tongue (motor screw heads, travel, encoder pin stubs); two key pins of different
+    sizes underneath drop into the backplane."""
+    w, f, bb = P.MODULE_W / 2, P.MODULE_FRONT, P.MODULE_BASE_BACK
+    t = P.MODULE_TONGUE / 2 + P.MODULE_SLOT + 0.2
+    x0, x1, y0, y1 = pogo_window()
+    h = st.knob_pcb_bot - st.bp_top
+    with BuildSketch() as sk:
+        with Locations((0, (bb - f) / 2)):
+            Rectangle(2 * w, f + bb)
+        with Locations(((x0 + x1) / 2, (y0 + y1) / 2)):
+            Rectangle(x1 - x0, y1 - y0, mode=Mode.SUBTRACT)
+        with Locations((0, (-t + P.MODULE_BACK + 0.2) / 2)):
+            Rectangle(2 * t, t + P.MODULE_BACK + 0.2, mode=Mode.SUBTRACT)
+        with Locations(*[P.MODULE_POSTS[k] for k in P.MODULE_SCREWS]):
+            Circle(P.M2_CLEAR / 2, mode=Mode.SUBTRACT)
+    base = Pos(0, 0, st.bp_top) * extrude(sk.sketch, amount=h)
+    keys = [k for k in range(len(P.MODULE_POSTS)) if k not in P.MODULE_SCREWS]
+    for k, d in zip(keys, P.KEY_PIN_D):
+        px, py = P.MODULE_POSTS[k]
+        base += Pos(px, py, st.bp_top - P.KEY_PIN_L) * Cylinder(d / 2, P.KEY_PIN_L + 0.01, align=MIN)
+    return base
+
+
+def bezel_size() -> tuple[float, float, float]:
+    """Cover top (bezel): half width, front and back edge from the knob axis."""
+    g = P.BEZEL_GAP
+    return P.SLOT_OPEN[0] - g, P.SLOT_OPEN[1] - g, P.SLOT_OPEN[2] - g
+
+
+def module_cover(st: Stack, kind: str) -> Part:
+    """Printed cover (knob axis at the origin): a bezel flush with the top plate in the
+    slot opening (hub hole for a knob, none on a blank), four posts down to the module
+    (blank: to the backplane), and a front wall tying the front posts. The two
+    retention screws go down through posts 0 and 3, countersunk into the bezel."""
+    hw, f, b = bezel_size()
+    t = P.TOP_PLATE_T
+    cover = Pos(0, (b - f) / 2, st.plate_bot) * extrude(RectangleRounded(2 * hw, f + b, 1.0), amount=t)
+    if kind != "blank":
+        cover -= Pos(0, 0, st.plate_bot - 1) * Cylinder(knob_hole_d() / 2, t + 2, align=MIN)
+    for k, (px, py) in enumerate(P.MODULE_POSTS):
+        if kind == "blank":
+            z0 = st.bp_top
+        else:
+            z0 = st.knob_pcb_top if -P.MODULE_FRONT < py < P.MODULE_BACK else st.knob_pcb_bot
+        cover += Pos(px, py, z0) * Cylinder(P.MODULE_POST_D / 2, st.plate_bot - z0 + 0.01, align=MIN)
+    wz = st.bp_top + P.POGO[1] + 0.5 if kind == "blank" else st.knob_pcb_top + 1.0   # blank: over the free pins
+    cover += Pos(0, -f, wz) * Box(2 * hw - 2.0, P.MODULE_WALL, st.plate_bot - wz + 0.01,
+                                  align=(Align.CENTER, Align.MIN, Align.MIN))
+    hd, hh = P.M2_CSK_HEAD
+    for k in P.MODULE_SCREWS:
+        px, py = P.MODULE_POSTS[k]
+        cover -= Pos(px, py, st.bp_top - 1) * Cylinder(P.M2_CLEAR / 2, st.plate_top - st.bp_top + 2, align=MIN)
+        cover -= Pos(px, py, st.plate_top - hh) * Cylinder(hd / 2 + 0.1, hh + 1, align=MIN)
+    return cover
+
+
+def module_screw_nominal(st: Stack) -> int:
+    """Countersunk M2 from the bezel top into the insert in the slot boss: the longest
+    standard length whose tip stays 0.3 mm above the insert's bottom."""
+    bot = st.bp_top - P.INSERT_M2[1]
+    return max(n_ for n_ in STD_LENGTHS if st.plate_top - n_ >= bot + 0.3)
+
+
+def slot_items(st: Stack, x: float, y: float, n: int, kind: str,
+               screws: list | None = None) -> tuple[list[Item], list]:
+    """Everything in slot n above the backplane (D23): a haptic module, a lite module or a
+    blank cover, with its two retention screws. Returns the items and the mated plugs
+    (same tuples as full_device's plug list)."""
+    items, plugs = [], []
+    if kind in ("haptic", "lite"):
+        pcb = Pos(x, y, st.knob_pcb_bot) * extrude(module_pcb_sketch(kind), amount=P.PCB_T)
+        items += [Item(pcb, f"knob{n}_pcb", C_PCB, 0),
+                  Item(Pos(x, y, 0) * module_base(st), f"knob{n}_base", C_STANDOFF, 0)]
+        if kind == "haptic":
+            items += knob_stack(st, x, y, n, screws)
+            plugs.append((f"knob{n}_motor_plug", motor_plug(st, x, y), (0, 0, -1), "motor",
+                          f"knob{n}_header", "module_sub", P.MOTOR_PLUG_UP[2]))
+        else:
+            items += encoder_stack(st, x, y, n)
+        items.append(Item(Pos(x, y, 0) * module_cover(st, kind), f"knob{n}_cover", C_PLATE, 4))
+    else:
+        items.append(Item(Pos(x, y, 0) * module_cover(st, "blank"), f"knob{n}_blank", C_PLATE, 4))
+    if screws is not None:
+        hd, hh = P.M2_CSK_HEAD
+        nom = module_screw_nominal(st)
+        for k in P.MODULE_SCREWS:
+            px, py = P.MODULE_POSTS[k]
+            screws.append(Screw(f"screw_slot{n}_{k}", "", x + px, y + py, st.plate_top - hh, False, nom - hh,
+                                P.M2_CSK_HEAD, f"slot_insert_{n}_{k}", "modules",
+                                engage=(2.5, P.INSERT_M2[1] - 0.3), style="countersunk", nominal=nom))
+    return items, plugs
+
+
+def backplane(st: Stack, knob_xy: list, slots: tuple, avoid_xy: list = (), screw_xy: list = (),
+              tabs: list = (), mcu_xy: tuple | None = None,
+              holes_xy: list = ()) -> tuple[list[Item], Sketch]:
+    """The backplane (D23): the old knob board's outline and connectors, with a slot
+    connector (15 pogo pins) under each knob position instead of the knobs. The slot
+    bosses come up through it (they carry the modules' screws and locate the board),
+    and each slot has two key-pin holes. Returns parts and the 2D outline (for KiCad).
+
+    screw_xy: its own screw holes (floor bosses). tabs: extra rectangles
+    (x0, x1, y0, y1) added to the outline. Pogo pins are drawn at their working
+    height under a module, free height elsewhere."""
     xs = [x for x, _ in knob_xy]
     ky = knob_xy[0][1]
-    reach = P.TONGUE / 2 + P.TONGUE_SLOT + P.KNOB_BOARD_EDGE
-    x0, x1 = min(xs) - reach, max(xs) + reach
-    y0, y1 = ky - reach, ky + P.TONGUE / 2 + P.TONGUE_SLOT + P.KNOB_BOARD_BACK
-    lite = tier == "lite"
-    slots = [] if lite else [r for x, y in knob_xy for r in tongue_slots(x, y)]
-    if screw_xy is not None:
-        bosses = list(screw_xy)
-    else:
-        bosses = [(x0 + 3, y1 - 3), (x1 - 3, y1 - 3), (x0 + 3, y0 + 3), (x1 - 3, y0 + 3)]
-        bosses += [((a + b) / 2, y1 - 3) for a, b in zip(xs, xs[1:])]
+    x0, x1 = min(xs) - P.BP_SIDE, max(xs) + P.BP_SIDE
+    y0, y1 = ky - P.BP_FRONT, ky + P.BP_BACK
+    keys = [k for k in range(len(P.MODULE_POSTS)) if k not in P.MODULE_SCREWS]
     with BuildSketch() as sk:
         with Locations(((x0 + x1) / 2, (y0 + y1) / 2)):
             RectangleRounded(x1 - x0, y1 - y0, 2.0)
         for tx0, tx1, ty0, ty1 in tabs:
             with Locations(((tx0 + tx1) / 2, (ty0 + ty1) / 2 - 0.5)):
                 Rectangle(tx1 - tx0, ty1 - ty0 + 1.0)
-        for sx, sy in slots_xy:
-            with Locations((sx, sy)):
-                RectangleRounded(1.4, 3.2, 0.6, mode=Mode.SUBTRACT)
-        for cx, cy, w, h in slots:
-            with Locations((cx, cy)):
-                Rectangle(w, h, mode=Mode.SUBTRACT)
-        with Locations(*bosses):
+        with Locations(*screw_xy):
             Circle(P.M2_CLEAR / 2, mode=Mode.SUBTRACT)
-        if not lite:
-            # Motor mount: NPTH screw holes (copper keep-out) and the spacer's two locating pins
-            with Locations(*[p for x, y in knob_xy for p in motor_screw_xy(x, y)]):
-                Circle(P.M2_CLEAR / 2, mode=Mode.SUBTRACT)
-            with Locations(*[p for x, y in knob_xy for p in motor_pin_xy(x, y)]):
-                Circle(P.MOTOR_LOCATE_PIN_D / 2 + 0.05, mode=Mode.SUBTRACT)
+        for x, y in knob_xy:
+            with Locations(*[(x + P.MODULE_POSTS[k][0], y + P.MODULE_POSTS[k][1]) for k in P.MODULE_SCREWS]):
+                Circle(P.BP_BOSS_D / 2 + 0.3, mode=Mode.SUBTRACT)
+            for k, d in zip(keys, P.KEY_PIN_D):
+                with Locations((x + P.MODULE_POSTS[k][0], y + P.MODULE_POSTS[k][1])):
+                    Circle(d / 2 + 0.1, mode=Mode.SUBTRACT)
         r_avoid = max(P.PANEL_POST_D, P.PLATE_POST_D) / 2 + 0.6
         holes = [(x, y) for x, y in avoid_xy
                  if x0 - r_avoid < x < x1 + r_avoid and y0 - r_avoid < y < y1 + r_avoid]
@@ -602,21 +747,18 @@ def knob_board(st: Stack, knob_xy: list, label: str, with_mcu: bool,
         for hx, hy, hd in holes_xy:
             with Locations((hx, hy)):
                 Circle(hd / 2, mode=Mode.SUBTRACT)
-    board = Pos(0, 0, st.knob_pcb_bot) * extrude(sk.sketch, amount=P.PCB_T)
-    items = [Item(board, f"{label}_pcb", C_PCB, 0)]
-    if screw_xy is None:
-        boss = None
-        for bx, by in bosses:
-            b = Pos(bx, by, st.floor_top) * Cylinder(P.KNOB_BOARD_BOSS_D / 2, st.knob_pcb_bot - st.floor_top,
-                                                     align=MIN)
-            boss = b if boss is None else boss + b
-        items.insert(0, Item(boss, f"{label}_bosses", C_STANDOFF, 0))
-    if with_mcu:
-        mx, my = mcu_xy or (xs[len(xs) // 2], y1 - P.KNOB_BOARD_BACK / 2)
-        mcu = Pos(mx, my, st.knob_pcb_top) * Box(*P.RP2350B, align=MIN)
-        items.append(Item(mcu, f"{label}_rp2350b", C_CHIP, 0))
-    for n, (x, y) in enumerate(knob_xy):
-        items += encoder_stack(st, x, y, n) if lite else knob_stack(st, x, y, n, screws)
+    board = Pos(0, 0, st.bp_bot) * extrude(sk.sketch, amount=P.PCB_T)
+    items = [Item(board, "backplane_pcb", C_PCB, 0)]
+    mx, my = mcu_xy or (xs[len(xs) // 2], y1 - 9.0)
+    items.append(Item(Pos(mx, my, st.bp_top) * Box(*P.RP2350B, align=MIN), "backplane_rp2350b", C_CHIP, 0))
+    d, free, _ = P.POGO
+    for n, ((x, y), kind) in enumerate(zip(knob_xy, slots)):
+        h = (P.POGO_WORK - 0.005) if kind in ("haptic", "lite") else free
+        pins = None
+        for px, py in pogo_xy(x, y):
+            c = Pos(px, py, st.bp_top) * Cylinder(d / 2, h, align=MIN)
+            pins = c if pins is None else pins + c
+        items.append(Item(pins, f"backplane_pogo{n}", C_BRASS, 0))
     return items, sk.sketch
 
 
@@ -963,17 +1105,19 @@ def frame_supports(L: Layout, rect, frame_x1: float, py1: float, px0: float) -> 
     return dict(pan=pan, csk=webs + right, csk_inner=inner)
 
 
-def full_device(tilt: bool = True, tier: str | None = None) -> tuple[list[Item], Layout, dict]:
+def full_device(tilt: bool = True, slots: tuple | None = None) -> tuple[list[Item], Layout, dict]:
     """Full device. With tilt=True the slab is angled toward the user on a stand.
 
-    tier: "haptic" or "lite" knob board (D22; default P.KNOB_TIER). Only the knob
-    board and what sits on it differ.
+    slots: what's in each knob slot, left to right: "haptic", "lite" or "blank"
+    (D23; default P.KNOB_SLOTS). Only the slots' contents (and the backplane's pogo
+    pins, drawn compressed under a module) differ between configurations.
 
     Everything is built in the flat (untilted) frame first; assembly steps and
     checks use that frame (see cad/assembly.py).
     """
-    tier = tier or P.KNOB_TIER
-    lite = tier == "lite"
+    slots = tuple(slots or P.KNOB_SLOTS)
+    if len(slots) != P.KNOBS or any(k not in P.SLOT_TYPES for k in slots):
+        raise ValueError(f"slots must be {P.KNOBS} of {P.SLOT_TYPES}, got {slots}")
     st = make_stack(P.FLOOR, P.TOP_PLATE_T)
     L = full_layout()
     items: list[Item] = []
@@ -985,15 +1129,15 @@ def full_device(tilt: bool = True, tier: str | None = None) -> tuple[list[Item],
     panel_back, panel_z0 = g["panel_back"], g["panel_z0"]
     knob_y = L.knob_xy[0][1]
     kxs = [x for x, _ in L.knob_xy]
-    board_front = P.TONGUE / 2 + P.TONGUE_SLOT + P.KNOB_BOARD_EDGE
-    board_back_y = knob_y + P.TONGUE / 2 + P.TONGUE_SLOT + P.KNOB_BOARD_BACK
-    board_x1 = max(kxs) + board_front
+    board_front = P.BP_FRONT
+    board_back_y = knob_y + P.BP_BACK
+    board_x1 = max(kxs) + P.BP_SIDE
 
     # --- Case outline: symmetric about the key grid
     half_w = max(-px0, px1) + P.INNER_CLEAR
     ix0, ix1 = -half_w, half_w
     iy1 = py1 + P.INNER_CLEAR_BACK
-    iy0 = knob_y - max(P.MOTOR_D / 2 + P.INNER_CLEAR + 1.0, board_front + P.INNER_CLEAR)
+    iy0 = knob_y - max(P.MOTOR_D / 2 + P.INNER_CLEAR + 1.0, board_front + P.INNER_CLEAR, P.SLOT_OPEN[1] + 0.2)
     ox0, ox1, oy0, oy1 = ix0 - P.WALL, ix1 + P.WALL, iy0 - P.WALL, iy1 + P.WALL
     outer = (ox0, ox1, oy0, oy1)
     cx, cy = (ox0 + ox1) / 2, (oy0 + oy1) / 2
@@ -1015,11 +1159,12 @@ def full_device(tilt: bool = True, tier: str | None = None) -> tuple[list[Item],
     plate_posts = [(sx * (half_w - P.PLATE_POST_INSET), y) for sx in (-1, 1)
                    for y in ((py1 + iy1) / 2, iy0 + P.PLATE_POST_INSET)]
     panel_posts = g["panel_posts"]
-    kb_front_y = knob_y - P.TONGUE / 2 - P.TONGUE_SLOT - P.KNOB_BOARD_EDGE / 2
-    kb_screws = [((a + b) / 2, kb_front_y) for a, b in zip(kxs, kxs[1:])]
-    kb_screws += [(sx * (board_x1 - P.KNOB_BOARD_EDGE / 2), knob_y) for sx in (-1, 1)]
-    # Back strip: a screw + boss behind each hinge takes the press reaction
-    kb_screws += [(x + 7.5, knob_y + P.TONGUE / 2 + P.TONGUE_SLOT + 2.0) for x in kxs]
+    # Backplane: screws at both ends and along the back strip; at the front the slot
+    # bosses come up through it and the modules' bases press it down (D23)
+    kb_screws = [(sx * (board_x1 - 2.5), knob_y) for sx in (-1, 1)]
+    kb_screws += [(x + 7.5, knob_y + 17.5) for x in kxs]
+    slot_bosses = [(n, k, x + P.MODULE_POSTS[k][0], knob_y + P.MODULE_POSTS[k][1])
+                   for n, x in enumerate(kxs) for k in P.MODULE_SCREWS]
     # Frame PCB: reaches past the panel on the left and back (pan-head screws there)
     frame_y1 = py1 + 4.5
     frame_x0 = px0 - 5.0
@@ -1030,7 +1175,7 @@ def full_device(tilt: bool = True, tier: str | None = None) -> tuple[list[Item],
     frame_holes = fs["pan"] + fs["csk"] + fs["csk_inner"]
     frame_pins = [(-25.0, py1 + 2.5), (px0 - 2.5, 12.5)]       # locating pins (plate) in NPTH holes
     # BOOTSEL (recovery): on the knob board's left border, pressed through the floor
-    boot_xy = (-(board_x1 - P.KNOB_BOARD_EDGE / 2), knob_y + P.BOOTSEL_FROM_KNOB0)
+    boot_xy = (-(board_x1 - 2.5), knob_y + P.BOOTSEL_FROM_KNOB0)
 
     # --- Internal cabling layout (docs/wiring.md). Every plug is a box: its
     # overmold or housing outside the socket, so the interference checks see it.
@@ -1067,23 +1212,18 @@ def full_device(tilt: bool = True, tier: str | None = None) -> tuple[list[Item],
             Circle(P.M2_CLEAR / 2, mode=Mode.SUBTRACT)
     usb_sketch = usk.sketch
 
-    # Knob board connectors: JST-GH (USB link) at the back-left corner; keys FFC
+    # Backplane connectors: JST-GH (USB link) at the back-left corner; keys FFC
     # (ZIF) and touch (JST-SH, top entry) at the right end; the optional GPIO6
-    # link (HY2.0) on the back edge at the right. Motor headers and drivers behind
-    # each tongue; excess motor lead coiled on the back strip.
-    kpt = st.knob_pcb_top
+    # link (HY2.0) on the back edge at the right; a slot connector under each knob.
+    kpt = st.bp_top
     gh_k = (-board_x1 + 9.3, board_back_y)       # header mouth on the back edge
     zif_y = board_back_y - 2.4                    # ZIF center (also the frame PCB's ZIF)
     zif_x1 = board_x1                             # mouth at the board's right edge
-    tch = (board_x1 - P.KNOB_BOARD_EDGE / 2, knob_y + 7.24)
+    tch = (board_x1 - 2.5, knob_y + 7.24)
     hyw, hyd, hyh = P.HY_HEADER
     hy_k = (P.HY_KNOB_X, board_back_y)            # GPIO6 header mouth on the back edge
-    mh_y = motor_header_y(knob_y)
-    coil_y0, coil_y1 = mh_y + P.HEADER_3P[1] / 2 + 0.4, board_back_y - P.GH_HEADER[2] - 0.2
-    coil_l = 20.0
-    slots = [(x + sx * (coil_l / 2 - 1.5), (coil_y0 + coil_y1) / 2) for x in kxs for sx in (-1, 1)]
-    mid = len(kxs) // 2                          # RP2350B between the middle coils, at the back edge
-    mcu_xy = ((kxs[mid] + kxs[mid + 1]) / 2, (coil_y0 + board_back_y) / 2)
+    mid = len(kxs) // 2                          # RP2350B between the middle slots, under the panel
+    mcu_xy = ((kxs[mid] + kxs[mid + 1]) / 2, knob_y + 25.0)
 
     # Cable paths (flat frame). (points, diameter, bend radius, kind, plug ends)
     cpaths = {}
@@ -1108,17 +1248,19 @@ def full_device(tilt: bool = True, tier: str | None = None) -> tuple[list[Item],
     cpaths["cable_keys_ffc"] = (
         [sf, (ix1 - 0.5, zif_y, sf[2]), (ix1 - 0.5, zif_y, ef[2]), ef],
         0.6, 1.0, "ffc", ("plug_ffc_frame", "plug_ffc_knob"))
-    # Touch: band connector (under the plate, right end) to the knob board's top-entry header
-    # The band stops short of the frame PCB's ZIF (they'd overlap in plan)
+    # Touch: band connector (under the plate, right end) to the backplane's top-entry header.
+    # The band stops short of the frame PCB's ZIF (they'd overlap in plan). Its header faces
+    # right (+x), low on the band, so the plug stays out of slot 4's opening (D23) and in
+    # front of the frame PCB's ZIF
     band_x1 = frame_x1 - P.ZIF_12P[1] - 0.5
-    tb_c = (band_x1 - P.SH_HEADER_SIDE[0] / 2, knob_y + P.MOTOR_D / 2 + P.TOUCH_BAR_MARGIN + 0.12
-            + P.SH_HEADER_SIDE[1] / 2,
+    band_y = knob_y + P.MOTOR_D / 2 + P.TOUCH_BAR_MARGIN + P.SH_PLUG[0] / 2 + 0.4
+    tb_c = (band_x1 - P.SH_HEADER_SIDE[1] / 2, band_y,
             st.plate_bot + P.TOUCH_BAR_RECESS - P.TOUCH_BAR_T - P.SH_HEADER_SIDE[2] / 2)
-    st_ = (tb_c[0], tb_c[1] - P.SH_HEADER_SIDE[1] / 2 - P.SH_PLUG[2], tb_c[2])
+    st_ = (band_x1 + P.SH_PLUG[2], tb_c[1], tb_c[2])
     et_ = (tch[0], tch[1], kpt + P.SH_HEADER_TOP[2] + P.SH_PLUG[2])
     if P.TOUCH_BAR:
         cpaths["cable_touch"] = (
-            [st_, (st_[0], st_[1] - 3.0, st_[2]), (ix1 - 1.5, tch[1] - 3.0, st_[2] - 3.0),
+            [st_, (ix1 - 1.5, knob_y + P.SLOT_OPEN[2] - 1.0, st_[2] - 2.0),
              (ix1 - 1.5, tch[1] - 3.0, et_[2] + 2.0), (et_[0], et_[1], et_[2] + 2.5), et_],
             1.6, 1.5, "sh", ("plug_touch_band", "plug_knob_touch"))
     # Optional GPIO6 link (D5): knob board HY2.0 header -> back under the panel -> J8 on
@@ -1132,16 +1274,6 @@ def full_device(tilt: bool = True, tier: str | None = None) -> tuple[list[Item],
             [sh_y, (sh_y[0], sh_y[1] + 2.5, sh_y[2] + 1.0), (j8x + 10.5, j8y - 4.5, j8z),
              (j8x + 10.5, j8y, j8z), eh_y],
             P.HY_CABLE_D, 2.0, "hy", ("plug_knob_hy", "plug_display_j8"))
-    # Motor leads: motor -> coil on the back strip (strapped through two slots) -> plug
-    lead_pts = {}
-    for n, kx in enumerate(kxs):
-        p0 = (kx, knob_y + P.MOTOR_BASE_D / 2, st.motor_bot + 1.3)
-        za, zc = kpt + 4.35, kpt + 2.75             # lead height over the board: arch, coil
-        pts = [p0, (kx + 1.0, mh_y - 1.0, za), (kx + coil_l / 2, (coil_y0 + coil_y1) / 2, zc)]
-        tail = [(kx - coil_l / 2, (coil_y0 + coil_y1) / 2, zc), (kx - coil_l / 2 - 1.0, mh_y + 2.0, za),
-                (kx - 21.0, mh_y + 2.0, za), (kx - 21.0, mh_y, kpt + 1.8),
-                (kx - 4.5 - P.MOTOR_PLUG[2], mh_y, kpt + 1.8)]
-        lead_pts[n] = (pts, tail)
     # Clips printed with the tray: (x, y, cable center z, cable d, cable runs along x?)
     clips = [(s7[0], -8.0, 9.6, P.USB_CABLE_D, False), (xu, -14.3, 10.8, P.USB_CABLE_D, False),
              (sg[0] - 2.25, -18.0, 4.7, P.GH_CABLE_D, False)]
@@ -1155,24 +1287,33 @@ def full_device(tilt: bool = True, tier: str | None = None) -> tuple[list[Item],
     for x, y in panel_posts:                                   # posts under the panel tabs
         tray += Pos(x, y, P.FLOOR - 0.01) * Cylinder(P.PANEL_POST_D / 2, panel_z0 - P.FLOOR + 0.01,
                                                      align=MIN)
-    for x, y in kb_screws:                                     # knob board front bosses
-        tray += Pos(x, y, P.FLOOR - 0.01) * Cylinder(P.KNOB_BOARD_BOSS_D / 2,
-                                                     st.knob_pcb_bot - P.FLOOR + 0.01, align=MIN)
+    for x, y in kb_screws:                                     # backplane bosses
+        tray += Pos(x, y, P.FLOOR - 0.01) * Cylinder(P.BP_BOSS_D / 2, st.bp_bot - P.FLOOR + 0.01, align=MIN)
+    # Slot bosses (D23): up through the backplane to its top face; each takes an M2
+    # heat-set insert for a module's (or blank's) retention screw
+    ins2_d, ins2_l = P.INSERT_M2
+    for _, _, x, y in slot_bosses:
+        tray += Pos(x, y, P.FLOOR - 0.01) * Cylinder(P.BP_BOSS_D / 2, st.bp_top - P.FLOOR + 0.01, align=MIN)
+        tray -= Pos(x, y, st.bp_top - ins2_l - 0.1) * Cylinder(ins2_d / 2, ins2_l + 1, align=MIN)
+    for x in kxs:                                              # ribs under each slot connector
+        x0_, x1_, y0_, y1_ = pogo_window()
+        tray += Pos(x, knob_y + (P.POGO_ROW0 + y1_) / 2 - 0.3, P.FLOOR - 0.01) * Box(
+            x1_ - x0_, y1_ - P.POGO_ROW0 + 1.0, st.bp_bot - P.FLOOR + 0.01, align=MIN)
     # Panel stops: the panel can't slide off its posts while the tray is tipped
     panel_stops = [(30.0, py1 + 1.2, 2.0, 2.0), (65.0, py1 + 1.2, 6.0, 2.0),
                    (px0 - 1.2, board_back_y + 4.0, 2.0, 6.0)]
     for x, y, w_, d_ in panel_stops:
         tray += Pos(x, y, P.FLOOR - 0.01) * Box(w_, d_, panel_back + 2.0 - P.FLOOR + 0.01,
                                                 align=(Align.CENTER, Align.CENTER, Align.MIN))
-    for x in (-40.0, 0.0, 40.0):                               # ribs under the knob board's back strip
+    for x in (-40.0, 0.0, 40.0):                               # ribs under the backplane's back strip
         tray += Pos(x, board_back_y - 6, P.FLOOR - 0.01) * Box(
-            12, 3, st.knob_pcb_bot - P.FLOOR + 0.01, align=MIN)
+            12, 3, st.bp_bot - P.FLOOR + 0.01, align=MIN)
     if pocket > 0:
         tray -= Pos(hy_x - P.FLOOR_POCKET_MARGIN, hy_y, P.FLOOR - pocket) * Box(
             6 + 2 * P.FLOOR_POCKET_MARGIN, hy_len + 2 * P.FLOOR_POCKET_MARGIN, pocket + 1,
             align=(Align.MIN, Align.CENTER, Align.MIN))
     for x, y in ub_screws:                                     # USB board bosses
-        tray += Pos(x, y, P.FLOOR - 0.01) * Cylinder(P.KNOB_BOARD_BOSS_D / 2, ub_z0 - P.FLOOR + 0.01,
+        tray += Pos(x, y, P.FLOOR - 0.01) * Cylinder(P.BP_BOSS_D / 2, ub_z0 - P.FLOOR + 0.01,
                                                      align=MIN)
         tray -= Pos(x, y, 0.6) * Cylinder(P.M2_PILOT / 2, 20, align=MIN)
     # Backstop behind the USB board's arm: pushing a plug in loads the case, not the solder joints
@@ -1255,7 +1396,9 @@ def full_device(tilt: bool = True, tier: str | None = None) -> tuple[list[Item],
 
     # --- Top plate, with its posts down to the floor and bosses for the frame PCB
     lw, lt = P.KNOB_WIN_LEDGE
-    psk = plate_sketch(outer, P.CORNER_R, L.key_xy, L.cut_xy, L.cut_size, L.knob_xy, win_ledge=lw)
+    ow, of, ob = P.SLOT_OPEN
+    openings = [(x, knob_y + (ob - of) / 2, 2 * ow + P.HOLE_COMP, of + ob + P.HOLE_COMP) for x in kxs]
+    psk = plate_sketch(outer, P.CORNER_R, L.key_xy, L.cut_xy, L.cut_size, [], win_ledge=lw, openings=openings)
     plate = top_plate(psk, st, P.TOP_PLATE_T, L)
     plate += key_guides(st, L.key_xy)              # cap guide skirts (D8, B3)
     for x, y in L.cut_xy:                          # window pockets above the ledge
@@ -1265,12 +1408,20 @@ def full_device(tilt: bool = True, tier: str | None = None) -> tuple[list[Item],
         plate += Pos(x, y, st.pcb_top) * Cylinder(P.FRAME_BOSS_D / 2, st.plate_bot - st.pcb_top + 0.01,
                                                          align=MIN)
         plate += Pos(x, y, st.pcb_bot + 0.2) * Cylinder(P.FRAME_PIN_D / 2, P.PCB_T - 0.19, align=MIN)
-    # Locating tabs just inside the walls (register the plate on the tray)
+    # Locating tabs just inside the walls (register the plate on the tray; the front
+    # wall has the slot openings, the dividers below register it there)
     for x, y, w_, d_ in [(ix0 + 0.3 + 0.6, -20.0, 1.2, 10.0), (ix1 - 0.3 - 0.6, -20.0, 1.2, 10.0),
-                         (0.0, iy0 + 0.3 + 0.6, 10.0, 1.2), (0.0, iy1 - 0.3 - 0.6, 10.0, 1.2)]:
+                         (0.0, iy1 - 0.3 - 0.6, 10.0, 1.2)]:
         plate += Pos(x, y, st.plate_bot - 3.0) * Box(w_, d_, 3.01, align=(Align.CENTER, Align.CENTER, Align.MIN))
-    # Fence between knob 4's bell and the spare FFC / touch cable by the right wall
-    fx = max(kxs) + P.MOTOR_D / 2 + 1.0
+    # Dividers between the slot openings (D23): walls down to just above the backplane.
+    # They stiffen the plate's front strip around the openings and guide each module
+    # straight down onto its pogo pins
+    for a_, b_ in zip(kxs, kxs[1:]):
+        dz0 = st.bp_top + P.SLOT_WALL_GAP
+        plate += Pos((a_ + b_) / 2, knob_y + (ob - of) / 2, dz0) * Box(
+            (b_ - a_) - 2 * ow - P.HOLE_COMP, of + ob, st.plate_bot - dz0 + 0.01, align=MIN)
+    # Fence between slot 4 and the spare FFC / touch cable by the right wall
+    fx = max(kxs) + ow + 1.2
     plate += Pos(fx, knob_y - 12.0, st.knob_pcb_top + 2.0) * Box(
         1.2, 14.0, st.plate_bot - st.knob_pcb_top - 2.0 + 0.01, align=MIN)
     ins_d, ins_l = P.INSERT_M3
@@ -1300,27 +1451,33 @@ def full_device(tilt: bool = True, tier: str | None = None) -> tuple[list[Item],
                             max(n_ for n_ in STD_LENGTHS if n_ - (P.FLOOR - cb) <= ins_l - 0.3),
                             P.M3_HEAD, f"top_plate_insert_{i}", "close", engage=(3.0, ins_l - 0.3)))
 
-    # --- Knob board: screwed to the tray along its front edge, back strip on ribs
+    # --- Backplane: on floor bosses and ribs, located by the slot bosses (D23)
     avoid = panel_posts + plate_posts
-    kitems, ksk = knob_board(st, L.knob_xy, "knob_board", with_mcu=True,
-                             avoid_xy=avoid, screw_xy=kb_screws,
-                             tabs=[(board_x1 - P.KNOB_BOARD_EDGE, board_x1, board_back_y,
-                                    zif_y + P.ZIF_12P[0] / 2 + 0.2)],
-                             slots_xy=[] if lite else slots, mcu_xy=mcu_xy, screws=screws,
-                             holes_xy=[(*boot_xy, P.BOOTSEL_PLUNGER[0] + 0.4)], tier=tier)
+    kitems, ksk = backplane(st, L.knob_xy, slots, avoid_xy=avoid, screw_xy=kb_screws,
+                            tabs=[(board_x1 - 5.0, board_x1, board_back_y, zif_y + P.ZIF_12P[0] / 2 + 0.2)],
+                            mcu_xy=mcu_xy, holes_xy=[(*boot_xy, P.BOOTSEL_PLUNGER[0] + 0.4)])
     items += kitems
     bsw, bsh = P.BOOTSEL_SW[:2], P.BOOTSEL_SW[2]
     items.append(Item(Pos(*boot_xy, kpt) * Box(*bsw, bsh, align=MIN)
-                      + Pos(*boot_xy, st.knob_pcb_bot - P.BOOTSEL_PLUNGER[1]) * Cylinder(
+                      + Pos(*boot_xy, st.bp_bot - P.BOOTSEL_PLUNGER[1]) * Cylinder(
                           P.BOOTSEL_PLUNGER[0] / 2, P.BOOTSEL_PLUNGER[1] + P.PCB_T + 0.01, align=MIN),
-                      "knob_board_bootsel", C_CHIP, 0))
+                      "backplane_bootsel", C_CHIP, 0))
     for i, (x, y) in enumerate(kb_screws):
-        screws.append(Screw(f"screw_knobboard_{i}", "", x, y, st.knob_pcb_top, False,
-                            std_length(P.PCB_T + (st.knob_pcb_bot - P.FLOOR) + 2.0), P.M2_HEAD,
-                            "case_tray", "knob_board", engage=(3.0, None), pilot=True))
-    kb = next(it.part for it in kitems if it.label == "knob_board_pcb").bounding_box()
+        screws.append(Screw(f"screw_backplane_{i}", "", x, y, st.bp_top, False,
+                            std_length(P.PCB_T + P.BP_UNDER + 2.0), P.M2_HEAD,
+                            "case_tray", "backplane", engage=(3.0, None), pilot=True))
+    for n, k, x, y in slot_bosses:                  # the slots' M2 heat-set inserts
+        items.append(Item(Pos(x, y, st.bp_top - ins2_l) * Cylinder(ins2_d / 2, ins2_l, align=MIN),
+                          f"slot_insert_{n}_{k}", C_BRASS, 0))
+    # --- Knob slots (D23): a haptic module, a lite module or a blank in each
+    slot_plugs = []
+    for n, (kx, kind) in enumerate(zip(kxs, slots)):
+        si, sp_ = slot_items(st, kx, knob_y, n, kind, screws)
+        items += si
+        slot_plugs += sp_
+    kb = next(it.part for it in kitems if it.label == "backplane_pcb").bounding_box()
     if board_back_y > dy1 - P.DISPLAY_PCB[1] - 1.0:
-        L.warnings.append(f"knob board reaches y={kb.max.Y:.1f}, into the display board "
+        L.warnings.append(f"backplane reaches y={kb.max.Y:.1f}, into the display board "
                           f"(front edge y={dy1 - P.DISPLAY_PCB[1]:.1f})")
 
     # --- USB board (hub, external USB-C, current sensing) and every connector + mated plug
@@ -1343,27 +1500,24 @@ def full_device(tilt: bool = True, tier: str | None = None) -> tuple[list[Item],
         # Optional USB-PD sink (D9, CH224-class, not fitted by default) on the external port's CC lines
         Item(bx((ext_x + 8.0, arm_y0 + 2.5, ub_z1 + P.PD_SINK[2] / 2), P.PD_SINK), "usb_board_pd_sink",
              C_CHIP, 0),
-        Item(bx((gh_k[0], gh_k[1] - gd / 2, kpt + ghh / 2), (gw, gd, ghh)), "knob_board_conn_gh", C_SWITCH, 0),
-        Item(bx((zif_x1 - zd / 2, zif_y, kpt + zh / 2), (zd, zl, zh)), "knob_board_conn_zif", C_SWITCH, 0),
+        Item(bx((gh_k[0], gh_k[1] - gd / 2, kpt + ghh / 2), (gw, gd, ghh)), "backplane_conn_gh", C_SWITCH, 0),
+        Item(bx((zif_x1 - zd / 2, zif_y, kpt + zh / 2), (zd, zl, zh)), "backplane_conn_zif", C_SWITCH, 0),
         # GPIO6 link header: footprint always on the board, fitted only with the optional lead
-        Item(bx((hy_k[0], hy_k[1] - hyd / 2, kpt + hyh / 2), (hyw, hyd, hyh)), "knob_board_conn_hy", C_SWITCH, 0),
+        Item(bx((hy_k[0], hy_k[1] - hyd / 2, kpt + hyh / 2), (hyw, hyd, hyh)), "backplane_conn_hy", C_SWITCH, 0),
         Item(bx((frame_x1 - zd / 2, zif_y, st.pcb_top + zh / 2), (zd, zl, zh)), "frame_pcb_zif", C_SWITCH, 2),
     ]
     if P.TOUCH_BAR:
         items += [
             Item(bx((tch[0], tch[1], kpt + P.SH_HEADER_TOP[2] / 2),
                     (P.SH_HEADER_TOP[1], P.SH_HEADER_TOP[0], P.SH_HEADER_TOP[2])),
-                 "knob_board_conn_touch", C_SWITCH, 0),
-            Item(bx(tb_c, P.SH_HEADER_SIDE), "touch_bar_conn", C_SWITCH, 3),
+                 "backplane_conn_touch", C_SWITCH, 0),
+            Item(bx(tb_c, (P.SH_HEADER_SIDE[1], P.SH_HEADER_SIDE[0], P.SH_HEADER_SIDE[2])), "touch_bar_conn",
+                 C_SWITCH, 3),
         ]
     for i, (x, y) in enumerate(ub_screws):
         screws.append(Screw(f"screw_usbboard_{i}", "", x, y, ub_z1, False,
                             std_length(P.PCB_T + P.USB_BOARD_Z + 1.5), P.M2_HEAD, "case_tray", "usb_board",
                             engage=(3.0, None), pilot=True))
-    mp = P.MOTOR_PLUG
-    for n, kx in enumerate([] if lite else kxs):
-        items.append(Item(bx((kx - 2.0 - P.HEADER_3P[0] / 2, mh_y, kpt + P.HEADER_3P[2] / 2), P.HEADER_3P),
-                          f"knob{n}_header", C_CHIP, 0))
 
     # Mated plugs: (label, body, insertion direction, kind, mating connector, step, length out of socket)
     C_PLUG = Color(0.20, 0.20, 0.22)
@@ -1376,35 +1530,32 @@ def full_device(tilt: bool = True, tier: str | None = None) -> tuple[list[Item],
          (0, 1, 0), "usb", "usb_board_usb_display", "display", Ls_usb),
         ("plug_usb_board_gh", bx((gh_usb[0], gh_usb[1] - P.GH_PLUG[2] / 2, ub_z1 + P.GH_PLUG[1] / 2),
                                  (P.GH_PLUG[0], P.GH_PLUG[2], P.GH_PLUG[1])), (0, 1, 0), "gh",
-         "usb_board_gh", "knob_board", P.GH_PLUG[2]),
+         "usb_board_gh", "backplane", P.GH_PLUG[2]),
         ("plug_knob_gh", bx((gh_k[0], gh_k[1] + P.GH_PLUG[2] / 2, kpt + P.GH_PLUG[1] / 2),
                             (P.GH_PLUG[0], P.GH_PLUG[2], P.GH_PLUG[1])), (0, -1, 0), "gh",
-         "knob_board_conn_gh", "knob_board", P.GH_PLUG[2]),
+         "backplane_conn_gh", "backplane", P.GH_PLUG[2]),
         ("plug_ffc_frame", bx((frame_x1 + 0.5, zif_y, st.pcb_top + 1.0), (1.0, 13.0, 0.3)), (-1, 0, 0), "ffc",
          "frame_pcb_zif", "top_plate_sub", 1.0),
         ("plug_ffc_knob", bx((zif_x1 + 0.5, zif_y, kpt + 1.0), (1.0, 13.0, 0.3)), (-1, 0, 0), "ffc",
-         "knob_board_conn_zif", "close", 1.0),
+         "backplane_conn_zif", "close", 1.0),
     ]
     if P.HY_LINK:
         plugs[3:3] = [
             ("plug_knob_hy", bx((hy_k[0], hy_k[1] + hp_len / 2, kpt + P.HY_PLUG[1] / 2),
                                 (P.HY_PLUG[0], hp_len, P.HY_PLUG[1])), (0, -1, 0), "hy",
-             "knob_board_conn_hy", "display", hp_len),
+             "backplane_conn_hy", "display", hp_len),
             ("plug_display_j8", bx((j8x + hp_len / 2, j8y, j8z), (hp_len, P.HY_PLUG[0], P.HY_PLUG[1])),
              (-1, 0, 0), "hy", "display_board_connectors", "display", hp_len),
         ]
     if P.TOUCH_BAR:
         plugs.insert(len(plugs) - 1, (
-            "plug_touch_band", bx((tb_c[0], tb_c[1] - P.SH_HEADER_SIDE[1] / 2 - P.SH_PLUG[2] / 2, tb_c[2]),
-                                  (P.SH_PLUG[0], P.SH_PLUG[2], P.SH_HEADER_SIDE[2])), (0, 1, 0), "sh",
+            "plug_touch_band", bx((band_x1 + P.SH_PLUG[2] / 2, tb_c[1], tb_c[2]),
+                                  (P.SH_PLUG[2], P.SH_PLUG[0], P.SH_HEADER_SIDE[2])), (-1, 0, 0), "sh",
             "touch_bar_conn", "top_plate_sub", P.SH_PLUG[2]))
         plugs.append(("plug_knob_touch", bx((tch[0], tch[1], kpt + P.SH_HEADER_TOP[2] + P.SH_PLUG[2] / 2),
                                             (P.SH_PLUG[1], P.SH_PLUG[0], P.SH_PLUG[2])), (0, 0, -1), "sh",
-                      "knob_board_conn_touch", "close", P.SH_PLUG[2]))
-    for n, kx in enumerate([] if lite else kxs):
-        plugs.append((f"knob{n}_motor_plug", bx((kx - 4.5 - mp[2] / 2, mh_y, kpt + 0.5 + mp[1] / 2),
-                                                (mp[2], mp[0], mp[1])), (1, 0, 0), "motor",
-                      f"knob{n}_header", "knob_sub", mp[2]))
+                      "backplane_conn_touch", "close", P.SH_PLUG[2]))
+    plugs += slot_plugs                            # motor plugs on the haptic modules
     plug_len = {}
     for lb, part, d, kind, mate, step, ln in plugs:
         color = C_PLUG if kind == "usb" else (C_CABLE if kind == "ffc" else C_SWITCH)
@@ -1434,30 +1585,8 @@ def full_device(tilt: bool = True, tier: str | None = None) -> tuple[list[Item],
     items.append(Item(cable(ext_pts, 4.0)[0], "cable_usb_ext", C_PLUG, 0))
     cables["cable_usb_ext"] = dict(kind="usb", length=None, lift=None, buy=None, ends=("plug_usb_ext",), d=4.0)
 
-    # Motor leads: whatever doesn't fit the route is coiled on the back strip and strapped
-    leads = {}
-    cw = coil_y1 - coil_y0
-    for n, kx in enumerate([] if lite else kxs):
-        head, tail = lead_pts[n]
-        hp = fillet_path(head, 3.0, f"cable_motor{n}", warns)
-        tp = fillet_path(tail, 2.0, f"cable_motor{n}", warns)
-        part = Compound(children=[cable(hp, P.MOTOR_LEAD_D)[0], cable(tp, P.MOTOR_LEAD_D)[0]])
-        routed = path_length(hp) + path_length(tp)
-        excess = max(0.0, P.MOTOR_LEAD_LEN - routed)
-        per_turn = 2 * (coil_l - cw) + math.pi * cw
-        across = max(1, int(cw // P.MOTOR_LEAD_D))
-        layers = max(1, math.ceil(excess / per_turn / across))
-        coil_h = layers * P.MOTOR_LEAD_D
-        room = panel_back - 0.3 - (kpt + 0.1)
-        if coil_h > room:
-            fit = routed + int(room // P.MOTOR_LEAD_D) * across * per_turn
-            warns.append(f"motor {n}: {P.MOTOR_LEAD_LEN:.0f} mm lead needs a {coil_h:.1f} mm coil, "
-                         f"only {room:.1f} mm under the panel (leads up to ~{fit:.0f} mm fit)")
-        coil = Pos(kx, (coil_y0 + coil_y1) / 2, kpt + 0.1) * Box(coil_l, cw, min(coil_h, room),
-                                                                align=MIN)
-        items.append(Item(part, f"cable_motor{n}", C_CABLE, 0))
-        items.append(Item(coil, f"cable_motor{n}_coil", C_CABLE, 0))
-        leads[n] = dict(routed=routed, excess=excess, coil_h=coil_h, room=room)
+    # Motor leads (haptic modules): the spare lead coils flat in front of the bell
+    leads = {n: dict(coil=P.LEAD_COIL, plug=f"knob{n}_motor_plug") for n, k in enumerate(slots) if k == "haptic"}
 
     for sc in screws:
         sc.kind = f"{'M3' if sc.head == P.M3_HEAD else 'M2'}x{sc.nominal or sc.length}"
@@ -1469,7 +1598,7 @@ def full_device(tilt: bool = True, tier: str | None = None) -> tuple[list[Item],
         "display_gap": (dy1 - P.DISPLAY_PCB[1]) - board_back_y,
         "display_floor_gap": min(lowest, conn_bot + pocket) - P.FLOOR,
         "floor_pocket": pocket,
-        "knob_board_sketch": ksk, "touch_bar_h": tb_h,
+        "backplane_sketch": ksk, "touch_bar_h": tb_h,
         "screws": screws, "cables": cables, "outer": outer, "leads": leads,
         "plugs": [dict(label=lb, dir=d, kind=k, mate=m, step=sp, length=ln)
                   for lb, _, d, k, m, sp, ln in plugs],
@@ -1478,13 +1607,16 @@ def full_device(tilt: bool = True, tier: str | None = None) -> tuple[list[Item],
         # Paperclip holes: (x, y, z, name, direction of the clip's push, button label, clip start)
         "pinholes": [(dx0 + off, iy1, pin_z, name, (0, -1, 0), "display_board_buttons", oy1 + 15.0)
                      for name, off in P.DISPLAY_BUTTONS.items()]
-                    + [(boot_xy[0], boot_xy[1], 0.0, "BOOTSEL", (0, 0, 1), "knob_board_bootsel", -15.0)],
+                    + [(boot_xy[0], boot_xy[1], 0.0, "BOOTSEL", (0, 0, 1), "backplane_bootsel", -15.0)],
         "magnets": magnets,
-        "threaded": [(f"knob{n}_striker", f"knob{n}_spacer") for n in range(0 if lite else len(kxs))]
-                    + [(f"top_plate_insert_{i}", "top_plate") for i in range(len(plate_posts))],
-        "press_fits": {(f"knob{n}_knob", f"knob{n}_{'encoder' if lite else 'hub'}"): 3.0
-                       for n in range(len(kxs))},
-        "tier": tier, "lite": lite_heights(st) if lite else None,
+        "threaded": [(f"knob{n}_striker", f"knob{n}_spacer") for n, k in enumerate(slots) if k == "haptic"]
+                    + [(f"top_plate_insert_{i}", "top_plate") for i in range(len(plate_posts))]
+                    + [(f"slot_insert_{n}_{k}", "case_tray") for n, k, _, _ in slot_bosses],
+        "press_fits": {(f"knob{n}_knob", f"knob{n}_{'hub' if k == 'haptic' else 'encoder'}"): 3.0
+                       for n, k in enumerate(slots) if k != "blank"},
+        "slots": slots, "knob_xy": L.knob_xy, "lite": lite_heights(st),
+        "module_pcb_sketch": {k: module_pcb_sketch(k) for k in ("haptic", "lite")},
+        "module_screw": module_screw_nominal(st),
         "touch_band_bbox": info_touch, "panel_screw": (pan_len, cb_pan),
         "usb_arm": (arm_y0, iy1), "usb_ext_socket_depth": sd_ + 0.3,
         "display_usb_z": usb_z, "board_back_y": board_back_y,
@@ -1664,7 +1796,7 @@ def prototype() -> tuple[list[Item], Layout, dict]:
     breakouts on its own stand; the knob board, hub and touch circuits are first
     tested on Rev A.
     """
-    st = make_stack(P.PROTO_PLATE_T, P.PROTO_PLATE_T)
+    st = make_stack(P.PROTO_PLATE_T, P.PROTO_PLATE_T, modular=False)   # no backplane: the old height
     FL = full_layout()
     keys = [FL.key_xy[i] for i in P.PROTO_KEY_IDX]
     wins, win = [FL.win_xy[0]], FL.win_size

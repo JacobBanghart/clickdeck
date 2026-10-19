@@ -105,7 +105,7 @@ def panel_lines(info):
     def size(sk):
         bb = sk if isinstance(sk, BoundBox) else sk.bounding_box()
         return (bb.size.X, bb.size.Y)
-    boards = {"frame PCB": size(info["frame_sketch"]), "knob board": size(info["knob_board_sketch"]),
+    boards = {"frame PCB": size(info["frame_sketch"]), "backplane": size(info["backplane_sketch"]),
               "USB board": size(info["usb_board_sketch"])}
     if info.get("touch_band_bbox") is not None:
         boards["touch band"] = size(info["touch_band_bbox"])
@@ -122,6 +122,9 @@ def panel_lines(info):
         f"- Assumption: JLC's large-size fee counts the assembled area, {ASSEMBLED_PANELS} panels for "
         f"one build = {order_cm2:.0f} cm² against {JLC_LARGE_CM2:.0f} cm² (5 assembled for a group buy "
         f"= {5 * panel_cm2:.0f} cm²)",
+        "- Module boards (D23), own designs: "
+        + ", ".join(f"{k} {a:.1f} x {b:.1f} mm" for k, (a, b) in
+                    ((k, size(info["module_pcb_sketch"][k])) for k in ("haptic", "lite"))),
     ]
     problems = []
     if order_cm2 > JLC_LARGE_CM2:
@@ -140,10 +143,9 @@ def main():
     OUT.mkdir(exist_ok=True)
     t0 = time.time()
 
-    full, L, info = model.full_device(tier="haptic")
+    full, L, info = model.full_device()                      # default slots: the owner's first build
     flat = info["flat_items"]
-    lite, LL, linfo = model.full_device(tier="lite")          # D22: second knob tier
-    lflat = linfo["flat_items"]
+    others = {cfg: model.full_device(tilt=False, slots=cfg) for cfg in P.CHECK_CONFIGS}   # D23
     proto, PL, pinfo = model.prototype()
     st, pst = info["stack"], pinfo["stack"]
     section = model.key_section(flat, L.key_xy[P.KEY_COLS * (P.KEY_ROWS // 2) + P.KEY_COLS // 2],
@@ -152,8 +154,19 @@ def main():
                                       z0=pst.glass - P.PANEL_T - 0.5, slab=0.4)
 
     export_step(to_compound(full, "clickdeck_full"), str(OUT / "clickdeck_full.step"))
-    export_step(to_compound(lite, "clickdeck_full_lite"), str(OUT / "clickdeck_full_lite.step"))
     export_step(to_compound(proto, "clickdeck_proto"), str(OUT / "clickdeck_proto.step"))
+    # The three slot types side by side (D23): slot 0 of all-haptic, all-lite and the default's first blank
+    kx0, ky0 = L.knob_xy[0]
+    mods = []
+    picks = [(others[P.CHECK_CONFIGS[0]][0], 0, "haptic"), (others[P.CHECK_CONFIGS[1]][0], 0, "lite"),
+             (flat, info["slots"].index("blank") if "blank" in info["slots"] else 0, "blank")]
+    for i, (items_, n_, name) in enumerate(picks):
+        kx = L.knob_xy[n_][0]
+        for it in items_:
+            if it.label.startswith((f"knob{n_}_", f"cable_motor{n_}_", f"backplane_pogo{n_}",
+                                    f"screw_motor{n_}_", f"screw_hub{n_}_", f"screw_slot{n_}_")):
+                mods.append(model.Item(Pos(i * 40.0 - kx, -ky0, 0) * it.part, f"{name}_{it.label}", it.color))
+    export_step(to_compound(mods, "knob_modules"), str(OUT / "knob_modules.step"))
     cutaway = model.key_section(flat, L.key_xy[P.KEY_COLS * (P.KEY_ROWS // 2) + P.KEY_COLS // 2],
                                 z0=st.glass - P.PANEL_T - 0.5, slab=28.0)
     export_step(to_compound(cutaway, "key_cutaway"), str(OUT / "key_cutaway.step"))
@@ -162,8 +175,9 @@ def main():
     export_dxf(info["plate_sketch"], str(OUT / "full_top_plate.dxf"))
     export_dxf(pinfo["frame_sketch"], str(OUT / "proto_frame_pcb_outline.dxf"))
     export_dxf(pinfo["base_sketch"], str(OUT / "proto_base_plate_3mm_acrylic.dxf"))
-    export_dxf(info["knob_board_sketch"], str(OUT / "full_knob_board_outline.dxf"))
-    export_dxf(linfo["knob_board_sketch"], str(OUT / "full_knob_board_lite_outline.dxf"))
+    export_dxf(info["backplane_sketch"], str(OUT / "full_backplane_outline.dxf"))
+    for k, sk in info["module_pcb_sketch"].items():
+        export_dxf(sk, str(OUT / f"module_{k}_pcb_outline.dxf"))
     export_dxf(info["usb_board_sketch"], str(OUT / "full_usb_board_outline.dxf"))
     tb = info.get("touch_band_bbox")
     if tb is not None:                                     # touch band outline (with the ZIF clearance)
@@ -202,15 +216,20 @@ def main():
         cap = next(it for it in src if it.label == "cap_0")
         x, y = (L.key_xy[0] if src is flat else PL.key_xy[0])
         export_stl(Pos(-x, -y, 0) * cap.part, str(OUT / name))
-    knob_part = next(it for it in flat if it.label.startswith("knob0_")
+    hflat, lflat = (others[c][0] for c in P.CHECK_CONFIGS)
+    knob_part = next(it for it in hflat if it.label.startswith("knob0_")
                      and it.label.endswith(("_knob", "_shaft_adapter")))
     export_stl(at_origin(knob_part.part), str(OUT / f"{knob_part.label.removeprefix('knob0_')}.stl"))
     export_stl(at_origin(next(it.part for it in lflat if it.label == "knob0_knob")), str(OUT / "knob_lite.stl"))
+    # Module carrier prints (D23): base and cover upright as modeled (cover: print bezel-down)
+    export_stl(at_origin(model.module_base(st)), str(OUT / "module_base.stl"))
+    for kind, name in (("haptic", "module_cover"), ("blank", "blank_cover")):
+        export_stl(at_origin(Rot(X=180) * model.module_cover(st, kind)), str(OUT / f"{name}.stl"))
     export_stl(pinfo["knob_test_stand"]["stand_part"], str(OUT / "print_knob_test_stand.stl"))
 
     for label, name, flip in (("knob0_hub", "knob_hub", True), ("knob0_spacer", "motor_spacer", True),
                               ("knob_window_0", "knob_window", False)):
-        it = next((i for i in flat if i.label == label), None)
+        it = next((i for i in hflat if i.label == label), None)
         if it is not None:
             part = Rot(X=180) * it.part if flip else it.part
             export_stl(at_origin(part), str(OUT / f"{name}.stl"))
@@ -263,17 +282,16 @@ def main():
             lines.append(f"- Frame PCB screws: {len(fs['pan'])} pan-head off the glass, "
                          f"{len(fs['csk']) + len(fs['csk_inner'])} countersunk (flush) over it")
         if "display_gap" in inf:
-            lines.append(f"- Display board: {inf['display_gap']:.1f} mm behind the knob board, "
+            lines.append(f"- Display board: {inf['display_gap']:.1f} mm behind the backplane, "
                          f"{inf['display_floor_gap']:.1f} mm above the floor"
                          + (f" (connector row sits in a {inf['floor_pocket']:.1f} mm floor pocket)"
                             if inf['floor_pocket'] > 0 else "") + " (Waveshare STEP depths)")
         if "cables" in inf:
             cab = ", ".join(f"{n.removeprefix('cable_')} {c['buy']} mm"
                             for n, c in inf["cables"].items() if c["buy"])
-            lead = max(inf["leads"].values(), key=lambda v: v["coil_h"])
-            lines.append(f"- Internal cables (bought, plug-in): {cab}; "
-                         f"{P.MOTOR_LEAD_LEN:.0f} mm motor leads coil {lead['coil_h']:.1f} mm "
-                         f"high ({lead['room']:.1f} mm room under the panel)")
+            lines.append(f"- Internal cables (bought, plug-in): {cab}; each haptic module coils its "
+                         f"{P.MOTOR_LEAD_LEN:.0f} mm motor lead in front of the bell "
+                         f"({P.LEAD_COIL[0]:g} x {P.LEAD_COIL[1]:g} x {P.LEAD_COIL[2]:g} mm)")
         if P.TOUCH_BAR and inf.get("touch_bar_h", 0) >= P.TOUCH_BAR_MIN_H:
             plate_t = P.TOP_PLATE_T if name == "Full device" else P.PROTO_PLATE_T
             if name == "Full device":
@@ -282,37 +300,55 @@ def main():
                          f"displays, sensing through {plate_t:g} mm of plate")
         lines += [f"- WARNING: {w_}" for w_ in lay.warnings] or ["- Fit checks: OK"]
         lines.append("")
-    # Lite tier (D22): only the knob board differs; its knobs must land where the haptic knobs are
-    lh = linfo["lite"]
-
-    def knob_boxes(items):
-        return [it.part.bounding_box() for it in items if it.label.endswith("_knob") and it.label[4:5].isdigit()]
-    top_diff = max(max(abs(a.max.Z - b.max.Z), abs(a.center().X - b.center().X), abs(a.center().Y - b.center().Y))
-                   for a, b in zip(knob_boxes(flat), knob_boxes(lflat)))
-    if top_diff > P.KNOB_TOP_TOL:
-        LL.warnings.append(f"lite knob tops are {top_diff:.2f} mm off the haptic knobs (max {P.KNOB_TOP_TOL:g})")
+    # Knob slots (D23): every configuration's knobs must land where the haptic knob is, covers
+    # and blanks flush, pogo pins inside their stroke
+    lh = info["lite"]
+    st = info["stack"]                              # the loop above left the prototype's
+    ref_z = st.plate_top + P.KNOB_GAP + P.KNOB_H
+    SL = model.Layout([], [], (0, 0), [], [])
+    cfg_lines = []
+    for cfg, (items_, lay_, inf_) in [(info["slots"], (flat, L, info))] + list(others.items()):
+        top_diff, flush = 0.0, 0.0
+        for n, ((kx, ky), kind) in enumerate(zip(L.knob_xy, cfg)):
+            by = {it.label: it.part for it in items_ if it.label.startswith(f"knob{n}_")}
+            cov = by.get(f"knob{n}_cover", by.get(f"knob{n}_blank")).bounding_box()
+            flush = max(flush, abs(cov.max.Z - st.plate_top))
+            if kind != "blank":
+                b_ = by[f"knob{n}_knob"].bounding_box()
+                top_diff = max(top_diff, abs(b_.max.Z - ref_z), abs(b_.center().X - kx), abs(b_.center().Y - ky))
+        if top_diff > P.KNOB_TOP_TOL:
+            SL.warnings.append(f"slots {cfg}: knob tops {top_diff:.2f} mm off the haptic knob (max {P.KNOB_TOP_TOL:g})")
+        if flush > P.KNOB_TOP_TOL:
+            SL.warnings.append(f"slots {cfg}: a cover or blank is {flush:.2f} mm off flush")
+        SL.warnings += [w_ for w_ in lay_.warnings if w_ not in L.warnings]
+        cfg_lines.append(f"- {', '.join(cfg)}: knob tops within {top_diff:.2f} mm of the haptic knob's "
+                         f"position, covers/blanks flush within {flush:.2f} mm")
+    comp = P.POGO[1] - (st.knob_pcb_bot - st.bp_top)
+    if not P.POGO_COMPRESS[0] <= comp <= P.POGO_COMPRESS[1]:
+        SL.warnings.append(f"pogo pins compressed {comp:.2f} mm, outside {P.POGO_COMPRESS}")
     if lh["shaft_top"] - lh["stem_bot"] < P.ENC_SHAFT_FLAT[0]:
-        LL.warnings.append("lite: the encoder shaft's flat isn't fully inside the knob")
+        SL.warnings.append("lite: the encoder shaft's flat isn't fully inside the knob")
     if lh["stem_bot"] - P.ENC_PRESS_TRAVEL - lh["bushing_top"] < 0.3:
-        LL.warnings.append("lite: a pressed knob's stem comes within 0.3 mm of the encoder bushing")
-    lst = linfo["stack"]
+        SL.warnings.append("lite: a pressed knob's stem comes within 0.3 mm of the encoder bushing")
+    nc, nr, _, _ = P.POGO_GRID
     lines += [
-        "## Full device, lite knob board (D22)",
-        "- Same case, top plate, display, frame PCB, keys, USB board, touch band and cables; "
-        "only the knob board and what sits on it differ",
-        f"- Encoders (EC11 size, push switch): body {lst.knob_pcb_top:.2f}-{lh['body_top']:.2f}, bushing top "
-        f"{lh['bushing_top']:.2f}, shaft tip {lh['shaft_top']:.2f} ({P.ENC_SHAFT_L:g} mm shaft)",
-        f"- Knob: printed cap with a {P.LITE_STEM_D:g} mm stem through the plate's hub hole, seated on the shaft "
-        f"tip ({lh['shaft_top'] - lh['stem_bot']:.1f} mm of shaft in the bore); cap {lh['knob_z']:.2f}-"
-        f"{lh['knob_z'] + P.KNOB_H:.2f}, {top_diff:.2f} mm from the haptic knob (max {P.KNOB_TOP_TOL:g})",
-        f"- Pressed ({P.ENC_PRESS_TRAVEL:g} mm switch travel): stem "
-        f"{lh['stem_bot'] - P.ENC_PRESS_TRAVEL - lh['bushing_top']:.2f} mm above the bushing, cap "
-        f"{lh['knob_z'] - P.ENC_PRESS_TRAVEL - lst.plate_top:.2f} mm above the plate",
-        f"- Knob board: same outline ({linfo['knob_board_sketch'].bounding_box().size.X:.1f} x "
-        f"{linfo['knob_board_sketch'].bounding_box().size.Y:.1f} mm), holes and connectors; no tongues, "
-        "motor holes or motor headers",
+        "## Knob slots (D23)",
+        f"- {P.KNOBS} slots at the knob positions; each takes a haptic module, a lite module or a blank, "
+        f"dropped in from the top through a {2 * P.SLOT_OPEN[0]:.1f} x {P.SLOT_OPEN[1] + P.SLOT_OPEN[2]:.1f} mm "
+        "opening and held by two M2 screws from the top",
+        f"- Stack: backplane {st.bp_bot:.2f}-{st.bp_top:.2f}, module base {st.bp_top:.2f}-{st.knob_pcb_bot:.2f}, "
+        f"module PCB {st.knob_pcb_bot:.2f}-{st.knob_pcb_top:.2f}, motor {st.motor_bot:.2f}-{st.motor_top:.2f}",
+        f"- Slot connector: {nc * nr} pogo pins per slot (C2988082, {P.POGO[1]:g} mm, {P.POGO[2]:g} mm stroke), "
+        f"compressed {comp:.2f} mm (allowed {P.POGO_COMPRESS[0]:g}-{P.POGO_COMPRESS[1]:g})",
+        f"- Module PCB {P.MODULE_W:g} x {P.MODULE_FRONT + P.MODULE_BACK:g} mm; retention screws M2x"
+        f"{info['module_screw']} countersunk into M2 heat-set inserts in the slot bosses",
+        f"- Lite: encoder body {st.knob_pcb_top:.2f}-{lh['body_top']:.2f}, shaft tip {lh['shaft_top']:.2f}; "
+        f"{lh['shaft_top'] - lh['stem_bot']:.1f} mm of shaft in the knob; pressed "
+        f"{P.ENC_PRESS_TRAVEL:g} mm: stem {lh['stem_bot'] - P.ENC_PRESS_TRAVEL - lh['bushing_top']:.2f} mm "
+        "above the bushing",
+        *cfg_lines,
     ]
-    lines += [f"- WARNING: {w_}" for w_ in LL.warnings] or ["- Fit checks: OK"]
+    lines += [f"- WARNING: {w_}" for w_ in SL.warnings] or ["- Fit checks: OK"]
     lines.append("")
     import stability
     stab = stability.check(full, L, info)
@@ -331,7 +367,7 @@ def main():
     lines += [*p_lines, ""]
     (OUT / "summary.md").write_text("\n".join(lines))
     print("\n".join(lines))
-    problems = [w for lay in (L, PL, LL) for w in lay.warnings]
+    problems = [w for lay in (L, PL, SL) for w in lay.warnings]
     problems += [p for p in print_lines if "DOES NOT FIT" in p]
     problems += panel_problems
     if problems and "--strict" in sys.argv:
@@ -367,17 +403,16 @@ def main():
                                           "plug_touch_band"))
               and not it.label.endswith(("_knob", "_hub"))],
              dict(az=-90, el=89.9, size=(1500, 1250))),
-            ("knob_board_detail.png",
-             [it for it in flat if it.label.startswith(("knob_board", "knob0_", "knob1_",
-                                                         "touch_bar"))
-              and not it.label.endswith("_knob")],
+            ("modules_detail.png", mods,
              dict(az=-70, el=38, size=(1500, 900), tol=0.08,
-                  offsets={f"knob{i}_{p}": (0, 0, 18) for i in (0, 1)
-                           for p in ("motor_2204", "magnet")})),
-            ("knob_board_lite_detail.png",
-             [it for it in lflat if it.label.startswith(("knob_board", "knob0_", "knob1_", "touch_bar"))
-              and not it.label.endswith("_knob")],
-             dict(az=-70, el=38, size=(1500, 900), tol=0.08)),
+                  offsets={lb: (0, 0, dz) for lb, dz in
+                           [(f"{k}_knob0_cover", 30) for k in ("haptic", "lite")]
+                           + [("blank_knob" + str(picks[2][1]) + "_blank", 30)]
+                           + [(f"haptic_knob0_{p}", 22) for p in ("motor_2204", "magnet", "hub")]
+                           + [(f"{k}_knob0_knob", 45) for k in ("haptic", "lite")]
+                           + [(f"{k}_screw_slot{n_}_{j}", 50) for k, n_ in (("haptic", 0), ("lite", 0),
+                                                                           ("blank", picks[2][1]))
+                              for j in P.MODULE_SCREWS]})),
             ("proto_key_section.png", proto_section, dict(az=0, el=0.5, size=(1500, 700), tol=0.02)),
         ]
         for name, items, kw in jobs:
