@@ -19,9 +19,14 @@ repo.
 
  knob board (RP2350B) ◄── 12-pin FFC ── frame PCB (21 key switches + diodes)
         ├──── JST-SH 6-pin cable ────► touch band (touch controller, I²C)
-        ├──── 3-pin plug ×5 ─────────► 2204 motors
+        ├──── 3-pin plug ×5 ─────────► 2204 motors (haptic tier only)
         └┄┄┄┄ HY2.0 3-pin lead (optional) ┄┄► Waveshare 7B J8 (GPIO6): page, wake
 ```
+
+**Lite tier (D22):** the lite knob board has the same connectors in the
+same places and the same cables; its five push encoders are soldered to
+the board, so there are no motor plugs or leads. Only power differs
+(below).
 
 The PC sees two USB devices behind a hub: the display board (ESP32-S3:
 images, display settings) and the knob board (RP2350B: keys, knobs, touch,
@@ -158,6 +163,15 @@ coiled flat on the back strip and strapped through two slots. See
 - **Voltage monitoring:** the RP2350B measures its 5 V input through a
   divider on an ADC pin.
 
+### Lite tier power (D22)
+
+The lite knob board has no motor rail: no third eFuse, no bulk cap, no
+drivers. The whole device draws about 0.46 A (display board 350 mA, hub
+~50 mA, lite knob board ~60 mA without the MT6701s), so it runs on any USB
+port, including a default 500 mA port or an A-to-C cable. The CC sense
+lines are still wired (same USB board and cable) and reported in `STATUS`,
+but nothing waits on them. The USB board's knob-branch eFuse stays as is.
+
 ### Reading the PC's current offer
 
 The USB board's upstream socket has the standard 5.1 kΩ pull-downs on CC1
@@ -215,7 +229,7 @@ All on the boards, fitted by JLC. Part numbers: [bom.md](bom.md).
 | USB board | USB-C, top mount, 4 through-hole shell legs (TYPE-C-31-M-12) | Display cable, straight end | Faces forward |
 | USB board | JST-GH 8-pin, side entry (HCTL HC-GH-8PWT, a GH clone; JST SM08B-GHS-TB is out of stock) | USB link cable | Faces forward; positive latch |
 | Knob board | JST-GH 8-pin, side entry | USB link cable | Back-left corner, faces back |
-| Knob board | 1×3 2.54 mm right-angle header ×5, SMD (part not chosen; THT fallback) | Motor plugs | Behind each tongue, pins point left. Shrouded or keyed if the motor plug has a key |
+| Knob board | 1×3 2.54 mm right-angle header ×5, SMD (part not chosen; THT fallback) | Motor plugs | Behind each tongue, pins point left. Shrouded or keyed if the motor plug has a key. Haptic tier only |
 | Knob board | 12-pin 1.0 mm flip-lock ZIF | Key FFC | Right end, on a small tab. Series resistors and three SRV05-4-P-T7 arrays on the key lines |
 | Knob board | JST-SH 6-pin, top entry (BM06B-SRSS-TB) | Touch cable | Right end, front. One SRV05-4-P-T7 on SDA/SCL |
 | Knob board | HY2.0 3-pin, footprint always, fitting optional | Link lead to the 7B's J8 | GPIO6 link (see below) |
@@ -333,7 +347,8 @@ step that connects it (checked in the model, like the screwdriver access).
 
 - **7 columns × 4 rows = 28 positions:** rows 1–3 are the 21 keys on the
   frame PCB; row 4 is the 5 knob press switches on the knob board (sharing
-  the column lines).
+  the column lines). On the lite knob board, row 4 is the encoders' push
+  switches, in the same positions.
 - **One diode per switch** (SOD-123, e.g. 1N4148W) so any combination of
   keys can be held at once (needed for held modifiers and push-to-talk):
   26 diodes, 21 on the frame PCB and 5 on the knob board.
@@ -354,7 +369,11 @@ step that connects it (checked in the model, like the screwdriver access).
 | 5 V monitor (ADC) | 1 |
 | CC1/CC2 current-offer sense (ADC) | 2 |
 | Link to the display board (UART TX, optional lead) | 1 |
-| **Total** | **44 of 48** |
+| Board-ID strap (haptic or lite, D22) | 1 |
+| **Total** | **45 of 48** |
+
+The lite knob board uses 28: 10 for the encoders' A and B (consecutive
+pairs, read by PIO), plus the same matrix, I²C, ADC, link and ID pins.
 
 USB, RUN and the SWD debug pins are separate pins on the RP2350B and don't
 count against the 48.

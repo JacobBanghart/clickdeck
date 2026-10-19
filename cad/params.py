@@ -169,6 +169,28 @@ TOUCH_BAR_H = 11.2                      # knobs move forward as needed to make r
 TOUCH_BAR_RECESS = 0.4                  # flat pocket in the plate underside the band sits in
 MOTOR_TO_PLATE = 0.8                    # bell (hub flange) to plate underside
 
+# --- Knob tier (D22) --------------------------------------------------------
+# Two knob boards, everything else shared (case, top plate, display, frame PCB,
+# keys, USB board, touch band, cables):
+#   "haptic"  2204 motors, TMC6300, MT6701, hinged tongues (the flagship)
+#   "lite"    EC11-size push encoders, no motors; detent or smooth is chosen
+#             when ordering. Same outline, holes, connectors and RP2350B.
+# build.py and assembly.py --check always build and check both; this picks the
+# tier model.full_device() builds by default (and the assembly guide's pictures).
+KNOB_TIER = "haptic"
+# Lite encoder: Bourns PEC11R-4x15F-S0024 (vertical, 6 mm flatted metal shaft,
+# push switch). PEC11R-4215F-S0024 has 24 detents, PEC11R-4015F-S0024 none; same
+# body, shaft and footprint. From the Bourns drawing (V: measure the real part).
+ENC_BODY = (12.5, 13.4, 6.5)            # x, y, height from the PCB to the mounting surface
+ENC_BUSHING = (7.0, 5.0)                # M7 bushing: diameter, length (LB, 15 mm shaft)
+ENC_SHAFT_L = 15.0                      # shaft from the mounting surface (L)
+ENC_SHAFT_FLAT = (7.0, 4.5)             # flatted length (F), width across the flat
+ENC_PRESS_TRAVEL = 0.5                  # push switch travel (0.5 ± 0.3)
+ENC_PIN_STUB = 1.2                      # pins below the board after trimming (floor is 2 mm below)
+LITE_KNOB_ENGAGE = 9.0                  # shaft length inside the knob's bore (the flat is 7)
+LITE_STEM_D = 9.0                       # knob stem through the plate's hub hole to the shaft
+KNOB_TOP_TOL = 0.05                     # lite knob top vs haptic knob top (check)
+
 # --- Case -----------------------------------------------------------------
 # Case parts should fit a common home 3D printer bed (Bambu A1/P1, Prusa MK4).
 PRINT_BED = (256.0, 256.0, 256.0)

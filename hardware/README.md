@@ -20,6 +20,7 @@ Python), plus the project's `.venv` for the CAD.
 | Prototype frame PCB, rev C (2 keys on the 7B) | Generated, DRC clean, untested | [`proto-frame/`](proto-frame/) |
 | Rev A frame PCB (21 keys) | After the prototype. Outline: `cad/out/full_frame_pcb_outline.dxf` | — |
 | Rev A knob board | After the prototype; first build of the knob circuit ([knob-module.md](../docs/knob-module.md)). Outline: `cad/out/full_knob_board_outline.dxf` | — |
+| Lite knob board (D22: push encoders, no motors) | After Rev A's knob board, from the same schematic minus the motor channels ([knob-module.md](../docs/knob-module.md), end). Outline: `cad/out/full_knob_board_lite_outline.dxf` | — |
 | Rev A USB board (CH334F hub) | After the prototype. Outline: `cad/out/full_usb_board_outline.dxf` | — |
 | Rev A touch band | After the prototype (optional, D12). Outline: `cad/out/full_touch_band_outline.dxf` | — |
 
@@ -100,5 +101,11 @@ separate schematic for a 4-switch board).
   edge (x = 57 mm), footprint always, fitted optionally.
 - **PD sink (D9):** a CH224-class footprint area beside the external USB-C
   on the USB board, on its CC lines, not fitted by default.
+- **Lite knob board (D22):** same outline, holes and connector positions as
+  the knob board, without the tongues. Encoders are through-hole (one
+  footprint for the detented and smooth Bourns PEC11R); JLC hand-solders
+  them, so the board stays top-side assembly. A board-ID strap (10 kΩ to
+  GND on the haptic board, to 3V3 on the lite one) tells the firmware which
+  board it's on.
 - **Touch band (D12):** optional; `TOUCH_BAR = False` in `cad/params.py`
   removes the band, its cable and the knob board's SH header from the model.

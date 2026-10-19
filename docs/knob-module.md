@@ -8,7 +8,8 @@
 > sensor, TMC6300 driver with 3-PWM drive, B3U press switch, motor and
 > sensor on a hinged tongue. The knob board repeats it 5× around one
 > RP2350B. Parts marked "module only" were for the standalone board and
-> don't go on the knob board. Untested.
+> don't go on the knob board. Untested. The lite tier's encoder channel
+> (D22) is at the end.
 
 The knobs run on the knob board's RP2350B, which has its own USB
 connection through an internal hub ([wiring.md](wiring.md)).
@@ -171,3 +172,44 @@ Rev A's knob board.
    motor, with FOC on core 1 running from RAM. Initialize every driver
    before enabling any (SimpleFOC's `syncSlices()` resets all slices on each
    driver init).
+
+## Lite tier: encoder channel (D22)
+
+The lite knob board replaces each knob channel above with a push encoder.
+Same outline, mounting holes, connectors (GH USB link, ZIF keys, SH touch,
+HY2.0 link footprint, BOOTSEL) and RP2350B as the haptic board; no
+tongues, motors, drivers, sensors, motor rail or motor headers. Untested.
+
+| Ref | Part | Package | LCSC | Notes |
+|---|---|---|---|---|
+| ENC1 | Bourns PEC11R-4215F-S0024 (24 detents) **or** PEC11R-4015F-S0024 (smooth) | THT, vertical, 6 mm flatted shaft, 15 mm | C143790 / C143789 (5,485 / 3,748 in JLC stock, 2026-10-19) | Chosen when ordering, all five the same. JLC hand-solders it (Economic). Leads trimmed to ≤ 1.2 mm: the floor is 2 mm under the board |
+| R1, R2 | 10 kΩ | 0402 | (basic) | A and B pull-ups to 3V3 |
+| R3, R4 | 10 kΩ | 0402 | (basic) | Series, A and B to the RP2350B |
+| C1, C2 | 10 nF | 0402 | (basic) | A and B to GND at the RP2350B (Bourns' suggested filter, ~0.1 ms) |
+| D1 | 1N4148W | SOD-123 | (basic) | Push switch in the key matrix, as on the haptic board |
+
+**Netlist (per knob)**
+- ENC1 C (common) → GND. A → R1 to 3V3 → R3 → GPIO, C1 to GND at the pin.
+  Same for B (R2, R4, C2). A and B of one encoder go to two consecutive
+  GPIOs, read by a PIO quadrature program (24 pulses per turn; no CPU
+  load, nothing missed while flash writes).
+- ENC1 switch pins: one to the column line, the other through D1 to row 4,
+  the same matrix positions as the haptic board's press switches
+  ([wiring.md](wiring.md)).
+- Mounting tabs: soldered to GND pads.
+- Board-ID strap: 10 kΩ from the ID pin to 3V3 (to GND on the haptic
+  board). Firmware reads it at boot and reports the tier
+  ([protocol.md](protocol.md)).
+
+**Knob height.** The knob is the haptic knob's cap with a 9 mm stem down
+through the top plate's hub hole. Its D-bore seats on the shaft tip, 9 mm
+of shaft inside (the 7 mm flat fully in), so the cap sits 1 mm above the
+plate like the haptic knob. `assembly.py --check` checks the top matches
+within 0.05 mm, and that a full press (0.5 mm switch travel) clears the
+plate and the bushing. The shaft length is ±0.5 mm and the body ±0.3 mm:
+measure the first encoders, set `ENC_*` in `cad/params.py` and reprint
+the knobs.
+
+**Bring-up:** the encoder needs no prototype board. Check the PIO
+quadrature reader and the switch on the WeAct RP2350B bench with an EC11
+on a breadboard (same pinout); the lite board is first built as a whole.

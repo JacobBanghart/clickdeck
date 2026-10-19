@@ -25,6 +25,14 @@
 - Standoffs: M3, plate to plate (corners) 24.5 mm, M3, base plate to the 7B's tabs 12.6 mm, M2, frame PCB to top plate 3.3 mm
 - Fit checks: OK
 
+## Full device, lite knob board (D22)
+- Same case, top plate, display, frame PCB, keys, USB board, touch band and cables; only the knob board and what sits on it differ
+- Encoders (EC11 size, push switch): body 6.60-13.10, bushing top 18.10, shaft tip 28.10 (15 mm shaft)
+- Knob: printed cap with a 9 mm stem through the plate's hub hole, seated on the shaft tip (9.0 mm of shaft in the bore); cap 30.50-45.50, 0.00 mm from the haptic knob (max 0.05)
+- Pressed (0.5 mm switch travel): stem 0.50 mm above the bushing, cap 0.50 mm above the plate
+- Knob board: same outline (161.1 x 57.8 mm), holes and connectors; no tongues, motor holes or motor headers
+- Fit checks: OK
+
 ## Stability (estimate)
 - Estimated mass 719 g (stand 228 g, shelled); tips backward at 10.6 N on a top-row key (a firm press is ~3 N), or 3.9 N pulling the USB cable straight back. Rough densities, see cad/stability.py
 

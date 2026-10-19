@@ -128,13 +128,17 @@ COBS( type u8 | seq u16 | len u16 | payload (len bytes) | crc16 u16 ) 0x00
 | Dir | Type | Payload |
 |---|---|---|
 | host → dev | `HELLO` | supported protocol version range (min, max), host kind (`configurator` / `daemon` / other) and version |
-| dev → host | `HELLO_ACK` | protocol version chosen (or `ERROR(version)` if the ranges don't overlap), role (`inputs` / `display`), firmware version, board ID, device ID, pairing ID, **feature list** (strings, e.g. `image-rle`, `image-jpeg`, `knob-haptics`, `touch-band`, `brightness`, `link`), key grid (cols, rows); display: **key image size in px**, knob display size in px, free image storage; inputs: knob count, advertised USB current |
+| dev → host | `HELLO_ACK` | protocol version chosen (or `ERROR(version)` if the ranges don't overlap), role (`inputs` / `display`), firmware version, board ID (inputs: `haptic` or `lite` knob board, D22), device ID, pairing ID, **feature list** (strings, e.g. `image-rle`, `image-jpeg`, `knob-haptics`, `touch-band`, `brightness`, `link`), key grid (cols, rows); display: **key image size in px**, knob display size in px, free image storage; inputs: knob count, advertised USB current |
 | host → dev | `PAIR` | pairing ID (both devices) |
 
 - The host only uses features in the list (additive versioning: new features
   never break old firmware).
 - The device reports key and knob-display sizes in pixels; the host renders
   artwork at exactly that size.
+- **Knob board tiers (D22):** one RP2350B firmware runs on both knob boards
+  and reads which one it's on from a board-ID strap pin. The haptic board
+  lists `knob-haptics`; the lite board (push encoders, no motors) doesn't,
+  and the host hides knob feel and motor power settings.
 
 ## Trust and the optional lock
 
@@ -151,7 +155,7 @@ on the device (`LOCK`). With lock on, `KEYMAP` (when saved), `SAVE` of a
 keymap and `REBOOT_BOOTLOADER` need a 3 s knob hold:
 
 1. The host sends the request. The inputs device answers `PENDING`, gives
-   a short haptic tick, and the configurator shows "Hold any knob pressed
+   a short haptic tick (haptic tier), and the configurator shows "Hold any knob pressed
    for 3 s".
 2. The user holds a knob pressed for 3 s. The device applies the change and
    answers `OK`.
@@ -270,7 +274,10 @@ Fields:
 | `marks` | positions (in detents) that give a tick as the knob passes them, e.g. a preset |
 | `position` | current position (so a knob can start at the app's current value) |
 
-These fields are the core knob feel (D20). Their behavior follows
+These fields are the core knob feel (D20). The lite knob board (no
+`knob-haptics`) uses only `min`, `max` (limits in software, nothing to
+feel) and `position`, counted in encoder steps (24 per turn); its
+detents are fixed by the encoder ordered. Their behavior follows
 SimpleFOC and SmartKnob's documented detent and end-stop profiles
 ([lessons.md](lessons.md)).
 
@@ -285,7 +292,7 @@ uses it only when the device lists that flag.
 | Type | Payload |
 |---|---|
 | `DISPLAY` (display) | brightness 0–100, idle timeout (s), `blank_now`, `wake` |
-| `POWER` (inputs) | motor current budget (mA); the default comes from the port's advertised current ([wiring.md](wiring.md)) |
+| `POWER` (inputs) | motor current budget (mA); the default comes from the port's advertised current ([wiring.md](wiring.md)). Haptic tier only |
 | `SAVE` (inputs) | write the keymap, knob configs and `POWER` to flash, once every motor is asleep |
 | `RESET_SETTINGS` (both) | back to defaults; knob calibration kept |
 | `LOCK` (both) | lock on/off (off by default); on: keymap saves and `REBOOT_BOOTLOADER` need the 3 s knob hold |

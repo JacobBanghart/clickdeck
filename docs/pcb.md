@@ -16,6 +16,7 @@ boards, all connectors fitted by JLC (cabling: [wiring.md](wiring.md)):
 | Board | What's on it | Outline |
 |---|---|---|
 | **Knob board** | RP2350B, 5× MT6701 sensors, 5× motor drivers, 5× B3U press switches, 5× motor headers, JST-GH (USB link), ZIF (keys), JST-SH (touch) | `full_knob_board_outline.dxf` |
+| **Lite knob board** (D22, instead of the knob board) | RP2350B, 5× push encoders (PEC11R, THT), the same connectors | `full_knob_board_lite_outline.dxf` |
 | **Frame PCB** | 21× B3U key switches around the key windows, ZIF connector for the key cable. No chips | `full_frame_pcb_outline.dxf` |
 | **Touch band** | Capacitive touch electrodes + touch controller, glued under the top plate below the knob displays | strip, ~160 × 11 mm |
 | **USB board** | CH334F USB 2.0 hub, external USB-C (mid-mount), USB-C to the display board, JST-GH to the knob board, current-offer sensing (CC), two reverse-blocking eFuses (TPS259470A), ESD (SRV05-4-P-T7) | L-shape, back-left corner: `full_usb_board_outline.dxf` |
@@ -108,8 +109,29 @@ boards, all connectors fitted by JLC (cabling: [wiring.md](wiring.md)):
 - **Motor connectors:** an SMD right-angle 1×3 2.54 mm header behind each
   tongue, plus two slots per knob for a strap around the coiled lead
   (the spare lead coils in a ~20 mm long loop on the back strip).
-- Pin budget: 44 of 48 GPIO ([wiring.md](wiring.md)). Map the 15 PWM
+- Pin budget: 45 of 48 GPIO, with the board-ID strap ([wiring.md](wiring.md)). Map the 15 PWM
   signals to distinct PWM channels in the schematic.
+
+### Lite knob board (D22)
+- The cheaper tier's knob board: five push encoders (EC11 size), no motors.
+  Same outline, mounting holes and connector positions as the knob board
+  (GH, ZIF tab, SH, HY2.0 footprint, BOOTSEL over the floor pinhole), same
+  RP2350B and support parts, so one firmware and one panel layout serve
+  both. No tongues, no motor holes, no drivers, sensors, inverters, motor
+  rail eFuse, bulk cap or motor headers. The outline drops the tongue slots
+  and tie slots.
+- Encoders: Bourns PEC11R-4215F-S0024 (detented) or PEC11R-4015F-S0024
+  (smooth), one footprint for both; the variant is picked in the BOM when
+  ordering. Through-hole: JLC hand-solders them under Economic, so the
+  board stays one-sided (D6). Ask for the leads trimmed to ≤ 1.2 mm (the
+  floor is 2 mm below). Netlist: [knob-module.md](knob-module.md).
+- A and B per encoder on two consecutive GPIOs (PIO quadrature), RC
+  filtered; the push switch in the key matrix with a diode, where the
+  haptic board's press switches are. A board-ID strap tells the firmware
+  which board it's on.
+- Pin use: 10 encoder + 11 matrix + 2 I²C + 3 ADC + 1 link + 1 ID = 28 of 48.
+- Power: logic only, about 0.06 A. No motor rail, so the CC sense lines are
+  read but nothing depends on them.
 
 ### Frame PCB
 - Board outline with key and knob-display windows from the CAD model.
@@ -174,7 +196,7 @@ boards, all connectors fitted by JLC (cabling: [wiring.md](wiring.md)):
 All four boards are 2-layer FR-4 with an **ENIG** finish (owner decision).
 ENIG pads are flat, which suits the 0.4 mm QFN-80 and QFN-20.
 
-Put the frame PCB, knob board, touch band and USB board in **one panel**
+Put the frame PCB, knob board (haptic or lite), touch band and USB board in **one panel**
 (JLC accepts multiple designs panelized with mouse bites), so there's one
 PCB order and one assembly setup fee. One panel means one thickness: the
 touch band was planned at 0.8 mm, so either make it 1.6 mm like the rest

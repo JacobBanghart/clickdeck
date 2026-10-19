@@ -405,8 +405,9 @@ Add a "checked on" date to stock tables.
 | D19 | **Displays** | Locked by the owner (2026-10-18): one shared panel only. | — | Key images and knob display areas all come from the 7B. More keys need a bigger single panel. |
 | D20 | **Haptics scope** | Locked by the owner (2026-10-18): core knob feel; attention effects optional. | — | Firmware only: one optional module, off by default. |
 | D21 | **Look** | Locked by the owner (2026-10-18): clickdeck's own look. | — | CAD comments and docs reworded; comparison tables stay. |
+| D22 | **Knob tiers** | Locked by the owner (2026-10-19): a cheaper "lite" knob board with push encoders, no motors, next to the haptic flagship. Display stays the 7B. | — | Lite saves ~$60–95 per device at volume, ~$120–155 on a single build. One more board design to keep in step. |
 
-Count: 86 findings, 67 tagged [fix] and 19 tagged [decision]. Every [decision] finding maps to D1–D18; D7 comes from the owner's list rather than a single finding. D19–D21 are owner constraints added on 2026-10-18, not review findings.
+Count: 86 findings, 67 tagged [fix] and 19 tagged [decision]. Every [decision] finding maps to D1–D18; D7 comes from the owner's list rather than a single finding. D19–D21 are owner constraints added on 2026-10-18 and D22 on 2026-10-19, not review findings.
 
 ## Owner's answers (2026-10-17)
 
@@ -433,6 +434,7 @@ Count: 86 findings, 67 tagged [fix] and 19 tagged [decision]. Every [decision] f
 | D19 | Locked (2026-10-18): all key images and knob display areas come from the single shared LCD (Waveshare 7B). No separate small screens per key, and no screen inside or on top of a knob. The knob display areas stay above the knobs on the shared panel (`KNOB_WIN`). A bigger single shared panel is fine; separate screens are not. |
 | D20 | Locked (2026-10-18): the core knob feel stays and is the focus: detents (clicky), smooth, a set number of clicks, end stops, a tick at a preset. Attention nudges and haptic notifications are an optional firmware feature, off by default, in a separate module so a build can leave it out. They aren't part of the core v0 protocol. Haptic behavior follows documented open-source behavior: SimpleFOC, and SmartKnob's detent and end-stop profiles. |
 | D21 | Locked (2026-10-18): the overall look (face shape, stand, key and knob styling, branding) stays clickdeck's own. Comparisons with the Stream Deck + XL in the docs are fine; the case and stand aren't modeled to look like it. |
+| D22 | Locked (2026-10-19): two knob tiers. The haptic knob board stays the flagship. A second, cheaper "lite" knob board uses EC11-size rotary encoders with a built-in push switch: no motors, no haptics. Everything else is identical between the tiers (case, top plate, display, frame PCB, keys, USB board, touch band, cables); the lite board keeps the outline, mounting holes, connectors and RP2350B, so firmware, protocol and configurator are shared. Detent or smooth is chosen when ordering the encoders and is fixed after that; switching click and smooth in software stays a haptic-tier feature. The encoder's own switch is the knob press, in the same key-matrix positions. Lite knobs sit at the same height and position as the haptic knobs. The display stays the Waveshare 7B: a bare panel with our own driver board would save only ~$10–20 and add the hardest board. |
 
 ### Added after the review: recovery ("factory reset") plan (2026-10-17)
 

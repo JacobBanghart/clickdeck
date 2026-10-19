@@ -13,6 +13,10 @@
 A custom USB macro controller: per-key images, real clicky micro switches,
 and motor-driven knobs that switch between clicky and smooth in software.
 
+Two tiers (D22): **haptic** (the motor-driven knobs) and a cheaper
+**lite** tier with plain push encoders, detented or smooth as ordered.
+Only the knob board differs; everything else is the same.
+
 ![Full device](cad/out/freecad_three_quarter.png)
 
 ## Why not just buy a Stream Deck + XL?
@@ -49,11 +53,13 @@ the + XL.
 |---|---|
 | **Build one, with your own 3D printer** | **$475–710** |
 | Build one, case ordered from JLC3DP | $530–825 |
-| Per unit, 5 people ordering together (not planned until a device works) | $275–520 |
+| Per unit, 5 people ordering together (not planned until a device works) | $280–400 |
+| **Lite tier** (push encoders, no haptics): build one / 5 together | $355–555 / $195–285 |
 | Stream Deck + XL (36 keys, 6 dials), for comparison | ~$350 |
 | Development (designer's): test kit, tools, Rev A and one board revision | ~$700–1,300 |
 
-**A single build costs more than a Stream Deck + XL.** Cost isn't what this
+At 25 or 100 units the estimates are ~$200–310 (haptic) and ~$140–215
+(lite) per device. **A single build costs more than a Stream Deck + XL.** Cost isn't what this
 project optimizes, but the numbers try to be honest. They cover parts, PCBs
 (JLC's 5-board minimum and 2-board assembly minimum included), prints,
 ready-made internal cables, shipping and **US import duty** (the de minimis
@@ -94,11 +100,17 @@ a switch on the board's front border. Motors lifted to show the tongues:
 
 ![Knob board](cad/out/knob_board_detail.png)
 
+Lite knob board (D22): same outline, holes and connectors, five push
+encoders instead of the tongues and motors. The knob caps sit at the same
+height (checked in the model):
+
+![Lite knob board](cad/out/knob_board_lite_detail.png)
+
 - [docs/assembly.md](docs/assembly.md): assembly and service guide, with pictures and an animation (generated from the CAD)
 - [docs/plan.md](docs/plan.md): goals, architecture, and the staged build plan
 - [docs/parts.md](docs/parts.md): prototype parts list with links (final parts bought early + a throwaway test kit)
 - [docs/cost.md](docs/cost.md): cost breakdown
-- [docs/bom.md](docs/bom.md): full-build bill of materials (generated from the CAD)
+- [docs/bom.md](docs/bom.md): full-build bill of materials (generated from the CAD); lite tier: [docs/bom-lite.md](docs/bom-lite.md)
 - [docs/lessons.md](docs/lessons.md): lessons from related projects, so we don't relearn them
 - [docs/wiring.md](docs/wiring.md): power path, cables and connectors, strain relief, key matrix, pin budget
 - [docs/knob-module.md](docs/knob-module.md): one knob channel of the knob board: netlist, parts and design notes
@@ -111,7 +123,8 @@ a switch on the board's front border. Motors lifted to show the tongues:
 - [docs/pcb.md](docs/pcb.md): how the PCBs get designed and ordered
 - [cad/](cad/): parametric CAD (build123d). STEP files for FreeCAD/Fusion 360 in `cad/out/`
 
-Status (2026-10-18): design stage, nothing built. Done on paper: CAD for
+Status (2026-10-19): design stage, nothing built. Added a lite knob tier
+(push encoders, D22) next to the haptic one. Done on paper: CAD for
 the full device and prototype (real Waveshare 7B dimensions), prototype
 frame PCB (generated, DRC clean), knob channel spec, wiring/power spec
 (internal USB hub, plug-in cables only), USB protocol draft, design review

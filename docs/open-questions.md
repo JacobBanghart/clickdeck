@@ -74,6 +74,17 @@ Everything else:
 | ❓ | Case printing: does the stand print well on a home printer, and what does JLC3DP charge? | Slice the STLs; get a JLC3DP quote | Cost estimate |
 | ❓ | Real costs: JLC quotes for the panelized PCBs with assembly | Upload the real Gerbers/BOM | Cost estimate |
 
+## Lite tier (D22)
+
+| | Question | How we answer it | Affects |
+|---|---|---|---|
+| ❓ | Encoder part: Bourns PEC11R-4215F-S0024 (C143790, 5,485 in JLC stock) detented / PEC11R-4015F-S0024 (C143789, 3,748) smooth, 2026-10-19. Body height (6.5 mm), shaft length (15 mm) and flat (7 mm) are from the Bourns drawing; tolerance ±0.3/±0.5 mm moves the knob | Buy a few of each with the next AliExpress/LCSC order; calipers; set `ENC_*` in `cad/params.py` and rerun `assembly.py --check` | Lite knob height, `knob_lite.stl` |
+| ❓ | Knob height: the lite knob seats on the shaft tip, 1 mm above the plate, 0.5 mm when pressed. Is that enough with a real part, and does the stem through the 11 mm hub hole wobble or rub? | Print `knob_lite.stl` on a real encoder under a plate offcut | Lite knob, plate hole (shared) |
+| ❓ | Does JLC fit the through-hole encoders under Economic assembly at the quoted ~$0.0173 per joint, and trim the leads to ≤ 1.2 mm (2 mm under the board to the floor)? | JLC quote with the lite BOM; ask about lead trimming | Lite cost, tray clearance |
+| ❓ | Encoder feel: the PEC11R's 24 detents and 0.5 mm, ~6 N push. Is the press too stiff next to the B3U keys? An Alps EC11 (e.g. EC11E15244B2, C470754, 30 detents; V: push switch, press force) is the alternative | Feel both on the desk | Lite encoder choice |
+| ❓ | SMD option: Alps EC11J1525402 (C209762, 1,666 in stock) has a push switch but only with detents; no stocked SMD part without detents. Worth a second footprint? | Only if THT assembly is a problem on the quote | Lite board |
+| ❓ | PIO quadrature with the RC filter (10 kΩ, 10 nF): no missed steps when spun fast, no bounce at the detents | WeAct RP2350B bench with an EC11 on a breadboard | Lite firmware |
+
 ## Decided for now, revisit later
 
 - **21 keys (7×3).** 24 keys (8×3) fit on the same board; 32 needs a bigger
@@ -139,3 +150,5 @@ Options are in [design-review.md](design-review.md). ✅ All answered:
   haptic notifications are an optional firmware module, off by default
 - ✅ D21 look (2026-10-18): clickdeck's own look; comparisons with the + XL
   are fine
+- ✅ D22 tiers (2026-10-19): a lite knob board with push encoders next to
+  the haptic flagship; everything else shared; the display stays the 7B

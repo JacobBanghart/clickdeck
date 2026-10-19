@@ -5,6 +5,9 @@
 > ordered. **(V)** marks parts to verify before ordering. LCSC numbers were looked up
 > on 2026-10-17; stock moves, so check each one in JLC's parts library when ordering.
 
+The haptic tier. The lite tier (push encoders, no motors; D22) has its own list:
+[bom-lite.md](bom-lite.md).
+
 Everything a builder buys for one device, grouped by order. The builder solders and
 crimps nothing: JLC fits every board-mounted part, and every cable is bought ready-made.
 Screws, cable types and lengths come from the model, so they match
@@ -36,7 +39,7 @@ Screws, cable types and lengths come from the model, so they match
 | 1 (optional) | HY2.0 3-pin header, 2.0 mm, SMD side entry | GPIO6 link to the 7B's J8 (D5); the footprint is always on the board, fit it if you use the link | LCSC (V: part not chosen) | ~$0.1 | knob board |
 | 1 | BOOTSEL button | reverse-mount SMD tact switch (plunger through the board, pressed through the floor pinhole). If none is found: a plain SMD tact switch on the bottom side, the board's only bottom-side part | LCSC (V: part not chosen) | ~$0.1 | knob board |
 | 4 | SRV05-4-P-T7 ESD arrays | 4 lines each, SOT-23-6, pin 5 to 3V3. Three on the 10 key-matrix lines at the ZIF, one on SDA/SCL at the SH header; series resistors on every line | [C85364](https://www.lcsc.com/product-detail/C85364.html) (preferred extended: no loading fee; 36,942 in JLC stock, 2026-10-17) | ~$0.8 | knob board |
-| 1 set | Knob board passives | 2 × 22 µF 0805 per driver; 10 kΩ pull-downs on NSTDBY and every PWM net; ~1 kΩ series on the high-side inputs; 0 Ω/shunt on each driver's BRUV/BRW; ~470 µF bulk; decoupling; 1 kΩ BOOTSEL resistor at the MCU end; CC sense filters; I²C pull-ups for the touch band | JLC basic parts | $3–5 | knob board |
+| 1 set | Knob board passives | 2 × 22 µF 0805 per driver; 10 kΩ pull-downs on NSTDBY and every PWM net; ~1 kΩ series on the high-side inputs; 0 Ω/shunt on each driver's BRUV/BRW; ~470 µF bulk; decoupling; 1 kΩ BOOTSEL resistor at the MCU end; the board-ID strap (10 kΩ to GND; D22); CC sense filters; I²C pull-ups for the touch band | JLC basic parts | $3–5 | knob board |
 | 1 | TPS259470ARPWR eFuse (motor rail) | soft-start switch for the motor rail only, enabled by firmware after reading CC. Same part as the USB board's two VBUS switches: true reverse blocking, current limit set by RILM (0.5–6 A), slew rate set by a dVdt cap | [C3662799](https://www.lcsc.com/product-detail/C3662799.html) (4,468 in JLC stock, $1.29, 2026-10-17) | ~$1.3 | knob board |
 | 21 | B3U-1000P | key switches (buy spares and sort by feel) | [C231329](https://www.lcsc.com/product-detail/C231329.html) | ~$3 | frame PCB |
 | 21 | 1N4148W | SOD-123 matrix diodes (26 in all with the knob board's 5) | JLC basic part | ~$0.5 | frame PCB |
@@ -140,7 +143,7 @@ The rest of the prototype list is in [parts.md](parts.md).
 ## Totals
 
 One device: **~$475–710** with your own 3D printer, ~$530–825 with the case from
-JLC3DP, ~$275–520 each when 5 people order together (none planned until a device works), US import duty included.
+JLC3DP, ~$280–400 each when 5 people order together (none planned until a device works), US import duty included.
 Prices above are per part, per device. The totals also include JLC's PCB, setup and
 extended-part fees, the parts on the spare board set, shipping and duty; the
 breakdown is in [cost.md](cost.md) ("Where the money goes").

@@ -45,6 +45,19 @@ force, a thermocouple or IR thermometer, and a logic analyzer (a cheap
 | Loop timing | Kit | RP2350B running 1 real + 4 dummy FOC loops, 15 PWM outputs, 5 sensor reads | ≥ 2 kHz per motor (aim for 5 kHz) |
 | Noise | Kit | Listen up close in a quiet room | No audible whine or buzz at rest or while turning |
 
+### Lite tier encoders (D22)
+
+No prototype of its own: an EC11 on a breadboard with the WeAct RP2350B
+bench covers the firmware; the lite knob board is first built whole.
+
+| Test | Where | How | Pass |
+|---|---|---|---|
+| Quadrature | Kit (bench) | EC11 on two consecutive GPIOs with the 10 kΩ / 10 nF filter, PIO reader; turn slowly, then spin fast | Every detent counts once, no steps lost or doubled, none while flash is written |
+| Press | Kit (bench) | Encoder switch wired as row 4 with a diode, next to held keys | Press reported with keys held; no ghosting |
+| Tier report | Kit (bench) | Board-ID pin strapped high, then low | `HELLO_ACK` says `lite` / `haptic`; the configurator hides knob feel on `lite` |
+| Knob fit | First lite board | `knob_lite.stl` on the real encoder, top plate on | Knob top level with a haptic knob's (±0.2 mm by calipers); press clicks without touching the plate |
+| Default port | First lite board | 500 mA port, A-to-C cable, full brightness | No resets, no brownouts |
+
 ## Keys
 
 | Test | Where | How | Pass |

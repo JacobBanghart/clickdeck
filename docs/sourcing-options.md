@@ -235,8 +235,9 @@ One order, 5 panels made and 5 assembled. Fixed costs are paid once.
 | **Per device, boards landed** | **~$95–145** |
 
 Per device total: ~$95–145 boards + ~$175–275 for the rest (shared
-shipping, bulk hardware packs) = **~$270–420 each**. cost.md has
-$275–520; the lower top end comes from the swaps above.
+shipping, bulk hardware packs) = **~$270–420 each**, in line with
+cost.md's $280–400. The lite tier (D22) is ~$195–285 each
+([cost.md](cost.md)).
 
 Options for the group:
 

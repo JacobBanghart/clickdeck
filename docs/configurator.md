@@ -42,6 +42,12 @@ pages or swipes ([design-review.md](design-review.md), D4).
 - Knob calibration, power status (the port's advertised current, the motor
   budget) and import/export of a whole profile as a file.
 
+**Lite knob board (D22):** the device reports which knob board it has
+([protocol.md](protocol.md)). On the lite tier (push encoders, no motors)
+the page hides knob feel, calibration and the motor budget, and keeps what
+turning and pressing send and the software limits. Profiles move between
+tiers; the knob feel settings are kept but unused on the lite tier.
+
 **Browsers:** Chromium-based only (Chrome, Edge, Brave, Opera). Firefox and
 Safari don't support WebUSB. The device itself works everywhere; only setup
 needs Chromium. The page can also be saved and run offline.

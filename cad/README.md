@@ -19,10 +19,12 @@ the motor diameter.
 | File | Use |
 |---|---|
 | `clickdeck_full.step` | Full device, every part named and colored. Open in FreeCAD or Fusion 360 |
+| `clickdeck_full_lite.step` | The same with the lite knob board (D22): push encoders instead of motors |
 | `clickdeck_proto.step` | 2-key prototype on the real 7B, with the knob test stand beside it |
 | `key_cutaway.step` | One key cut in half, to inspect the cap/tab/switch stack |
 | `*_frame_pcb_outline.dxf` | Board outline with key windows. KiCad: File → Import → Graphics, layer Edge.Cuts |
 | `full_knob_board_outline.dxf` | Knob board outline with the tongue slots |
+| `full_knob_board_lite_outline.dxf` | Lite knob board outline (same outline and holes, no tongues) |
 | `full_usb_board_outline.dxf` | USB board (hub) outline |
 | `full_touch_band_outline.dxf` | Touch band outline (stops short of the frame PCB's ZIF) |
 | `cabling.png` | Top view of the internal cabling, display and top plate removed |
@@ -36,8 +38,21 @@ the motor diameter.
 | `key_cap_clear_resin.stl`, `knob_window.stl` | Clear resin (SLA) parts: key caps (one nub; rails and lugs underneath are the down-stop), knob-window covers (JLC3DP) |
 | `key_cap_two_nub_clear_resin.stl` | Prototype cap with a nub at both ends, for the two-switch test (D8) |
 | `knob.stl`, `knob_hub.stl`, `motor_spacer.stl` | Knob cap, hub (screws to the bell), motor spacer ring (its arm carries the press striker) |
+| `knob_lite.stl` | Lite knob: the same cap with a stem down to the encoder's 6 mm flatted shaft |
 | `full_side.png`, `full_face.png` | Side profile and straight-on view of the angled device |
 | `*.png` | Quick previews from a small CPU renderer (`render.py`) |
+
+## Knob tiers (D22)
+
+`KNOB_TIER` in `params.py` is `"haptic"` (motors, the default) or `"lite"`
+(push encoders). It sets which knob board `model.full_device()` builds by
+default; `build.py` and `assembly.py --check` always build and check both.
+The lite tier only changes the knob board and what sits on it; its checks
+cover the parts near it, plus a check that each lite knob's top sits where
+the haptic knob's does (`KNOB_TOP_TOL`), that the shaft fills the knob's
+bore past its flat, and that a full press clears the plate and the
+encoder's bushing. Encoder dimensions are `ENC_*` (from the Bourns
+drawing; measure the real part).
 
 ## Files
 
@@ -90,7 +105,7 @@ animation, [docs/assembly.md](../docs/assembly.md) and
 
 ```sh
 .venv/bin/python cad/assembly.py --check     # checks only (~30 s)
-.venv/bin/python cad/assembly.py --bom       # checks + docs/bom.md
+.venv/bin/python cad/assembly.py --bom       # checks + docs/bom.md and docs/bom-lite.md
 .venv/bin/python cad/assembly.py             # + pictures and the guide (~2 min)
 .venv/bin/python cad/assembly.py --animate   # + the animation (~15 min)
 ```
@@ -101,6 +116,6 @@ GitHub Actions ([`.github/workflows/cad.yml`](../.github/workflows/cad.yml))
 rebuilds the models on every change to `cad/` with the pinned toolchain in
 `requirements.txt`, and fails if:
 - any fit check warns (`--strict`), or a case part doesn't fit the print bed
-- any assembly check fails (`assembly.py --check`)
+- any assembly check fails (`assembly.py --check`), for either knob tier
 - `out/summary.md` doesn't match the committed one (outputs weren't rebuilt
   and committed after a parameter change)

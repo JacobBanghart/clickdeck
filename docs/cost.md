@@ -1,6 +1,6 @@
 # Cost
 
-Rough estimates, updated 2026-10-17. Nothing here is a live quote; JLC/LCSC
+Rough estimates, updated 2026-10-19. Nothing here is a live quote; JLC/LCSC
 prices depend on board size, quantity and part stock. **Before ordering,
 get a real JLC cart quote** from the generated files, with a US shipping
 address so it shows the duty.
@@ -11,6 +11,22 @@ and the switch feel, and features aren't cut to save money. But the numbers
 here should be honest: **a single build costs more than a Stream Deck + XL**
 (~$350, 36 keys, 6 dials).
 
+**Two knob tiers (D22).** The haptic knob board (motors, software
+clicky/smooth) is the flagship. The lite knob board has push encoders,
+detented or smooth as ordered, and no motors. Everything else is the same.
+Summary, US duty included:
+
+| Per device | Haptic | Lite |
+|---|---|---|
+| Build one (own 3D printer) | $475–710 | $355–555 |
+| Build one, case from JLC3DP | $530–825 | $410–670 |
+| 5 ordered together | $280–400 | $195–285 |
+| 25 ordered together | $235–310 | $160–215 |
+| 100 ordered together | $200–270 | $140–190 |
+
+No group buy is planned until a working device exists. The 25 and 100
+rows are estimates from the BOM and JLC's published fees, not quotes.
+
 **Import duty (US).** The US de minimis exemption is gone, so every order
 from China pays duty. JLC ships DDP (duty paid at checkout); its US tariff
 FAQ gives 35–92.5% depending on the goods: PCBs and assembly 35%, stencils
@@ -19,7 +35,7 @@ FAQ updated 2026-09-09). 35% is used below, 40% on prints. AliExpress also
 collects duty at checkout. Outside the US, replace the duty lines with
 your own VAT/duty.
 
-## Build one from this repo: ~$475–710 (own 3D printer) or ~$530–825 (case ordered)
+## Build one from this repo, haptic tier: ~$475–710 (own 3D printer) or ~$530–825 (case ordered)
 
 What someone pays to build the finished design. No prototype, no PCB
 revisions: JLC fits every part and connector, and the internal cables are
@@ -101,7 +117,7 @@ Levers that don't cut features:
 - **Group buy** (not planned until a device works). 5 builds share
   ~$110–200 of fixed JLC cost and skip the spare set (below).
 
-### Extended part types: 19
+### Extended part types, haptic: 19
 
 Counted from [bom.md](bom.md), JLC's library checked 2026-10-17. A part
 used on two boards is one type. Was 24 before the swaps in the levers.
@@ -145,7 +161,48 @@ panel at ~362 cm² (2 mm gaps, 5 mm rails). Two assembled panels are
 (~$78 with duty). The quote decides. Splitting the panel avoids it, but
 costs a second setup.
 
-## 5 builds ordered together: ~$275–520 each
+## Build one, lite tier: ~$355–555 (own 3D printer) or ~$410–670 (case ordered)
+
+Same build and orders as above, with the lite knob board (D22): five push
+encoders instead of the motors, drivers, sensors and press switches. All
+parts: [bom-lite.md](bom-lite.md).
+
+| Item | ~Cost |
+|---|---|
+| Waveshare ESP32-S3-LCD-7B | ~$34 |
+| Motors, sensor magnets | — |
+| All four PCBs, JLC-assembled, 2 of each: lite knob board (RP2350B, 5 Bourns PEC11R push encoders), frame PCB, touch band, USB board | $165–255 |
+| Internal cables, ready-made | $5–8 |
+| 21 clear resin key caps + 5 knob-window covers (JLC3DP SLA) | $23–46 |
+| 5 printed knob caps (no hubs or spacers) | $2–8 |
+| Case in PETG: printed at home / ordered from JLC3DP | $9–15 / $45–90 |
+| Screws, inserts, magnets, feet, tape, epoxy, a USB cable to the PC (any port) | $17–24 |
+| Shipping, 2 orders | $15–35 |
+| **Import duty, US** | $85–130 |
+
+Against the haptic build that's ~$120–155 less: motors and magnets
+($45–65), the knob electronics on 2 boards less the encoders (~$25–30),
+4 fewer extended-part fees (~$12), no Global Sourcing extras ($1–10), the
+motor screws and printed hubs (~$3), and the duty on all of it (~$30–40).
+
+**Encoders are through-hole.** JLC hand-solders through-hole parts under
+Economic assembly: the hand-soldering fee ($3.5 per order) is already paid
+for the USB-C shell legs, plus ~$0.0173 per joint (JLC's FAQ, 2026-09-09;
+its price table says $0.0157): 5 encoders × 7 joints × 2 boards is ~$1.2.
+Still one side, still Economic (D6). The quote decides. An SMD encoder with
+a push switch is in stock (Alps EC11J1525402, C209762), but only with
+detents; no stocked SMD part without detents was found, and both variants
+should share one footprint. Details: [bom-lite.md](bom-lite.md).
+
+### Extended part types, lite: 15
+
+The haptic list minus the TMC6300, MT6701, SN74LVC3G04, the motor header
+and the bulk cap (the last two not chosen yet), plus the encoder (one type
+whichever variant is ordered). The B3U and the TPS259470ARPWR stay (keys,
+USB board). Chosen 13, not chosen 2 (reverse-mount BOOTSEL switch, VBUS
+TVS).
+
+## 5 builds ordered together: ~$280–400 each (lite ~$195–285)
 
 No group buy is planned until a working device exists.
 
@@ -153,7 +210,31 @@ PCB minimums, assembly setup fees, extended-part fees and shipping get
 shared, and nobody pays for a spare board. The internal hub adds ~$10–15
 per device here (parts, cables, a share of the fees). Parts don't get
 cheaper: the five TMC6300 drivers are ~$12 per device from DigiKey. Duty
-(~35%) is included.
+(~35%) is included. Updated 2026-10-19 from the BOM (was $275–520).
+
+## 25 and 100 ordered together (estimate)
+
+Per device, one panel order per batch (fees shared), no spare boards,
+case and knobs printed by the builders, US duty included. Prices from
+the BOM at higher LCSC quantity breaks; motors at AliExpress lot prices
+(V). JLC3DP SLA per cap. Not quotes.
+
+| Per device | Haptic, 25 | Haptic, 100 | Lite, 25 | Lite, 100 |
+|---|---|---|---|---|
+| Display board (Waveshare's list price) | $34 | $34 | $34 | $34 |
+| Motors + magnets | $40–55 | $32–45 | — | — |
+| JLC boards: parts, fabrication, shared fees, placement | $52–62 | $43–52 | $40–49 | $32–41 |
+| SLA key caps + knob windows | $19–29 | $16–25 | $19–29 | $16–25 |
+| Case + knobs (printed) | $12–25 | $12–25 | $11–23 | $11–23 |
+| Cables + hardware | $15–22 | $12–18 | $13–19 | $10–16 |
+| Shipping (bulk, then on to each builder) | $8–15 | $6–12 | $8–15 | $6–12 |
+| Import duty, US (~35%) | $55–69 | $47–60 | $37–45 | $32–39 |
+| **Total** | **$235–310** | **$200–270** | **$160–215** | **$140–190** |
+
+The lite tier saves about $60–95 per device at these volumes: motors and
+magnets, ~$20 of knob electronics less ~$8–10 of encoders, the printed
+hubs and screws, and the duty on them. The display, the JLC boards and
+the caps are most of what's left.
 
 ## Development cost (the designer's, not a builder's): ~$700–1,300
 
@@ -187,6 +268,7 @@ less than redoing the whole panel ($285–430).
 | Frame PCB (21–42 B3U, ZIF; countersinks, maybe the keyboard-PCB surcharge) | 2 | $75–145 |
 | USB board (CH334F, two USB-C, two eFuses, GH header, TVS) | ~6 | $80–105 |
 | Touch band (AT42QT2120, SH header) | 2 | $45–65 |
+| Lite knob board (RP2350B, 5 encoders, BOOTSEL; the inductor's minimum of 32) | ~7 | $130–170 |
 
 The knob board is the likeliest to fail (hinge, motor fit, RP2350B and
 drivers all meet there first) and the most expensive to redo.
@@ -231,7 +313,8 @@ $50–105, ~$70–140 with duty.
 
 A Stream Deck + XL (36 keys, 6 dials) is about $350 (US reseller listing,
 2026-10-16). clickdeck has 21 keys and 5 haptic knobs and costs more:
-about $475–710 for a single build. That's accepted: it's for the knob feel
+about $475–710 for a single build. The lite tier (D22) is ~$355–555 for a
+single build and drops the haptics. That's accepted: it's for the knob feel
 and the switch feel, which the + XL can't give. The biggest costs are
 JLC's boards (fees and parts), import duty, the motors and the display
 board. Sourcing the TMC6300 through Global Sourcing/DigiKey (~$2.44

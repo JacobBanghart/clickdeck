@@ -140,8 +140,10 @@ def main():
     OUT.mkdir(exist_ok=True)
     t0 = time.time()
 
-    full, L, info = model.full_device()
-    flat, _, _ = model.full_device(tilt=False)
+    full, L, info = model.full_device(tier="haptic")
+    flat = info["flat_items"]
+    lite, LL, linfo = model.full_device(tier="lite")          # D22: second knob tier
+    lflat = linfo["flat_items"]
     proto, PL, pinfo = model.prototype()
     st, pst = info["stack"], pinfo["stack"]
     section = model.key_section(flat, L.key_xy[P.KEY_COLS * (P.KEY_ROWS // 2) + P.KEY_COLS // 2],
@@ -150,6 +152,7 @@ def main():
                                       z0=pst.glass - P.PANEL_T - 0.5, slab=0.4)
 
     export_step(to_compound(full, "clickdeck_full"), str(OUT / "clickdeck_full.step"))
+    export_step(to_compound(lite, "clickdeck_full_lite"), str(OUT / "clickdeck_full_lite.step"))
     export_step(to_compound(proto, "clickdeck_proto"), str(OUT / "clickdeck_proto.step"))
     cutaway = model.key_section(flat, L.key_xy[P.KEY_COLS * (P.KEY_ROWS // 2) + P.KEY_COLS // 2],
                                 z0=st.glass - P.PANEL_T - 0.5, slab=28.0)
@@ -160,6 +163,7 @@ def main():
     export_dxf(pinfo["frame_sketch"], str(OUT / "proto_frame_pcb_outline.dxf"))
     export_dxf(pinfo["base_sketch"], str(OUT / "proto_base_plate_3mm_acrylic.dxf"))
     export_dxf(info["knob_board_sketch"], str(OUT / "full_knob_board_outline.dxf"))
+    export_dxf(linfo["knob_board_sketch"], str(OUT / "full_knob_board_lite_outline.dxf"))
     export_dxf(info["usb_board_sketch"], str(OUT / "full_usb_board_outline.dxf"))
     tb = info.get("touch_band_bbox")
     if tb is not None:                                     # touch band outline (with the ZIF clearance)
@@ -201,6 +205,7 @@ def main():
     knob_part = next(it for it in flat if it.label.startswith("knob0_")
                      and it.label.endswith(("_knob", "_shaft_adapter")))
     export_stl(at_origin(knob_part.part), str(OUT / f"{knob_part.label.removeprefix('knob0_')}.stl"))
+    export_stl(at_origin(next(it.part for it in lflat if it.label == "knob0_knob")), str(OUT / "knob_lite.stl"))
     export_stl(pinfo["knob_test_stand"]["stand_part"], str(OUT / "print_knob_test_stand.stl"))
 
     for label, name, flip in (("knob0_hub", "knob_hub", True), ("knob0_spacer", "motor_spacer", True),
@@ -277,6 +282,38 @@ def main():
                          f"displays, sensing through {plate_t:g} mm of plate")
         lines += [f"- WARNING: {w_}" for w_ in lay.warnings] or ["- Fit checks: OK"]
         lines.append("")
+    # Lite tier (D22): only the knob board differs; its knobs must land where the haptic knobs are
+    lh = linfo["lite"]
+
+    def knob_boxes(items):
+        return [it.part.bounding_box() for it in items if it.label.endswith("_knob") and it.label[4:5].isdigit()]
+    top_diff = max(max(abs(a.max.Z - b.max.Z), abs(a.center().X - b.center().X), abs(a.center().Y - b.center().Y))
+                   for a, b in zip(knob_boxes(flat), knob_boxes(lflat)))
+    if top_diff > P.KNOB_TOP_TOL:
+        LL.warnings.append(f"lite knob tops are {top_diff:.2f} mm off the haptic knobs (max {P.KNOB_TOP_TOL:g})")
+    if lh["shaft_top"] - lh["stem_bot"] < P.ENC_SHAFT_FLAT[0]:
+        LL.warnings.append("lite: the encoder shaft's flat isn't fully inside the knob")
+    if lh["stem_bot"] - P.ENC_PRESS_TRAVEL - lh["bushing_top"] < 0.3:
+        LL.warnings.append("lite: a pressed knob's stem comes within 0.3 mm of the encoder bushing")
+    lst = linfo["stack"]
+    lines += [
+        "## Full device, lite knob board (D22)",
+        "- Same case, top plate, display, frame PCB, keys, USB board, touch band and cables; "
+        "only the knob board and what sits on it differ",
+        f"- Encoders (EC11 size, push switch): body {lst.knob_pcb_top:.2f}-{lh['body_top']:.2f}, bushing top "
+        f"{lh['bushing_top']:.2f}, shaft tip {lh['shaft_top']:.2f} ({P.ENC_SHAFT_L:g} mm shaft)",
+        f"- Knob: printed cap with a {P.LITE_STEM_D:g} mm stem through the plate's hub hole, seated on the shaft "
+        f"tip ({lh['shaft_top'] - lh['stem_bot']:.1f} mm of shaft in the bore); cap {lh['knob_z']:.2f}-"
+        f"{lh['knob_z'] + P.KNOB_H:.2f}, {top_diff:.2f} mm from the haptic knob (max {P.KNOB_TOP_TOL:g})",
+        f"- Pressed ({P.ENC_PRESS_TRAVEL:g} mm switch travel): stem "
+        f"{lh['stem_bot'] - P.ENC_PRESS_TRAVEL - lh['bushing_top']:.2f} mm above the bushing, cap "
+        f"{lh['knob_z'] - P.ENC_PRESS_TRAVEL - lst.plate_top:.2f} mm above the plate",
+        f"- Knob board: same outline ({linfo['knob_board_sketch'].bounding_box().size.X:.1f} x "
+        f"{linfo['knob_board_sketch'].bounding_box().size.Y:.1f} mm), holes and connectors; no tongues, "
+        "motor holes or motor headers",
+    ]
+    lines += [f"- WARNING: {w_}" for w_ in LL.warnings] or ["- Fit checks: OK"]
+    lines.append("")
     import stability
     stab = stability.check(full, L, info)
     stab_line = (f"- Estimated mass {stab['mass_g']:.0f} g (stand {stab['stand_g']:.0f} g, shelled); tips "
@@ -294,7 +331,7 @@ def main():
     lines += [*p_lines, ""]
     (OUT / "summary.md").write_text("\n".join(lines))
     print("\n".join(lines))
-    problems = [w for lay in (L, PL) for w in lay.warnings]
+    problems = [w for lay in (L, PL, LL) for w in lay.warnings]
     problems += [p for p in print_lines if "DOES NOT FIT" in p]
     problems += panel_problems
     if problems and "--strict" in sys.argv:
@@ -337,6 +374,10 @@ def main():
              dict(az=-70, el=38, size=(1500, 900), tol=0.08,
                   offsets={f"knob{i}_{p}": (0, 0, 18) for i in (0, 1)
                            for p in ("motor_2204", "magnet")})),
+            ("knob_board_lite_detail.png",
+             [it for it in lflat if it.label.startswith(("knob_board", "knob0_", "knob1_", "touch_bar"))
+              and not it.label.endswith("_knob")],
+             dict(az=-70, el=38, size=(1500, 900), tol=0.08)),
             ("proto_key_section.png", proto_section, dict(az=0, el=0.5, size=(1500, 700), tol=0.02)),
         ]
         for name, items, kw in jobs:

@@ -41,6 +41,21 @@
   branding stay clickdeck's own. Comparisons with the Stream Deck + XL are
   fine; the case and stand aren't modeled to look like it.
 
+**Two knob tiers (owner, locked 2026-10-19; D22)**
+- **Haptic** (the flagship): everything on this page. Software clicky and
+  smooth is a haptic-tier feature.
+- **Lite** (cheaper): a second knob board with five EC11-size push
+  encoders, no motors. Detented or smooth is picked when ordering the
+  encoders and fixed after that. The encoder's switch is the knob press.
+- Everything else is the same part in both: case, top plate, display (the
+  7B stays), frame PCB, keys, USB board, touch band, cables. The lite board
+  keeps the knob board's outline, holes, connectors and RP2350B, so
+  firmware, protocol and configurator are shared; the firmware reports
+  which board it is and the configurator hides haptic settings on the lite
+  tier. Lite knobs sit at the same height and position, checked by
+  `cad/assembly.py --check`. Costs: [cost.md](cost.md); parts:
+  [bom-lite.md](bom-lite.md); board: [pcb.md](pcb.md).
+
 ## Architecture
 
 ```
@@ -236,6 +251,10 @@ sets the motor budget from it:
 - 1.5 A port: about 0.8 A for the motors until real current is measured.
 - 3 A port: 1.5 A (capped by the internal cable).
 
+The lite tier has no motors and draws about 0.46 A in all, so it runs on
+any USB port, including 500 mA ports and A-to-C cables
+([wiring.md](wiring.md)).
+
 Until the knob board has read CC and been configured over USB, the motors
 stay off and the backlight starts low. An optional USB-PD sink footprint
 (CH224-class, not fitted by default) on the USB board could ask a PD
@@ -338,6 +357,9 @@ full build. Parts and costs: [parts.md](parts.md), [cost.md](cost.md).
 5. **Hinge (free):** a tongue sawn into scrap FR-4, loaded on the kitchen
    scale (D10).
 6. **Decide go/no-go:** if the knob and cap feel are both good → Rev A.
+7. **Lite tier (D22):** no prototype of its own. An EC11 on a breadboard
+   with the WeAct RP2350B bench checks the PIO quadrature reader and the
+   press in the key matrix; the lite knob board is first built whole.
 
 **Rev A (the full build):** first test of everything the kit can't
 show: the hinge and press feel, the motor mount fit, our RP2350B, hub,

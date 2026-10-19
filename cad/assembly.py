@@ -317,13 +317,14 @@ def check_tilted(tilted, info, screws):
 
 
 # Minimum gaps between mating parts that must not touch (prefixes, min mm, note)
+KNOB_CAPS = tuple(f"knob{n}_knob" for n in range(P.KNOBS))
+ENCODERS = tuple(f"knob{n}_encoder" for n in range(P.KNOBS))
 GAPS = [
     (("knob0_motor", "knob1_motor", "knob2_motor", "knob3_motor", "knob4_motor"), ("top_plate",),
      P.MOTOR_TO_PLATE - 0.05, "motor bells ↔ top plate"),
     (("knob0_hub", "knob1_hub", "knob2_hub", "knob3_hub", "knob4_hub"), ("top_plate",), 0.4,
      "knob hubs (flange, column) ↔ top plate"),
-    (("knob0_knob", "knob1_knob", "knob2_knob", "knob3_knob", "knob4_knob"), ("top_plate", "knob_window"),
-     0.5, "knob caps ↔ top plate"),
+    (KNOB_CAPS, ("top_plate", "knob_window"), 0.5, "knob caps ↔ top plate"),
     (tuple(f"knob{n}_press" for n in range(P.KNOBS)), tuple(f"knob{n}_striker" for n in range(P.KNOBS)),
      P.KNOB_PRESS_GAP - 0.05, "knob press switches ↔ strikers (set at calibration)"),
     (("frame_pcb",), ("panel7_module",), P.GLASS_GAP - 0.01, "frame PCB ↔ glass (D8)"),
@@ -336,12 +337,21 @@ GAPS = [
     (("display_board",), ("usb_board",), 0.5, "display board ↔ USB board"),
     (("display_board",), ("knob_board",), 0.5, "display board ↔ knob board"),
 ]
+# Lite tier (D22): the encoders and their knobs, with the knob pressed (pressed gaps in check_knob_match)
+GAPS_LITE = [
+    (KNOB_CAPS, ("top_plate", "knob_window"), 0.5, "knob caps ↔ top plate"),
+    (ENCODERS, ("top_plate",), 0.5, "encoder shafts ↔ top plate"),
+    (ENCODERS, ("case_tray",), 0.3, "encoder pins (trimmed) ↔ tray floor"),
+    *([(ENCODERS + KNOB_CAPS, ("touch_bar_pcb",), 0.5, "encoders and knob stems ↔ touch band")]
+      if P.TOUCH_BAR else []),
+    (("display_board",), ("knob_board",), 0.5, "display board ↔ knob board"),
+]
 
 
-def check_gaps(items):
+def check_gaps(items, gaps=None):
     from build123d import Vector  # noqa: F401
     rows, probs = [], []
-    for pa, pb, need, name in GAPS:
+    for pa, pb, need, name in (GAPS if gaps is None else gaps):
         A = [it for it in items if it.label.startswith(pa)]
         B = [it for it in items if it.label.startswith(pb) and not it.label.startswith(OVERLAYS)]
         best = None
@@ -613,6 +623,79 @@ def check_cables(items, info):
         if c["lift"] and c["lift"] > c["buy"] + 0.5:
             probs.append(f"{name}: lifting the plate {P.LIFT_SERVICE:.0f} mm needs {c['lift']:.0f} mm")
     return probs
+
+
+def check_knob_match(h_items, l_items, l_info):
+    """Lite tier (D22): each knob top sits where the haptic knob's does (same top plate,
+    same knob windows), the shaft fills the knob's bore past its flat, and a full press
+    (the encoder's switch travel) keeps the knob off the plate and the stem off the bushing."""
+    def caps(items):
+        return {it.label.split("_")[0]: it.part for it in items
+                if it.label.startswith("knob") and it.label[4:5].isdigit() and it.label.endswith("knob")}
+    hc, lc = caps(h_items), caps(l_items)
+    by = {it.label: it for it in l_items}
+    h, tol, travel = l_info["lite"], P.KNOB_TOP_TOL, P.ENC_PRESS_TRAVEL
+    probs, worst = [], 0.0
+    if set(hc) != set(lc) or len(lc) != P.KNOBS:
+        probs.append(f"knob caps: haptic {sorted(hc)}, lite {sorted(lc)}")
+    for k in sorted(set(hc) & set(lc)):
+        a, b = hc[k].bounding_box(), lc[k].bounding_box()
+        d = max(abs(a.max.Z - b.max.Z), abs(a.min.X - b.min.X), abs(a.max.X - b.max.X),
+                abs(a.min.Y - b.min.Y), abs(a.max.Y - b.max.Y))
+        worst = max(worst, d)
+        if d > tol:
+            probs.append(f"{k}: lite knob top is {d:.2f} mm off the haptic knob (max {tol:g})")
+    engage = h["shaft_top"] - h["stem_bot"]
+    if engage < P.ENC_SHAFT_FLAT[0]:
+        probs.append(f"encoder shaft only {engage:.1f} mm into the knob, less than its {P.ENC_SHAFT_FLAT[0]:g} mm flat")
+    stem_gap = h["stem_bot"] - travel - h["bushing_top"]
+    if stem_gap < 0.3 - 1e-6:
+        probs.append(f"pressed knob stem is {stem_gap:.2f} mm above the encoder bushing (min 0.3)")
+    near = [it for it in l_items if it.label.startswith(("top_plate", "knob_window", "touch_bar_pcb"))]
+    plate_gap = None
+    for k, part in lc.items():
+        pressed = Pos(0, 0, -travel) * part
+        pb = pressed.bounding_box()
+        for it in near:
+            if not bbox_overlap(pb, it.part.bounding_box(), eps=-1.0):
+                continue
+            dd = pressed.distance_to(it.part)
+            plate_gap = dd if plate_gap is None else min(plate_gap, dd)
+            if dd < 0.2:
+                probs.append(f"{k} pressed {travel:g} mm: {dd:.2f} mm from {it.label} (min 0.2)")
+    rows = dict(top_diff=worst, engage=engage, stem_gap=stem_gap, pressed_gap=plate_gap,
+                shaft_top=h["shaft_top"], knob_z=h["knob_z"], stem_bot=h["stem_bot"],
+                encoders=len([lb for lb in by if lb.endswith("_encoder")]))
+    return probs, rows
+
+
+def run_checks_lite(items, info, haptic_items):
+    """Lite tier (D22): only the knob board and what sits on it differ, so check the
+    parts that touch them; the rest is checked once on the haptic tier."""
+    screws = info["screws"]
+    knobish = starts("knob")
+    t = time.time()
+    res = {}
+    res["interference"] = check_interference(items, screws, info, only=knobish)
+    kb_screws = [sc for sc in screws if sc.step == "knob_board"]
+    res["screws"], _ = check_screws(items, kb_screws)
+    res["gaps"], res["gap_rows"] = check_gaps(items, GAPS_LITE)
+    res["floating"] = [m for m in check_floating(items) if m.startswith("knob")]
+    res["access"], res["access_ok"] = check_access(items, kb_screws)
+    labels = {it.label for it in items}
+    res["cables"] = [m for m in check_cables(items, info) if " knob" in m]
+    knobs = [lb for lb in labels if knob_sub(lb)]
+    rest = [lb for lb in labels if lb not in knobs and not lb.startswith(
+        OVERLAYS + ("cable_", "plug_", "screw_plate", "screw_knobboard", "top_plate", "cap_", "frame_pcb",
+                    "switch_", "touch_bar", "knob_window", "display_board", "panel7_module", "screw_panel",
+                    "screw_frame"))
+        and not lb.endswith("_knob")]
+    res["service"] = check_lift(items, knobs, rest, "lite knob board lift-out")
+    res["knob_match"], res["knob_rows"] = check_knob_match(haptic_items, items, info)
+    res["problems"] = [f"lite: {m}" for k in ("interference", "screws", "gaps", "floating", "access", "cables",
+                                               "service", "knob_match") for m in res[k]]
+    res["seconds"] = time.time() - t
+    return res
 
 
 def run_checks(items, info, tilted=None, tinfo=None, proto=None):
@@ -1073,6 +1156,7 @@ def write_guide(info, checks, shots, service):
 # ~Price is per device, rough, USD; "(V)" = unverified, check before ordering.
 # --------------------------------------------------------------------------
 BOM_PATH = ROOT / "docs" / "bom.md"
+BOM_LITE_PATH = ROOT / "docs" / "bom-lite.md"
 LC = "https://www.lcsc.com/product-detail/{}.html"
 
 
@@ -1139,7 +1223,7 @@ BOM_JLC_PARTS = [
      "knob board"),
     ("1 set", "Knob board passives", "2 × 22 µF 0805 per driver; 10 kΩ pull-downs on NSTDBY and every PWM "
      "net; ~1 kΩ series on the high-side inputs; 0 Ω/shunt on each driver's BRUV/BRW; ~470 µF bulk; "
-     "decoupling; 1 kΩ BOOTSEL resistor at the MCU end; "
+     "decoupling; 1 kΩ BOOTSEL resistor at the MCU end; the board-ID strap (10 kΩ to GND; D22); "
      "CC sense filters; "
      "I²C pull-ups for the touch band", "JLC basic parts", "$3–5", "knob board"),
     ("1", "TPS259470ARPWR eFuse (motor rail)", "soft-start switch for the motor rail only, enabled by "
@@ -1230,6 +1314,25 @@ BOM_ALI = [
      "AliExpress (two sellers)", "$40–60", "Build the knob board"),
     ("5", "Diametric magnets 6 × 2.5 mm", "for the MT6701 sensors", "AliExpress", "~$5", "Build the knob board"),
 ]
+# Lite tier (D22): knob-board rows that go, and what replaces them (after the RP2350B support parts)
+LITE_DROP = {("5", "TMC6300-LA-T"), ("5", "MT6701CT-STD"), ("5", "SN74LVC3G04DCTR"), ("5", "B3U-1000P"),
+             ("5", "1×3 right-angle pin header, 2.54 mm, SMD"), ("1 set", "Knob board passives"),
+             ("1", "TPS259470ARPWR eFuse (motor rail)")}
+LITE_JLC_PARTS = [
+    ("5", "Push encoder, Bourns PEC11R, vertical, 15 mm flatted 6 mm shaft, push switch",
+     "Pick one when ordering, all five the same (D22): **detented** PEC11R-4215F-S0024 (24 detents, 24 "
+     "pulses) or **smooth** PEC11R-4015F-S0024 (no detents, 24 pulses). Same body, shaft and footprint; the "
+     "push switch is the knob press. Through-hole: JLC hand-solders it under Economic assembly (7 joints "
+     "each, ~$0.0173 per joint; V: on the quote). Leads trimmed to ≤ 1.2 mm under the board (the floor is "
+     "2 mm below). SMD option for the detented build only: Alps EC11J1525402 " + lcsc("C209762") + " (30 "
+     "detents, 1,666 in JLC stock, $2.59 at 10, 2026-10-19; other footprint); no stocked SMD part without "
+     "detents was found", lcsc("C143790") + " detented (5,485 in JLC stock, $1.99 at 10) / " + lcsc("C143789")
+     + " smooth (3,748, $2.31 at 10), 2026-10-19 (V: body height, shaft length)", "~$10–12", "knob board"),
+    ("1 set", "Knob board passives (lite)", "per encoder: 10 kΩ pull-ups to 3V3 on A and B, then 10 kΩ in "
+     "series and 10 nF to GND at the RP2350B (Bourns' suggested filter); the board-ID strap (10 kΩ to 3V3 "
+     "on the lite board); decoupling; 1 kΩ BOOTSEL resistor at the MCU end; CC sense filters; I²C pull-ups "
+     "for the touch band", "JLC basic parts", "~$1", "knob board"),
+]
 BOM_EXTERNAL = [
     ("1", "USB-C to USB-C cable (to the computer)", "USB 2.0 is enough; a C-to-C cable lets the device read "
      "the port's 1.5 A / 3 A offer. An A-to-C cable works, with weaker haptics (500 mA). Plug overmold "
@@ -1275,7 +1378,17 @@ def proto_bom_lines(pinfo):
     return out
 
 
+def lite_rows(rows, drop=(), add=(), after=None):
+    out = [r for r in rows if (r[0], r[1]) not in drop and r[1] not in drop]
+    if add:
+        i = next(i for i, r in enumerate(out) if r[1] == after) + 1
+        out[i:i] = list(add)
+    return out
+
+
 def write_bom(info, proto_info=None):
+    """docs/bom.md for the haptic tier, docs/bom-lite.md for the lite tier (D22)."""
+    lite = info.get("tier") == "lite"
     screws = info["screws"]
     num = {s.key: s.title for s in STEPS}
     counts = {}
@@ -1298,7 +1411,7 @@ def write_bom(info, proto_info=None):
                   for n, c in info["cables"].items() if c["buy"]]
     hw_rows = [(str(sum(st.values())), f"{kind.split()[0]} screw", " ".join(kind.split()[1:]),
                 "hardware kit", "~$1 (pack of 50)", ", ".join(num[k] for k in st)) for kind, st in counts.items()]
-    hw_rows += [
+    hw_rows += [r for r in [
         ("4", f"Magnets {P.MAGNET_TRAY[0]:g} × {P.MAGNET_TRAY[1]:g} mm", "tray", "AliExpress", "~$1",
          num["tray"]),
         ("4", f"Magnets {P.MAGNET_STAND[0]:g} × {P.MAGNET_STAND[1]:g} mm", "stand", "AliExpress", "~$1",
@@ -1315,18 +1428,38 @@ def write_bom(info, proto_info=None):
          "stack", "AliExpress", "~$1", num["top_plate_sub"]),
         ("1", "3M 467MP or 468MP transfer tape", "full coverage under the touch band (no air gaps)",
          "AliExpress / DigiKey", "~$3", num["top_plate_sub"]),
-        ("—", "Epoxy", "magnets", "any", "~$3", f"{num['knob_sub']}, {num['tray']}"),
+        ("—", "Epoxy", "magnets", "any", "~$3", num["tray"] if lite else f"{num['knob_sub']}, {num['tray']}"),
         ("— (optional)", "Thin foam or silicone ring", "on each key cap's flange, against rattle", "any", "~$1",
          num["top_plate_sub"]),
-    ]
+    ] if not (lite and r[1] in ("Hook-and-loop cable ties", f"M2×{P.STRIKER_LEN:g} set screws"))]
+    jlc_parts, prints, ali, external = BOM_JLC_PARTS, BOM_PRINTS, BOM_ALI, BOM_EXTERNAL
+    n_ext = 19
+    if lite:
+        jlc_parts = lite_rows(BOM_JLC_PARTS, LITE_DROP, LITE_JLC_PARTS, after="RP2350B support parts")
+        prints = lite_rows(BOM_PRINTS, {"Knob hubs", "Motor spacer rings", "Knob caps"}, [
+            ("5", "Knob caps (lite)", "`cad/out/knob_lite.stl`: the same cap with a stem through the plate's "
+             "hub hole; D-bore with crush ribs that seats on the encoder's shaft tip; PETG",
+             "home printer or JLC3DP", "$1–5", num["knobs"])], after="Stand")
+        ali = [r for r in BOM_ALI if r[0] == "1"]
+        external = [("1", "USB cable to the computer", "USB 2.0; C-to-C or A-to-C, any port (the lite tier "
+                     "draws under 500 mA). Plug overmold "
+                     f"≤ {P.USB_EXT_POCKET[0] - 0.5:g} × {P.USB_EXT_POCKET[1] - 0.5:g} mm to seat in the back-wall "
+                     "opening", "any", "$3–8", "Plug it in")]
+        n_ext = 15
     lines = [
-        "# Bill of materials (full build)",
+        "# Bill of materials (full build" + (", lite knob board)" if lite else ")"),
         "",
         "> [!CAUTION]",
         "> Generated by `cad/assembly.py` from the CAD model; nothing has been built or",
         "> ordered. **(V)** marks parts to verify before ordering. LCSC numbers were looked up",
-        "> on 2026-10-17; stock moves, so check each one in JLC's parts library when ordering.",
+        "> on 2026-10-17" + (" (encoders 2026-10-19)" if lite else "")
+        + "; stock moves, so check each one in JLC's parts library when ordering.",
         "",
+        *(["The lite tier (D22): push encoders instead of the motors, drivers and sensors. Everything",
+           "else is the same as the haptic build in [bom.md](bom.md): case, top plate, display, frame PCB,",
+           "keys, USB board, touch band, cables.", ""] if lite else
+          ["The haptic tier. The lite tier (push encoders, no motors; D22) has its own list:",
+           "[bom-lite.md](bom-lite.md).", ""]),
         "Everything a builder buys for one device, grouped by order. The builder solders and",
         "crimps nothing: JLC fits every board-mounted part, and every cable is bought ready-made.",
         "Screws, cable types and lengths come from the model, so they match",
@@ -1340,22 +1473,22 @@ def write_bom(info, proto_info=None):
         "",
         "### Parts JLC fits (per device)",
         "",
-        *table(BOM_JLC_PARTS),
+        *table(jlc_parts),
         "",
         "JLC's assembly minimum is 2 boards, so you pay for the parts on a spare set too",
         "(see [cost.md](cost.md)). JLC charges a setup fee once for the panel, plus a fee per",
-        "\"extended\" part type: 19 types with the parts above (list and fees in cost.md).",
+        f"\"extended\" part type: {n_ext} types with the parts above (list and fees in cost.md).",
         "Prices are LCSC's at the quantity for 2 boards, 2026-10-17.",
         "",
         "### 3D prints",
         "",
-        *table(BOM_PRINTS),
+        *table(prints),
         "",
         "## Order 2: AliExpress / Waveshare",
         "",
         "### Bought parts",
         "",
-        *table(BOM_ALI),
+        *table(ali),
         "",
         "### Internal cables (ready-made, plug-in)",
         "",
@@ -1372,20 +1505,23 @@ def write_bom(info, proto_info=None):
         "",
         "## Not in the kit",
         "",
-        *table(BOM_EXTERNAL),
+        *table(external),
         "",
-        *proto_bom_lines(proto_info),
-        "",
+        *([] if lite else [*proto_bom_lines(proto_info), ""]),
         "## Totals",
         "",
-        "One device: **~$475–710** with your own 3D printer, ~$530–825 with the case from",
-        "JLC3DP, ~$275–520 each when 5 people order together (none planned until a device works), US import duty included.",
+        *(["One device: **~$355–555** with your own 3D printer, ~$410–670 with the case from",
+           "JLC3DP, ~$195–285 each when 5 people order together (none planned until a device works), US import "
+           "duty included."] if lite else
+          ["One device: **~$475–710** with your own 3D printer, ~$530–825 with the case from",
+           "JLC3DP, ~$280–400 each when 5 people order together (none planned until a device works), US import "
+           "duty included."]),
         "Prices above are per part, per device. The totals also include JLC's PCB, setup and",
         "extended-part fees, the parts on the spare board set, shipping and duty; the",
         "breakdown is in [cost.md](cost.md) (\"Where the money goes\").",
         "",
     ]
-    BOM_PATH.write_text("\n".join(lines) + "\n")
+    (BOM_LITE_PATH if lite else BOM_PATH).write_text("\n".join(lines) + "\n")
 
 
 def main():
@@ -1394,9 +1530,13 @@ def main():
     flat, L, info = model.full_device(tilt=False)
     tilted, _, tinfo = model.full_device(tilt=True)
     proto, _, pinfo = model.prototype()
+    other = "lite" if info["tier"] == "haptic" else "haptic"
+    oflat, _, oinfo = model.full_device(tilt=False, tier=other)
     checks = run_checks(flat, info, tilted, tinfo, proto=(proto, pinfo))
-    problems = checks["problems"]
-    print(f"checks ({checks['seconds']:.0f}s): {len(problems)} problem(s)")
+    h_flat, l_flat, l_info = (flat, oflat, oinfo) if other == "lite" else (oflat, flat, info)
+    lchecks = run_checks_lite(l_flat, l_info, h_flat)
+    problems = checks["problems"] + lchecks["problems"]
+    print(f"checks ({checks['seconds']:.0f}s + lite {lchecks['seconds']:.0f}s): {len(problems)} problem(s)")
     for p in problems:
         print("  -", p)
     print(f"  screws reachable: {checks['access_ok']}/{len(info['screws'])}, "
@@ -1413,10 +1553,17 @@ def main():
                   f"down-stop), glass margin {r['margin']:.2f} mm of {r['glass_gap']:.2f} mm")
     print(f"  key stack: cap drop {k['drop']:.2f} + frame {k['defl_max']:.3f} mm/N x {k['force']:g} N = "
           f"{k['need']:.2f} mm of {k['glass_gap']:.2f} mm to the glass")
+    r = lchecks["knob_rows"]
+    pg = "n/a" if r["pressed_gap"] is None else f"{r['pressed_gap']:.2f} mm"
+    print(f"  lite knobs (D22): top {r['top_diff']:.2f} mm off the haptic knob (max {P.KNOB_TOP_TOL:g}); "
+          f"shaft {r['engage']:.1f} mm into the knob; pressed {P.ENC_PRESS_TRAVEL:g} mm: {pg} to the plate, "
+          f"stem {r['stem_gap']:.2f} mm above the bushing; "
+          f"{lchecks['access_ok']} knob board screws reachable")
     if check_only:
         sys.exit(1 if problems else 0)
     if "--bom" in sys.argv:
         write_bom(info, pinfo)
+        write_bom(oinfo, pinfo)
         sys.exit(0)
 
     import render
@@ -1427,6 +1574,7 @@ def main():
     service = service_pictures(scene, flat, info)
     write_guide(info, checks, shots, service)
     write_bom(info, pinfo)
+    write_bom(oinfo, pinfo)
     print(f"pictures + guide in {time.time() - t0:.0f}s")
     if "--animate" in sys.argv:
         t1 = time.time()

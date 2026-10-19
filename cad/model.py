@@ -482,6 +482,55 @@ def knob_stack(st: Stack, x: float, y: float, n: int, screws: list | None = None
     ] + knob_parts(st, x, y, n, screws)
 
 
+def lite_heights(st: Stack) -> dict:
+    """Lite tier (D22) heights: the encoder sits on the knob board, its shaft tip seats in
+    the bottom of the knob's bore, so the knob lands where the haptic knob does."""
+    body_top = st.knob_pcb_top + P.ENC_BODY[2]
+    shaft_top = body_top + P.ENC_SHAFT_L
+    knob_z = st.plate_top + P.KNOB_GAP
+    return dict(body_top=body_top, bushing_top=body_top + P.ENC_BUSHING[1], shaft_top=shaft_top,
+                knob_z=knob_z, stem_bot=min(shaft_top - P.LITE_KNOB_ENGAGE, knob_z))
+
+
+def encoder_stack(st: Stack, x: float, y: float, n: int) -> list[Item]:
+    """Lite tier (D22): a vertical push encoder (EC11 size) on the knob board and a knob
+    whose stem reaches down through the plate's hub hole onto the 6 mm flatted shaft.
+
+    The encoder's push switch is the knob press. The knob is the haptic tier's knob
+    shape plus the stem; it seats on the shaft tip, so its top matches the haptic knob.
+    """
+    h = lite_heights(st)
+    bw, bd, bh = P.ENC_BODY
+    flat = P.ENC_SHAFT_FLAT[1] - 3.0                  # flat's distance from the axis
+    body = Pos(x, y, st.knob_pcb_top) * Box(bw, bd, bh, align=MIN)
+    bush = Pos(x, y, h["body_top"]) * Cylinder(P.ENC_BUSHING[0] / 2, P.ENC_BUSHING[1], align=MIN)
+    f_len = P.ENC_SHAFT_FLAT[0]
+    shaft = Pos(x, y, h["body_top"]) * Cylinder(3.0, P.ENC_SHAFT_L - f_len, align=MIN)
+    shaft += Pos(x, y, h["shaft_top"] - f_len) * d_shape(3.0, flat, f_len)
+    # Pins (A, C, B at the front; switch at the back) and the two mounting tabs, trimmed under the board
+    pins = [(x + dx, y - 7.5) for dx in (-2.5, 0.0, 2.5)] + [(x + dx, y + 7.0) for dx in (-2.5, 2.5)]
+    stubs = None
+    for px, py in pins + [(x - 6.6, y), (x + 6.6, y)]:
+        s = Pos(px, py, st.knob_pcb_bot - P.ENC_PIN_STUB) * Box(0.8, 0.8, P.ENC_PIN_STUB, align=MIN)
+        stubs = s if stubs is None else stubs + s
+    enc = body + bush + shaft + stubs
+    # Knob: the haptic knob's cap plus a stem with a D-bore that bottoms on the shaft tip
+    kz, sb = h["knob_z"], h["stem_bot"]
+    cap = Pos(0, 0, kz - sb) * tapered_knob() + Cylinder(P.LITE_STEM_D / 2, kz - sb + 0.5, align=MIN)
+    rb, depth = 3.0 + 0.1, h["shaft_top"] - sb
+    round_l = max(depth - f_len, 0.0)                 # the shaft is round below its flat
+    cap -= Pos(0, 0, -0.01) * Cylinder(rb, round_l + 0.02, align=MIN)
+    cap -= Pos(0, 0, round_l) * d_shape(rb, flat + 0.1, depth - round_l)
+    rr = 0.4
+    for a in (0, 180, 270):                           # crush ribs on the round part of the bore
+        c = 3.0 - P.KNOB_HUB_RIB + rr
+        rib = Pos(c * math.cos(math.radians(a)), c * math.sin(math.radians(a)), 0) * Cylinder(
+            rr, depth - 0.5, align=MIN)
+        cap += rib & Cylinder(rb + 0.05, depth, align=MIN)
+    return [Item(enc, f"knob{n}_encoder", C_MOTOR, 0),
+            Item(Pos(x, y, sb) * cap, f"knob{n}_knob", C_KNOB, 6)]
+
+
 def tongue_slots(x: float, y: float) -> list[tuple[float, float, float, float]]:
     """Slot rectangles (cx, cy, w, h) that free a tongue around (x, y), hinged at the back."""
     t, sl, hw = P.TONGUE, P.TONGUE_SLOT, P.TONGUE_HINGE_W
@@ -501,8 +550,11 @@ def knob_board(st: Stack, knob_xy: list, label: str, with_mcu: bool,
                tabs: list = (), slots_xy: list = (),
                mcu_xy: tuple | None = None,
                screws: list | None = None,
-               holes_xy: list = ()) -> tuple[list[Item], Sketch]:
+               holes_xy: list = (), tier: str = "haptic") -> tuple[list[Item], Sketch]:
     """One PCB carrying every knob. Returns parts and the 2D outline (for KiCad).
+
+    tier "lite" (D22): same outline, holes and connectors, no tongues or motor
+    holes; an encoder at each knob instead of the motor stack.
 
     screw_xy: if given, the board's screw holes (bosses are printed in the tray
     elsewhere); otherwise the board gets its own bosses (prototype).
@@ -514,7 +566,8 @@ def knob_board(st: Stack, knob_xy: list, label: str, with_mcu: bool,
     reach = P.TONGUE / 2 + P.TONGUE_SLOT + P.KNOB_BOARD_EDGE
     x0, x1 = min(xs) - reach, max(xs) + reach
     y0, y1 = ky - reach, ky + P.TONGUE / 2 + P.TONGUE_SLOT + P.KNOB_BOARD_BACK
-    slots = [r for x, y in knob_xy for r in tongue_slots(x, y)]
+    lite = tier == "lite"
+    slots = [] if lite else [r for x, y in knob_xy for r in tongue_slots(x, y)]
     if screw_xy is not None:
         bosses = list(screw_xy)
     else:
@@ -534,11 +587,12 @@ def knob_board(st: Stack, knob_xy: list, label: str, with_mcu: bool,
                 Rectangle(w, h, mode=Mode.SUBTRACT)
         with Locations(*bosses):
             Circle(P.M2_CLEAR / 2, mode=Mode.SUBTRACT)
-        # Motor mount: NPTH screw holes (copper keep-out) and the spacer's two locating pins
-        with Locations(*[p for x, y in knob_xy for p in motor_screw_xy(x, y)]):
-            Circle(P.M2_CLEAR / 2, mode=Mode.SUBTRACT)
-        with Locations(*[p for x, y in knob_xy for p in motor_pin_xy(x, y)]):
-            Circle(P.MOTOR_LOCATE_PIN_D / 2 + 0.05, mode=Mode.SUBTRACT)
+        if not lite:
+            # Motor mount: NPTH screw holes (copper keep-out) and the spacer's two locating pins
+            with Locations(*[p for x, y in knob_xy for p in motor_screw_xy(x, y)]):
+                Circle(P.M2_CLEAR / 2, mode=Mode.SUBTRACT)
+            with Locations(*[p for x, y in knob_xy for p in motor_pin_xy(x, y)]):
+                Circle(P.MOTOR_LOCATE_PIN_D / 2 + 0.05, mode=Mode.SUBTRACT)
         r_avoid = max(P.PANEL_POST_D, P.PLATE_POST_D) / 2 + 0.6
         holes = [(x, y) for x, y in avoid_xy
                  if x0 - r_avoid < x < x1 + r_avoid and y0 - r_avoid < y < y1 + r_avoid]
@@ -562,7 +616,7 @@ def knob_board(st: Stack, knob_xy: list, label: str, with_mcu: bool,
         mcu = Pos(mx, my, st.knob_pcb_top) * Box(*P.RP2350B, align=MIN)
         items.append(Item(mcu, f"{label}_rp2350b", C_CHIP, 0))
     for n, (x, y) in enumerate(knob_xy):
-        items += knob_stack(st, x, y, n, screws)
+        items += encoder_stack(st, x, y, n) if lite else knob_stack(st, x, y, n, screws)
     return items, sk.sketch
 
 
@@ -909,12 +963,17 @@ def frame_supports(L: Layout, rect, frame_x1: float, py1: float, px0: float) -> 
     return dict(pan=pan, csk=webs + right, csk_inner=inner)
 
 
-def full_device(tilt: bool = True) -> tuple[list[Item], Layout, dict]:
+def full_device(tilt: bool = True, tier: str | None = None) -> tuple[list[Item], Layout, dict]:
     """Full device. With tilt=True the slab is angled toward the user on a stand.
+
+    tier: "haptic" or "lite" knob board (D22; default P.KNOB_TIER). Only the knob
+    board and what sits on it differ.
 
     Everything is built in the flat (untilted) frame first; assembly steps and
     checks use that frame (see cad/assembly.py).
     """
+    tier = tier or P.KNOB_TIER
+    lite = tier == "lite"
     st = make_stack(P.FLOOR, P.TOP_PLATE_T)
     L = full_layout()
     items: list[Item] = []
@@ -1247,8 +1306,8 @@ def full_device(tilt: bool = True) -> tuple[list[Item], Layout, dict]:
                              avoid_xy=avoid, screw_xy=kb_screws,
                              tabs=[(board_x1 - P.KNOB_BOARD_EDGE, board_x1, board_back_y,
                                     zif_y + P.ZIF_12P[0] / 2 + 0.2)],
-                             slots_xy=slots, mcu_xy=mcu_xy, screws=screws,
-                             holes_xy=[(*boot_xy, P.BOOTSEL_PLUNGER[0] + 0.4)])
+                             slots_xy=[] if lite else slots, mcu_xy=mcu_xy, screws=screws,
+                             holes_xy=[(*boot_xy, P.BOOTSEL_PLUNGER[0] + 0.4)], tier=tier)
     items += kitems
     bsw, bsh = P.BOOTSEL_SW[:2], P.BOOTSEL_SW[2]
     items.append(Item(Pos(*boot_xy, kpt) * Box(*bsw, bsh, align=MIN)
@@ -1302,7 +1361,7 @@ def full_device(tilt: bool = True) -> tuple[list[Item], Layout, dict]:
                             std_length(P.PCB_T + P.USB_BOARD_Z + 1.5), P.M2_HEAD, "case_tray", "usb_board",
                             engage=(3.0, None), pilot=True))
     mp = P.MOTOR_PLUG
-    for n, kx in enumerate(kxs):
+    for n, kx in enumerate([] if lite else kxs):
         items.append(Item(bx((kx - 2.0 - P.HEADER_3P[0] / 2, mh_y, kpt + P.HEADER_3P[2] / 2), P.HEADER_3P),
                           f"knob{n}_header", C_CHIP, 0))
 
@@ -1342,7 +1401,7 @@ def full_device(tilt: bool = True) -> tuple[list[Item], Layout, dict]:
         plugs.append(("plug_knob_touch", bx((tch[0], tch[1], kpt + P.SH_HEADER_TOP[2] + P.SH_PLUG[2] / 2),
                                             (P.SH_PLUG[1], P.SH_PLUG[0], P.SH_PLUG[2])), (0, 0, -1), "sh",
                       "knob_board_conn_touch", "close", P.SH_PLUG[2]))
-    for n, kx in enumerate(kxs):
+    for n, kx in enumerate([] if lite else kxs):
         plugs.append((f"knob{n}_motor_plug", bx((kx - 4.5 - mp[2] / 2, mh_y, kpt + 0.5 + mp[1] / 2),
                                                 (mp[2], mp[0], mp[1])), (1, 0, 0), "motor",
                       f"knob{n}_header", "knob_sub", mp[2]))
@@ -1378,7 +1437,7 @@ def full_device(tilt: bool = True) -> tuple[list[Item], Layout, dict]:
     # Motor leads: whatever doesn't fit the route is coiled on the back strip and strapped
     leads = {}
     cw = coil_y1 - coil_y0
-    for n, kx in enumerate(kxs):
+    for n, kx in enumerate([] if lite else kxs):
         head, tail = lead_pts[n]
         hp = fillet_path(head, 3.0, f"cable_motor{n}", warns)
         tp = fillet_path(tail, 2.0, f"cable_motor{n}", warns)
@@ -1421,9 +1480,11 @@ def full_device(tilt: bool = True) -> tuple[list[Item], Layout, dict]:
                      for name, off in P.DISPLAY_BUTTONS.items()]
                     + [(boot_xy[0], boot_xy[1], 0.0, "BOOTSEL", (0, 0, 1), "knob_board_bootsel", -15.0)],
         "magnets": magnets,
-        "threaded": [(f"knob{n}_striker", f"knob{n}_spacer") for n in range(len(kxs))]
+        "threaded": [(f"knob{n}_striker", f"knob{n}_spacer") for n in range(0 if lite else len(kxs))]
                     + [(f"top_plate_insert_{i}", "top_plate") for i in range(len(plate_posts))],
-        "press_fits": {(f"knob{n}_knob", f"knob{n}_hub"): 3.0 for n in range(len(kxs))},
+        "press_fits": {(f"knob{n}_knob", f"knob{n}_{'encoder' if lite else 'hub'}"): 3.0
+                       for n in range(len(kxs))},
+        "tier": tier, "lite": lite_heights(st) if lite else None,
         "touch_band_bbox": info_touch, "panel_screw": (pan_len, cb_pan),
         "usb_arm": (arm_y0, iy1), "usb_ext_socket_depth": sd_ + 0.3,
         "display_usb_z": usb_z, "board_back_y": board_back_y,
@@ -1433,6 +1494,7 @@ def full_device(tilt: bool = True) -> tuple[list[Item], Layout, dict]:
         "frame_supports": fs, "glass_rect": g["glass_rect"],
     }
     if tilt:
+        info["flat_items"] = list(items)
         items, info2 = tilt_on_stand(items, outer, st, magnets, feet_front)
         info.update(info2)
     return items, L, info
