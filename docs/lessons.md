@@ -55,7 +55,7 @@ Sources and licenses:
    [out of stock](https://jlcpcb.com/partdetail/TRINAMIC_MOTIONCONTROL-TMC6300LA/C5196961).
    → Check JLC stock before every order. Source the TMC6300 through JLC
    Global Sourcing or consign it from DigiKey, and reserve the full-build
-   quantity once Rev 0 passes. Keep DRV8316 (plan B) drawn in the
+   quantity once the test kit passes. Keep DRV8316 (plan B) drawn in the
    schematic.
 
 4. **Auto-calibration at boot is fragile.** SimpleFOC's `initFOC` spins the

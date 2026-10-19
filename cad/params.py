@@ -85,7 +85,7 @@ USB_BELOW_PCB = 1.22                     # port center below the board's undersi
 DISPLAY_J8_FROM_PCB_BACK = 66.3          # J8 center from the board's back edge (EST: front-most slot)
 DISPLAY_J8_BELOW_PCB = 2.5               # J8 mouth center below the board's underside (EST)
 
-# --- Knob (Mitoot 2204 gimbal motor + MT6701 knob module) ---------------
+# --- Knob (Mitoot 2204 gimbal motor + MT6701 sensor) ----------------------
 KNOBS = 5
 MOTOR_D, MOTOR_H = 27.85, 13.1          # (EST) measure when it arrives
 MOTOR_BASE_D, MOTOR_BASE_H = 22.0, 3.0  # stator mount (EST)
@@ -221,11 +221,11 @@ DISPLAY_BUTTONS = {"BOOT": 59.2, "RESET": 48.1}
 DISPLAY_BUTTON_Z = 0.3      # button center below the board's underside (STEP)
 TOOL_D = 5.0                # screwdriver shaft diameter used for the access check
 
-# --- Prototype (2 keys + 1 knob on the real 7B), laser-cut acrylic sandwich --
-# D3: the real Waveshare 7B, the full build's 2 top-left keys with their own
-# small frame PCB (second-switch footprints for the force test), knob 0 with
-# the Rev 0 knob module, a full-length touch band, and room for the Rev 0.5
-# test board (RP2350B + CH334F + touch IC + connectors).
+# --- Prototype (2 keys on the real 7B), laser-cut acrylic sandwich ----------
+# Changed 2026-10-18 (D3): the real Waveshare 7B and the full build's 2 top-left
+# keys with their own small frame PCB (second-switch footprints for the force
+# test). The knob is tested on its own printed stand (below), with bought
+# breakouts; the knob board, hub and touch circuits are first tested on Rev A.
 PROTO_KEY_IDX = (0, 1)     # which of the full build's keys (top-left two)
 PROTO_PLATE_T = 3.0        # 3 mm cast acrylic, top and base
 PROTO_STANDOFF_D = 6.0     # M3 hex standoff (drawn round)
@@ -234,9 +234,16 @@ PROTO_FRAME_RIGHT = 8.0    # proto frame PCB margin right of the keys (holes + a
 PROTO_COPPER_EDGE = 0.5    # proto frame PCB copper-to-edge clearance
 PROTO_SECOND_SWITCH = True # second B3U footprint above each key window (D8 force test)
 FRAME_MOUNT_HOLE_D = 2.2   # M2 clearance
-# Rev 0.5 test board (no layout yet: outline and placement only)
-REV05_PCB = (70.0, 45.0)   # (EST) RP2350B + CH334F + AT42QT2120 + USB-C x2 + GH + ZIF + SH + HY2.0
-REV05_GAP = 4.0            # gap to the knob module, in x
+# Knob test stand (JLC3DP print): a deck the 2204 screws onto (M2 from below), an
+# MT6701 breakout slid in on rails under the deck with its chip up in the deck's
+# center hole, and an open tunnel for the header wires. The knob sits as high above
+# the motor as in the full build.
+KTS_W, KTS_D = 40.0, 40.0          # footprint
+KTS_BASE_T = 3.0                   # base plate on the desk
+KTS_WALL = 4.0                     # side walls (they carry the rails)
+KTS_TUNNEL_H = 20.0                # base to the breakout's underside (header pins, jumper housings)
+KTS_CBORE = 2.0                    # counterbore depth for the M2 motor screw heads (from below)
+MT6701_BREAKOUT = (16.0, 1.6)      # (EST) breakout width across the rails, PCB thickness: measure it
 
 # --- Internal cabling (full device) ----------------------------------------
 # No soldering or crimping by the builder: every internal link is a bought

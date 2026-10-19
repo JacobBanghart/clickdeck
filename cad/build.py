@@ -168,8 +168,6 @@ def main():
     # PCB geometry for the KiCad generators in hardware/ (mm, CAD coordinates, y up)
     import json
     (OUT / "proto_frame_pcb.json").write_text(json.dumps(pinfo["frame_pcb"], indent=1) + "\n")
-    export_dxf(pinfo["knob_board_sketch"], str(OUT / "proto_knob_module_outline.dxf"))
-    export_dxf(pinfo["rev05_sketch"], str(OUT / "proto_rev05_board_outline.dxf"))
 
     # Case parts as printable STLs, in print orientation: tray floor-down, top plate
     # face-down (flipped), stand on its bottom
@@ -196,9 +194,10 @@ def main():
         cap = next(it for it in src if it.label == "cap_0")
         x, y = (L.key_xy[0] if src is flat else PL.key_xy[0])
         export_stl(Pos(-x, -y, 0) * cap.part, str(OUT / name))
-    knob_part = next(it for it in proto if it.label.startswith("knob0_")
+    knob_part = next(it for it in flat if it.label.startswith("knob0_")
                      and it.label.endswith(("_knob", "_shaft_adapter")))
-    export_stl(knob_part.part, str(OUT / f"{knob_part.label.removeprefix('knob0_')}.stl"))
+    export_stl(at_origin(knob_part.part), str(OUT / f"{knob_part.label.removeprefix('knob0_')}.stl"))
+    export_stl(pinfo["knob_test_stand"]["stand_part"], str(OUT / "print_knob_test_stand.stl"))
 
     for label, name, flip in (("knob0_hub", "knob_hub", True), ("knob0_spacer", "motor_spacer", True),
                               ("knob_window_0", "knob_window", False)):
@@ -225,7 +224,7 @@ def main():
             *([f"- Angled {P.TILT_DEG}° on the stand: {tilted[0]} wide x {tilted[1]} deep x "
                f"{tilted[2]} mm tall (top plate at the back)"] if tilted else []),
             f"- Size: {w} x {d} mm footprint, {h} mm to the top plate "
-            f"(caps +{P.CAP_PROTRUDE}, knobs +{P.KNOB_GAP + P.KNOB_H})",
+            f"(caps +{P.CAP_PROTRUDE}" + (f", knobs +{P.KNOB_GAP + P.KNOB_H})" if lay.knob_xy else ")"),
             f"- Keys: {len(lay.key_xy)} at {P.KEY_PITCH} mm pitch, cap {P.CAP_SIZE} mm",
             f"- Knob display window: {lay.win_size[0]:.1f} x {lay.win_size[1]:.1f} mm",
             f"- Z stack: glass {st.glass:.2f}, frame PCB {st.pcb_bot:.2f}-{st.pcb_top:.2f}, "
@@ -235,6 +234,12 @@ def main():
             f"{P.KEY_STOP_GAP:.2f} mm; worst cap drop {drop:.2f} mm + frame flex {max(defl):.3f} mm/N "
             f"({max(defl) * P.KEY_PRESS_DESIGN_N:.2f} mm at {P.KEY_PRESS_DESIGN_N:g} N)",
         ]
+        if "knob_test_stand" in inf:
+            kts = inf["knob_test_stand"]
+            w_, d_, h_ = kts["size_mm"]
+            lines.append(f"- Knob test stand (print): {w_:g} x {d_:g} x {h_:g} mm to the motor seat; "
+                         f"MT6701 breakout {P.MT6701_BREAKOUT[0]:g} mm wide (EST) on rails under the deck; "
+                         f"motor screws {kts['motor_screw']} from below")
         if "standoffs" in inf:
             lines.append("- Standoffs: " + ", ".join(f"{k} {v:.1f} mm" for k, v in inf["standoffs"].items()))
         if "frame_supports" in inf:

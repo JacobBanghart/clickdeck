@@ -18,11 +18,16 @@ Python), plus the project's `.venv` for the CAD.
 | Board | Status | Folder |
 |---|---|---|
 | Prototype frame PCB, rev C (2 keys on the 7B) | Generated, DRC clean, untested | [`proto-frame/`](proto-frame/) |
-| Rev 0 knob module | Schematic next; layout waits on measuring the motor. Outline: `cad/out/proto_knob_module_outline.dxf` | — |
-| Rev 0.5 test board (RP2350B + CH334F + AT42QT2120 + the full build's connectors) | Outline and placement only (`cad/out/proto_rev05_board_outline.dxf`, 70 × 45 mm, EST); no schematic yet | — |
-| Full frame PCB (21 keys) | After the prototype. Outline: `cad/out/full_frame_pcb_outline.dxf` | — |
-| Full knob board | After the prototype. Outline: `cad/out/full_knob_board_outline.dxf` | — |
-| Touch band | After the prototype (optional, D12) | — |
+| Rev A frame PCB (21 keys) | After the prototype. Outline: `cad/out/full_frame_pcb_outline.dxf` | — |
+| Rev A knob board | After the prototype; first build of the knob circuit ([knob-module.md](../docs/knob-module.md)). Outline: `cad/out/full_knob_board_outline.dxf` | — |
+| Rev A USB board (CH334F hub) | After the prototype. Outline: `cad/out/full_usb_board_outline.dxf` | — |
+| Rev A touch band | After the prototype (optional, D12). Outline: `cad/out/full_touch_band_outline.dxf` | — |
+
+Dropped 2026-10-18 (D3): the Rev 0 knob module and the Rev 0.5 test
+board. The prototype uses bought breakouts for the knob, controller and
+hub ([parts.md](../docs/parts.md)), so rev C is the only custom board
+before Rev A. Plan on one revision of whichever Rev A board fails, ordered
+alone ([cost.md](../docs/cost.md)).
 
 ## Prototype frame PCB (rev C)
 
@@ -37,7 +42,7 @@ like the full frame's.
   caps (`key_cap_clear_resin.stl`) for the one-switch test and the two-nub
   caps (`key_cap_two_nub_clear_resin.stl`) for two switches.
 - **Wire pads** K1, GND, K1B, K2B, K2 (through-hole) on the back margin, off
-  the glass, for hand-wiring to the Rev 0.5 board.
+  the glass, for hand-wiring to the RP2350B core board.
 - **Mounting:** M2 pan-head screws only where the head is off the glass (two
   on the left edge, two on the back edge). Over the glass the board uses
   **countersunk holes** (JLC's countersink option, 90°; extra fee), so the
@@ -60,8 +65,7 @@ At 3.0 mm the switches are held down 0.1 mm and may read pressed.
 
 Other prototype standoffs (from `cad/model.py`; see `cad/out/summary.md`,
 the stack moves if params change): **M3 24.5 mm** at the plate corners and
-sides (six), **M3 12.6 mm** from the base plate to the 7B's four tabs,
-**M2 2.0 mm** under the knob module and the Rev 0.5 board.
+sides (six), **M3 12.6 mm** from the base plate to the 7B's four tabs.
 
 ```sh
 hardware/proto-frame/export.sh     # CAD -> KiCad -> DRC -> JLC files

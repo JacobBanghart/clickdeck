@@ -51,6 +51,7 @@ the + XL.
 | Build one, case ordered from JLC3DP | $530–825 |
 | Per unit, 5 people ordering together (not planned until a device works) | $275–520 |
 | Stream Deck + XL (36 keys, 6 dials), for comparison | ~$350 |
+| Development (designer's): test kit, tools, Rev A and one board revision | ~$700–1,300 |
 
 **A single build costs more than a Stream Deck + XL.** Cost isn't what this
 project optimizes, but the numbers try to be honest. They cover parts, PCBs
@@ -69,7 +70,8 @@ Breakdown: [docs/cost.md](docs/cost.md); every part: [docs/bom.md](docs/bom.md).
 |---|---|
 | ![Exploded](cad/out/full_exploded.png) | ![Key section](cad/out/key_section.png) |
 
-Prototype (2 keys + 1 knob, laser-cut acrylic):
+Prototype (2 keys on the real 7B in laser-cut acrylic, plus a printed knob
+test stand with bought breakouts):
 
 ![Prototype](cad/out/proto_exploded.png)
 
@@ -94,12 +96,12 @@ a switch on the board's front border. Motors lifted to show the tongues:
 
 - [docs/assembly.md](docs/assembly.md): assembly and service guide, with pictures and an animation (generated from the CAD)
 - [docs/plan.md](docs/plan.md): goals, architecture, and the staged build plan
-- [docs/parts.md](docs/parts.md): prototype parts list with links (prototype on the real 7B)
+- [docs/parts.md](docs/parts.md): prototype parts list with links (final parts bought early + a throwaway test kit)
 - [docs/cost.md](docs/cost.md): cost breakdown
 - [docs/bom.md](docs/bom.md): full-build bill of materials (generated from the CAD)
 - [docs/lessons.md](docs/lessons.md): lessons from related projects, so we don't relearn them
 - [docs/wiring.md](docs/wiring.md): power path, cables and connectors, strain relief, key matrix, pin budget
-- [docs/knob-module.md](docs/knob-module.md): Rev 0 knob module netlist, parts and design notes
+- [docs/knob-module.md](docs/knob-module.md): one knob channel of the knob board: netlist, parts and design notes
 - [docs/configurator.md](docs/configurator.md): web configurator, optional host daemon, Linux udev rule
 - [docs/recovery.md](docs/recovery.md): recovery and factory reset (start here if something's stuck)
 - [docs/protocol.md](docs/protocol.md): USB protocol draft (two USB devices behind a hub, WebUSB)
@@ -109,14 +111,16 @@ a switch on the board's front border. Motors lifted to show the tongues:
 - [docs/pcb.md](docs/pcb.md): how the PCBs get designed and ordered
 - [cad/](cad/): parametric CAD (build123d). STEP files for FreeCAD/Fusion 360 in `cad/out/`
 
-Status (2026-10-17): design stage, nothing built. Done on paper: CAD for
+Status (2026-10-18): design stage, nothing built. Done on paper: CAD for
 the full device and prototype (real Waveshare 7B dimensions), prototype
-frame PCB (generated, DRC clean), Rev 0 knob module spec, wiring/power spec
+frame PCB (generated, DRC clean), knob channel spec, wiring/power spec
 (internal USB hub, plug-in cables only), USB protocol draft, design review
 with the owner's decisions ([docs/design-review.md](docs/design-review.md)).
-Next: order prototype parts ([docs/parts.md](docs/parts.md)), draw the knob
-module and Rev 0.5 test board schematics, prototype firmware and the web
-configurator. Open items:
+Prototype plan (2026-10-18): buy the final parts early (7B, motors,
+magnets), test the knob on bought breakouts and the keys on the rev C
+frame PCB, then build Rev A, the first build of our own boards.
+Next: order prototype parts ([docs/parts.md](docs/parts.md)), prototype
+firmware, the web configurator and the Rev A schematics. Open items:
 [docs/open-questions.md](docs/open-questions.md); pass/fail criteria:
 [docs/prototype-tests.md](docs/prototype-tests.md).
 

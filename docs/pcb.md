@@ -31,13 +31,13 @@ boards, all connectors fitted by JLC (cabling: [wiring.md](wiring.md)):
   screw, before the top plate goes on (the model uses a 0.2 mm gap). The
   MT6701 rides on the tongue, so it stays aligned with the motor's magnet,
   and only its traces cross the hinge.
-- **Hinge (D10):** after the scrap-FR-4 test, Rev 0 gets a tunable hinge
+- **Hinge (D10):** after the scrap-FR-4 test, Rev A gets a tunable hinge
   (perforations that can be opened up to soften it). If sideways force
   causes false clicks, switch to a parallel-guided flexure.
 - **Floorplan (D16):** each TMC6300 sits on the 19 mm back strip next to
   its motor header, off the tongues. Do a
   floorplan with real footprints (RP2350B QFN-80, TMC6300 QFN-20,
-  connectors) before the full order, and mirror it on Rev 0.
+  connectors) before the full order.
 - **Top side only (D6, resolved: feasible):** every part is on the top
   side, so JLC's single-side assembly covers the board. That needs the
   press switch on the front border (above), SMD right-angle motor headers
@@ -49,14 +49,14 @@ boards, all connectors fitted by JLC (cabling: [wiring.md](wiring.md)):
 - **Motor drivers: 3 PWM signals per motor** (15 total).
   - Plan A: TMC6300 (2–11 V, ideal on USB 5 V) with an inverter deriving
     each low-side input from its high-side input. The datasheet confirms
-    built-in break-before-make (shoot-through protection); test on the
-    prototype. BRUV/BRW to GND (netlist in [knob-module.md](knob-module.md)).
+    built-in break-before-make (shoot-through protection); the test kit
+    tries it with inverted PWM outputs on the SparkFun breakout. BRUV/BRW to GND (netlist in [knob-module.md](knob-module.md)).
     2 × 22 µF per driver.
   - Plan B: DRV8316 in its native 3x PWM mode. Its 4.5 V minimum is close
     to USB 5 V under motor load, so it's the fallback.
 - **Driver sourcing (D2):** LCSC had only 59 of the TMC6300-LA-T on
   2026-10-17 ($5.93). Source it through JLC Global Sourcing or consign it
-  from DigiKey (~$2.44, ~4,100 in stock). Once Rev 0 passes, reserve the
+  from DigiKey (~$2.44, ~4,100 in stock). Once the test kit passes, reserve the
   full-build quantity in JLC's parts library. Keep the DRV8316 fallback
   drawn in the schematic.
 - **Sensor:** MT6701CT-STD (SOP-8) in SSI mode, MODE tied high. One shared
@@ -72,7 +72,7 @@ boards, all connectors fitted by JLC (cabling: [wiring.md](wiring.md)):
     2 × (20 − 3 pF stray). Raspberry Pi's reference is the ABM8-272-T3
     (10 pF, 50 Ω) with 2 × 15 pF. The C9002's higher ESR and load mean
     less drive margin, and Raspberry Pi asks for a start-up test over
-    temperature with any other crystal. The Rev 0.5 board runs that test;
+    temperature with any other crystal. Rev A runs that test;
     if it fails, fit the ABM8 (same 3225 footprint) with 15 pF, or a
     smaller series resistor.
   - SMPS inductor: AOTA-B201610S3R3-101-T (C42411119). Raspberry Pi
@@ -184,26 +184,15 @@ together.
 
 ## Prototype boards
 
-### Rev 0: knob module
-One tongue of the knob board: MT6701, motor driver, B3U press switch, same
-tongue/hinge geometry. Outline: `proto_knob_module_outline.dxf`. It tests the
-knob feel, the press (tunable hinge, set-screw striker), and Plan A
-(TMC6300 + inverter) driven by the Rev 0.5 board (or an RP2350B core board
-before it arrives). Current-shunt footprints on this board only.
-Netlist, parts and design notes: [knob-module.md](knob-module.md).
-
-### Rev 0.5: USB and controller test board
-Everything the full build adds that the knob module doesn't test, on one
-small board (D3): RP2350B (QFN-80, stepping A4) with its support parts
-(flash, crystal, SMPS inductor, regulator), the CH334F hub with its crystal
-and 0 Ω options, the external USB-C socket, the downstream USB-C to the
-7B, both reverse-blocking power switches, CC sensing, a JST-GH link pair
-(hub side to RP2350B side through a real cable), a 12-pin ZIF for the key
-FFC, a JST-SH to the touch electrodes with the AT42QT2120, the GPIO6 link
-header, BOOTSEL, and a J1-compatible header for the Rev 0 knob module. The
-touch electrodes are a full-length strip (copper tape, 10–12 segments)
-under a printed-plate offcut. A wrong footprint here costs one small
-board, not a respin of the four-board panel.
+Plan changed 2026-10-18 (D3): the only custom PCB before the full build
+is the rev C frame PCB. The knob runs on bought breakouts (SparkFun
+TMC6300, an MT6701 board) on a printed test stand, and the controller and
+hub on a WeAct RP2350B core board and a CH334F hub module
+([parts.md](parts.md)). The Rev 0 knob module and the Rev 0.5 test board
+are dropped: Rev A is the first build of the knob board, USB board and
+touch band. Plan on one revision of whichever board fails, ordered alone
+([cost.md](cost.md)). The knob channel's netlist stays in
+[knob-module.md](knob-module.md).
 
 ### Rev C: prototype frame PCB
 The full build's two top-left keys at the same place on the 7B, 58.3 ×
@@ -212,8 +201,8 @@ second switches for the D8 force test). Pan-head screws and pads sit off
 the glass; over the glass it uses two countersunk M2 screws. **Generated** from the CAD: see
 [hardware/README.md](../hardware/README.md) (untested).
 
-All three go in one JLC order with the caps and knob prints (one shipping
-and duty charge).
+It goes in one JLC order with the 2 + 2 caps and the knob test stand
+prints (one shipping and duty charge).
 
 ## Workflow per board
 1. Schematic in KiCad; run ERC.

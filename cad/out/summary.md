@@ -14,13 +14,13 @@
 - Fit checks: OK
 
 ## Prototype
-- Size: 183.7 x 149.5 mm footprint, 30.5 mm to the top plate (caps +1.5, knobs +16.0)
+- Size: 183.7 x 115.6 mm footprint, 30.5 mm to the top plate (caps +1.5)
 - Keys: 2 at 22.0 mm pitch, cap 18.0 mm
 - Knob display window: 26.0 x 15.0 mm
 - Z stack: glass 21.80, frame PCB 22.60-24.20, switch top 25.80, top plate 27.50-30.50, motor 11.60-24.70
 - Key stack (D8): caps and frame PCB 0.80 mm above the glass, down-stop 0.50 mm; worst cap drop 0.52 mm + frame flex 0.009 mm/N (0.03 mm at 3 N)
-- Standoffs: M3, plate to plate (corners) 24.5 mm, M3, base plate to the 7B's tabs 12.6 mm, M2, frame PCB to top plate 3.3 mm, M2, knob module and Rev 0.5 board 2.0 mm
-- Touch band: 11.2 mm tall under the knob displays, sensing through 3 mm of plate
+- Knob test stand (print): 40 x 40 x 26.6 mm to the motor seat; MT6701 breakout 16 mm wide (EST) on rails under the deck; motor screws M2×5 from below
+- Standoffs: M3, plate to plate (corners) 24.5 mm, M3, base plate to the 7B's tabs 12.6 mm, M2, frame PCB to top plate 3.3 mm
 - Fit checks: OK
 
 ## Stability (estimate)

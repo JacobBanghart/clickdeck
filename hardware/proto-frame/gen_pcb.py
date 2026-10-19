@@ -11,7 +11,7 @@ two top-left keys, cut out of the full frame PCB at the 7B's top-left corner.
   switches), SW3/SW4 above them, the second-switch option for the D8 force
   test (one switch vs two per key). Each switch has its own pad.
 - Five through-hole wire pads (K1, GND, K1B, K2B, K2) on the back margin,
-  off the glass, for hand-wiring to the Rev 0.5 board.
+  off the glass, for hand-wiring to the RP2350B core board.
 - M2 holes: pan-head screws only where the head is off the glass (left and
   back edges); countersunk holes (JLC countersink option, 90°) over the
   glass, so those heads sit flush with the underside. One of them is at the

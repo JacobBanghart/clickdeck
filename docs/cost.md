@@ -155,29 +155,77 @@ per device here (parts, cables, a share of the fees). Parts don't get
 cheaper: the five TMC6300 drivers are ~$12 per device from DigiKey. Duty
 (~35%) is included.
 
-## Development cost (the designer's, not a builder's): ~$1,000–1,600
+## Development cost (the designer's, not a builder's): ~$700–1,300
+
+Plan changed 2026-10-18 (D3): final parts bought early, a throwaway test
+kit with bought breakouts, then the full build ("Rev A") as the first
+build of our own boards, with one revision of whichever board fails.
 
 | | ~Cost |
 |---|---|
-| Prototype (2 keys + 1 knob on the 7B, Rev 0.5 board; see below) | $270–460 |
-| Full device | $475–710 |
-| One PCB redo (the whole 4-board panel: fabrication, setup, extended-part fees, parts for 2 more boards, shipping, duty) | $285–430 |
+| Throwaway test kit (below) | $100–170 |
+| Bench tools (below; skip what you have) | $70–140 |
+| Spare 2204 motor (the 6th; the other 5 are in Rev A) | $10–15 |
+| Rev A, the full device (includes the 7B, motors, magnets and cable bought early) | $475–710 |
+| One single-board revision (only the board that fails; table below) | $45–250 |
+| **Total, likely through a working device** | **$700–1,285** |
 
-## Prototype (2 keys + 1 knob on the 7B): ~$270–460
+Without the tools (already owned): ~$630–1,145. Not included: a second
+7B (~$46 with duty), JLC's large-size fee if the quote shows it, and a
+second failed board.
 
-Wider than first planned (D3): the real display board instead of a small
-screen, and one JLC order with the knob module, the Rev 0.5 test board, the
-prototype frame PCB and the caps. It costs more up front, but it tests
-what would otherwise first meet on a $285–430 four-board panel.
+### Single-board revision, per board
+
+JLC: 5 PCBs, 2 assembled, Economic, the setup and extended-part fees for
+that board alone, parts for 2 boards, shipping and 35% duty. A board
+ordered alone can't share the panel's setup fee, but it's still much
+less than redoing the whole panel ($285–430).
+
+| Board | Extended part types | ~Cost |
+|---|---|---|
+| Knob board (RP2350B, 5 × TMC6300, 5 × MT6701, inverters, switches, eFuse; the inductor's minimum of 32) | ~13 | $180–250 |
+| Frame PCB (21–42 B3U, ZIF; countersinks, maybe the keyboard-PCB surcharge) | 2 | $75–145 |
+| USB board (CH334F, two USB-C, two eFuses, GH header, TVS) | ~6 | $80–105 |
+| Touch band (AT42QT2120, SH header) | 2 | $45–65 |
+
+The knob board is the likeliest to fail (hinge, motor fit, RP2350B and
+drivers all meet there first) and the most expensive to redo.
+
+## Prototype (2 keys on the 7B + a knob test stand): ~$290–485 up front
+
+Of that, ~$120–175 are final parts that go into Rev A, so the prototype
+itself costs ~$170–310 (throwaway kit plus tools). Details:
+[parts.md](parts.md).
+
+**Final parts, bought early (reused in Rev A; counted in the full build):**
 
 | Item | ~Cost |
 |---|---|
-| Order 1, AliExpress + Waveshare: Waveshare 7B, RP2350B core board, USB hub, 10 cm right-angle USB-C cable, 4× 2204 motors from two sellers, magnets, switches, copper tape, breadboard, test tools (calipers, USB power meter, scale, logic analyzer), current-limited 5 V supply, soldering iron, M2/M3 screws, standoffs and shims | $120–195 |
-| Order 2, JLC: one panel with the Rev 0 knob module, the Rev 0.5 test board (RP2350B, CH334F, AT42QT2120, connectors) and the rev C prototype frame PCB, 2 of each assembled; clear caps and knobs (JLC3DP) | $75–125 |
-| Order 3: laser-cut acrylic plates (shipping included in each order's range) | $15–30 |
-| **Import duty, US** (~35% on orders 1 and 2) | $60–110 |
+| Waveshare ESP32-S3-LCD-7B | $34 |
+| 6 × 2204 motors from two sellers (5 + 1 spare) | $45–75 |
+| Diametric magnets, 10 cm right-angle USB-C display cable | $5–10 |
+| Shipping (Waveshare) | $5–15 |
+| **Import duty, US** (~35%) | $29–42 |
+| **Subtotal** | **$120–175** |
 
-Details: [parts.md](parts.md).
+**Throwaway test kit:**
+
+| Item | ~Cost |
+|---|---|
+| SparkFun TMC6300 breakout ROB-21867, with US shipping (no China duty) | $23–27 |
+| WeAct RP2350B core board, CH334F hub module, MT6701 breakout, breadboard and jumpers (AliExpress), with ~35% duty. The core board and hub stay as the firmware dev bench | $18–31 |
+| JLC order: rev C prototype frame PCB (5 made, 2 assembled with 4 B3U each), 2 + 2 clear caps, the knob test stand, knob and hub (JLC3DP), shipping, 35–40% duty | $45–80 |
+| Laser-cut acrylic plates (US, shipping included) | $15–30 |
+| **Subtotal** | **$100–170** |
+
+An earlier estimate (~$50–65) counted only the kit's sticker prices.
+Shipping, duty on the JLC and AliExpress parts, and the plates add the
+rest.
+
+**Bench tools (kept):** calipers, USB-C power meter, 0.1 g scale, logic
+analyzer, current-limited 5 V supply, soldering iron (the breakouts'
+headers; Rev A's heat-set inserts), M2/M3 screws, standoffs and shims:
+$50–105, ~$70–140 with duty.
 
 ## Comparison
 

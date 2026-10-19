@@ -265,8 +265,9 @@ def plate_sketch(outline: tuple[float, float, float, float], radius: float,
         with Locations(*win_xy):
             RectangleRounded(win_size[0] - 2 * win_ledge, win_size[1] - 2 * win_ledge,
                              1.0, mode=Mode.SUBTRACT)
-        with Locations(*knob_xy):
-            Circle(knob_hole_d() / 2, mode=Mode.SUBTRACT)
+        if knob_xy:
+            with Locations(*knob_xy):
+                Circle(knob_hole_d() / 2, mode=Mode.SUBTRACT)
         if holes_xy:
             with Locations(*holes_xy):
                 Circle(hole_d / 2, mode=Mode.SUBTRACT)
@@ -374,6 +375,14 @@ def press_switch_y(y: float) -> float:
     return y - P.TONGUE / 2 - P.TONGUE_SLOT - P.KNOB_BOARD_EDGE / 2
 
 
+def motor_2204(x: float, y: float, z: float) -> Part:
+    """The 2204 gimbal motor: stator base (bottom at z) and the bell with its hollow shaft."""
+    base = Pos(x, y, z) * Cylinder(P.MOTOR_BASE_D / 2, P.MOTOR_BASE_H, align=MIN)
+    bell = Cylinder(P.MOTOR_D / 2, P.MOTOR_H - P.MOTOR_BASE_H + 0.5, align=MIN)
+    bell = bell - Cylinder(P.SHAFT_BORE / 2, 50, align=MIN)
+    return base + Pos(x, y, z + P.MOTOR_BASE_H - 0.5) * bell
+
+
 def knob_stack(st: Stack, x: float, y: float, n: int, screws: list | None = None) -> list[Item]:
     """Per-knob parts: MT6701, TMC6300, press switch + striker, magnet, spacer, 2204 motor, knob.
 
@@ -393,11 +402,7 @@ def knob_stack(st: Stack, x: float, y: float, n: int, screws: list | None = None
     striker = Pos(x, py, sz) * Cylinder(1.0, P.STRIKER_LEN, align=MIN)
     magnet = Pos(x, y, st.motor_bot - P.MAGNET_H) * Cylinder(
         P.MAGNET_D / 2, P.MAGNET_H, align=MIN)
-    base = Pos(x, y, st.motor_bot) * Cylinder(
-        P.MOTOR_BASE_D / 2, P.MOTOR_BASE_H, align=MIN)
-    bell = Cylinder(P.MOTOR_D / 2, P.MOTOR_H - P.MOTOR_BASE_H + 0.5, align=MIN)
-    bell = bell - Cylinder(P.SHAFT_BORE / 2, 50, align=MIN)
-    bell = Pos(x, y, st.motor_bot + P.MOTOR_BASE_H - 0.5) * bell
+    motor = motor_2204(x, y, st.motor_bot)
     # Spacer ring: sets the sensor gap, locates on two pins in the tongue (centers the magnet)
     sp_h = st.motor_bot - st.knob_pcb_top
     spacer = Cylinder(P.MOTOR_SPACER_OD / 2, sp_h, align=MIN) - Pos(0, 0, -1) * Cylinder(
@@ -431,7 +436,7 @@ def knob_stack(st: Stack, x: float, y: float, n: int, screws: list | None = None
         Item(striker, f"knob{n}_striker", C_SCREW, 1),
         Item(spacer, f"knob{n}_spacer", C_STANDOFF, 1),
         Item(magnet, f"knob{n}_magnet", C_MAGNET, 1),
-        Item(base + bell, f"knob{n}_motor_2204", C_MOTOR, 2),
+        Item(motor, f"knob{n}_motor_2204", C_MOTOR, 2),
     ] + knob_parts(st, x, y, n, screws)
 
 
@@ -1496,57 +1501,87 @@ def proto_frame(keys: list, g: dict) -> dict:
     return dict(rect=(x0, x1, y0, y1), pan=pan, csk=csk, switches=sw_a, switches_b=sw_b, pads=pads)
 
 
-def prototype() -> tuple[list[Item], Layout, dict]:
-    """2 keys + 1 knob on the real Waveshare 7B (D3), in a laser-cut acrylic sandwich.
+def knob_test_stand(x: float, y: float) -> tuple[list[Item], dict]:
+    """Printed knob test stand (JLC3DP), standing on the desk at (x, y).
 
-    Uses the full build's geometry wherever it can: the panel and display board
-    at the same place, the two top-left keys, knob 0 and its display window, a
-    full-length touch band. The Rev 0.5 test board sits on the base plate beside
-    the knob module (outline and placement only, no layout yet).
+    A deck the 2204 screws onto (M2 from below, heads in counterbores), with the
+    magnet in its center hole. A bought MT6701 breakout slides in on two rails under
+    the deck, chip up, so the chip sits SENSOR_GAP below the magnet as on the knob
+    board. The tunnel under it leaves room for the header wires. Hub and knob are the
+    full build's, at the same height above the motor.
+    """
+    bw, bt = P.MT6701_BREAKOUT
+    W, D = P.KTS_W, P.KTS_D
+    deck_bot = P.KTS_TUNNEL_H + bt
+    deck_t = P.MT6701[2] + P.SENSOR_GAP + P.MAGNET_H
+    deck_top = deck_bot + deck_t
+    guide = bw / 2 + 0.2                                  # wall inner face at the breakout
+    rail = 1.0                                            # rail ledge under each edge
+    body = Box(W, D, P.KTS_BASE_T, align=(Align.CENTER, Align.CENTER, Align.MIN))
+    for sx in (-1, 1):
+        wall_w = W / 2 - guide
+        body += Pos(sx * (guide + wall_w / 2), 0, 0) * Box(wall_w, D, deck_bot,
+                                                          align=(Align.CENTER, Align.CENTER, Align.MIN))
+        body += Pos(sx * (guide - rail / 2), 0, P.KTS_TUNNEL_H - 2.0) * Box(
+            rail + 0.01, D, 2.0, align=(Align.CENTER, Align.CENTER, Align.MIN))
+    body += Pos(0, 0, deck_bot - 0.01) * Box(W, D, deck_t + 0.01, align=(Align.CENTER, Align.CENTER, Align.MIN))
+    body -= Pos(0, 0, deck_bot - 1) * Cylinder(P.MOTOR_SPACER_ID / 2, deck_t + 2, align=MIN)
+    hd = P.M2_HEAD[0] + 0.4
+    for sx, sy in motor_screw_xy(0, 0):
+        body -= Pos(sx, sy, deck_bot - 1) * Cylinder(P.M2_CLEAR / 2, deck_t + 2, align=MIN)
+        body -= Pos(sx, sy, deck_bot - 1) * Cylinder(hd / 2, P.KTS_CBORE + 1, align=MIN)
+    stand = Pos(x, y, 0) * body
+    brk = Pos(x, y, P.KTS_TUNNEL_H) * Box(bw, 20.0, bt, align=(Align.CENTER, Align.CENTER, Align.MIN))
+    chip = Pos(x, y, deck_bot) * Box(P.MT6701[0], P.MT6701[1], P.MT6701[2], align=(Align.CENTER, Align.CENTER, Align.MIN))
+    magnet = Pos(x, y, deck_top - P.MAGNET_H) * Cylinder(P.MAGNET_D / 2, P.MAGNET_H, align=MIN)
+    items = [Item(stand, "test_stand", C_CASE, 0),
+             Item(brk, "test_stand_mt6701_breakout", C_PCB, 0),
+             Item(chip, "test_stand_mt6701", C_CHIP, 0),
+             Item(magnet, "test_stand_magnet", C_MAGNET, 1),
+             Item(motor_2204(x, y, deck_top), "test_stand_motor_2204", C_MOTOR, 2)]
+    # Hub + knob cap: the full build's, at the same height above the motor
+    st = make_stack(P.FLOOR, P.TOP_PLATE_T)
+    for it in knob_parts(st, 0, 0, 0):
+        items.append(Item(Pos(x, y, deck_top - st.motor_bot) * it.part,
+                          "test_stand_" + it.label.removeprefix("knob0_"), it.color, it.explode))
+    thru = deck_t - P.KTS_CBORE
+    screw = max(n_ for n_ in STD_LENGTHS if n_ - thru <= P.MOTOR_THREAD_DEPTH - 0.5)
+    return items, {"stand_part": body, "motor_screw": f"M2×{screw}", "size_mm": (W, D, round(deck_top, 1))}
+
+
+def prototype() -> tuple[list[Item], Layout, dict]:
+    """2 keys on the real Waveshare 7B in a laser-cut acrylic sandwich, plus the
+    printed knob test stand beside it (D3, changed 2026-10-18).
+
+    Uses the full build's geometry: the panel and display board at the same place,
+    the two top-left keys and knob 0's display window. The knob runs on bought
+    breakouts on its own stand; the knob board, hub and touch circuits are first
+    tested on Rev A.
     """
     st = make_stack(P.PROTO_PLATE_T, P.PROTO_PLATE_T)
     FL = full_layout()
     keys = [FL.key_xy[i] for i in P.PROTO_KEY_IDX]
     wins, win = [FL.win_xy[0]], FL.win_size
-    knobs = [FL.knob_xy[0]]
     cut_xy, cut_size = [FL.cut_xy[0]], FL.cut_size
-    L = Layout(keys, wins, win, knobs, list(FL.warnings), cut_xy, cut_size)
+    L = Layout(keys, wins, win, [], list(FL.warnings), cut_xy, cut_size)
     g = panel_geometry(st)
-    kx, knob_y = knobs[0]
-    reach = P.TONGUE / 2 + P.TONGUE_SLOT + P.KNOB_BOARD_EDGE
     base_t = P.PROTO_PLATE_T
 
     items: list[Item] = []
-    # Plates: cover the panel, the knob module and the Rev 0.5 board
+    # Plates: cover the panel
     mg = P.PROTO_PLATE_MARGIN
     x0, x1 = g["px0"] - mg, g["px1"] + mg
-    y0, y1 = knob_y - reach - mg, g["py1"] + mg
+    y0, y1 = g["py0"] - mg, g["py1"] + mg
     outline = (x0, x1, y0, y1)
-    ymid = (g["py0"] + g["py1"]) / 2 - 20.0
+    ymid = (y0 + y1) / 2
     corner_holes = [(x0 + 4.5, y0 + 4.5), (x1 - 4.5, y0 + 4.5), (x0 + 4.5, y1 - 4.5), (x1 - 4.5, y1 - 4.5),
                     (x0 + 4.5, ymid), (x1 - 4.5, ymid)]
-    # Rev 0.5 test board: right of the knob module, front edges aligned
-    rw, rh = P.REV05_PCB
-    rx0 = kx + reach + P.REV05_GAP
-    ry0 = knob_y - reach
-    rev_holes = [(rx0 + 3.5, ry0 + 3.5), (rx0 + rw - 3.5, ry0 + 3.5), (rx0 + 3.5, ry0 + rh - 3.5),
-                 (rx0 + rw - 3.5, ry0 + rh - 3.5)]
-    kb_bosses = []                                  # filled from the knob module below
-
-    # Knob module: the same tongue/press design as the full knob board, one knob
-    kitems, ksk = knob_board(st, knobs, "knob_module", with_mcu=False)
-    for it in kitems:
-        if it.label == "knob_module_bosses":
-            it.label = "knob_module_standoffs"
-            kb_bosses = [(s.center().X, s.center().Y) for s in it.part.solids()]
 
     with BuildSketch() as base_sk:
         with Locations(((x0 + x1) / 2, (y0 + y1) / 2)):
             RectangleRounded(x1 - x0, y1 - y0, 3.0)
         with Locations(*corner_holes, *g["panel_posts"]):
             Circle(1.6, mode=Mode.SUBTRACT)
-        with Locations(*kb_bosses, *rev_holes):
-            Circle(P.M2_CLEAR / 2, mode=Mode.SUBTRACT)
     base = extrude(base_sk.sketch, amount=base_t)
     items.append(Item(base, "base_plate_acrylic", C_CASE, 0))
     for i, (x, y) in enumerate(corner_holes):
@@ -1577,54 +1612,26 @@ def prototype() -> tuple[list[Item], Layout, dict]:
         items.append(Item(standoff(x, y, st.pcb_top, st.plate_bot, 3.2), f"frame_standoff_m2_{i}",
                           C_STANDOFF, 3))
 
-    psk = plate_sketch(outline, 3.0, keys, cut_xy, cut_size, knobs, corner_holes,
+    psk = plate_sketch(outline, 3.0, keys, cut_xy, cut_size, [], corner_holes,
                        small_holes_xy=holes)
     plate = Pos(0, 0, st.plate_bot) * extrude(psk, amount=P.PROTO_PLATE_T)
     items.append(Item(plate, "top_plate_acrylic", C_PLATE, 4))
     items += knob_windows(st, L, P.PROTO_PLATE_T)
-    tb, tb_h = touch_bar(st, L, (-(P.AA_W - 2) / 2, (P.AA_W - 2) / 2), knob_y + P.MOTOR_D / 2)
-    items += tb
-    items += kitems
 
-    # Rev 0.5 test board: outline + placeholders for its big parts (no layout yet)
-    rz = st.knob_pcb_bot
-    with BuildSketch() as rsk:
-        with Locations((rx0 + rw / 2, ry0 + rh / 2)):
-            RectangleRounded(rw, rh, 1.5)
-        with Locations(*rev_holes):
-            Circle(P.M2_CLEAR / 2, mode=Mode.SUBTRACT)
-    items.append(Item(Pos(0, 0, rz) * extrude(rsk.sketch, amount=P.PCB_T), "rev05_pcb", C_PCB, 0))
-    for i, (x, y) in enumerate(rev_holes):
-        items.append(Item(standoff(x, y, base_t, rz, 4.0), f"rev05_standoff_{i}", C_STANDOFF, 0))
-    zt = rz + P.PCB_T
-    sw_, sh_, sd_ = P.USB_C_SOCKET
-
-    def ph(x, y, size):                             # placeholder box, x/y from the board's front-left corner
-        return Pos(rx0 + x, ry0 + y, zt) * Box(*size, align=MIN)
-
-    chips = (ph(28, 18, P.RP2350B) + ph(12, 30, (4.0, 4.0, 0.85))      # RP2350B, CH334F
-             + ph(46, 30, (4.0, 4.0, 0.9)) + ph(46, 18, P.PD_SINK))     # AT42QT2120, PD sink area (optional)
-    conns = (ph(1.0, rh - sd_, (sw_, sd_, sh_)) + ph(14, rh - sd_, (sw_, sd_, sh_))       # USB-C: PC, to the 7B
-             + ph(26, rh - P.GH_HEADER[2], P.GH_HEADER) + ph(40, rh - P.GH_HEADER[2], P.GH_HEADER)  # GH link pair
-             + ph(rw - P.ZIF_12P[1], 22, (P.ZIF_12P[1], P.ZIF_12P[0], P.ZIF_12P[2]))         # ZIF (keys FFC)
-             + ph(rw - P.SH_HEADER_TOP[1], 8, (P.SH_HEADER_TOP[1], P.SH_HEADER_TOP[0], P.SH_HEADER_TOP[2]))
-             + ph(56, rh - P.HY_HEADER[1], P.HY_HEADER)                                      # GPIO6 link
-             + ph(2.0, 6.0, (2.54 * 5, 5.1, 8.5)))                                          # knob module header
-    items.append(Item(chips, "rev05_chips", C_CHIP, 0))
-    items.append(Item(conns, "rev05_connectors", C_SWITCH, 0))
+    # Knob test stand on the desk, right of the plates
+    kts_items, kts = knob_test_stand(x1 + 12.0 + P.KTS_W / 2, (y0 + y1) / 2)
+    items += kts_items
 
     # Standoff lengths a builder buys (rounded to stock and shimmed)
     standoffs = {
         "M3, plate to plate (corners)": st.plate_bot - base_t,
         "M3, base plate to the 7B's tabs": g["panel_z0"] - base_t,
         "M2, frame PCB to top plate": st.plate_bot - st.pcb_top,
-        "M2, knob module and Rev 0.5 board": rz - base_t,
     }
     info = {
-        "knob_board_sketch": ksk, "touch_bar_h": tb_h,
         "outer_mm": (round(x1 - x0, 1), round(y1 - y0, 1), round(st.plate_top, 1)),
         "stack": st, "frame_sketch": fsk, "plate_sketch": psk, "base_sketch": base_sk.sketch,
-        "rev05_sketch": rsk.sketch, "standoffs": standoffs,
+        "standoffs": standoffs, "knob_test_stand": kts,
         "key_frame": dict(rect=pf["rect"], key_xy=keys, knob_wins=(), knob_size=None, supports=holes,
                           loads=pf["switches"] + pf["switches_b"]),
         "frame_pcb": {

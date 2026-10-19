@@ -1070,7 +1070,7 @@ BOM_JLC_PARTS = [
      "X322512MSB4SI " + lcsc("C9002") + " (basic, 20 pF load, 80 Ω ESR) with 2 × 33 pF C0G "
      + lcsc("C1562") + " and the 1 kΩ series resistor. Raspberry Pi's reference is the ABM8-272-T3 "
      + lcsc("C20625731") + " (10 pF, 50 Ω) with 2 × 15 pF; same 3225 footprint, so it's the fallback "
-     "if the Rev 0.5 board's start-up test fails. 3.3 µH SMPS inductor AOTA-B201610S3R3-101-T "
+     "if Rev A's crystal start-up test fails. 3.3 µH SMPS inductor AOTA-B201610S3R3-101-T "
      + lcsc("C42411119") + " (3 in JLC stock, pre-order minimum 32, 2026-10-17). No stocked substitute: "
      "Raspberry Pi requires a polarity-marked, shielded 3.3 µH ±20%, DCR ≤ 250 mΩ, Isat ≥ 1.5 A, and "
      "only this part is marked. 3.3 V regulator AMS1117-3.3 " + lcsc("C6186") + " (basic, 1 A) with "
@@ -1210,27 +1210,29 @@ BOM_EXTERNAL = [
 
 
 def proto_bom_lines(pinfo):
-    """Prototype (D3) parts that come from the model; the full list is docs/parts.md."""
+    """Prototype (D3, changed 2026-10-18) parts that come from the model; the full list
+    is docs/parts.md."""
     if pinfo is None:
         return []
     fp = pinfo["frame_pcb"]
     x0, x1, y0, y1 = fp["outline"]
     n_sw = len(fp["switches"]) + len(fp["switches_b"])
-    rw, rh = P.REV05_PCB
+    kts = pinfo["knob_test_stand"]
+    w_, d_, h_ = kts["size_mm"]
     so = "; ".join(f"{k}: **{v:.1f} mm**" for k, v in pinfo["standoffs"].items())
     rows = [
         ("1", "Prototype frame PCB, rev C", f"{x1 - x0:.1f} × {y1 - y0:.1f} mm, the full build's two top-left "
          f"keys on the 7B; {n_sw} B3U footprints (a second switch above each key for the D8 force test), "
          f"{len(fp['mount_holes_pan'])} M2 holes off the glass, {len(fp['mount_holes_csk'])} countersunk over it, "
-         "solder pads off the glass. `hardware/proto-frame/`", "JLCPCB (assembled)",
-         "in the $75–125 JLC order (cost.md)", "prototype"),
+         "solder pads off the glass. `hardware/proto-frame/`. The only custom PCB before Rev A",
+         "JLCPCB (assembled)", "$35–55 with shipping and duty (cost.md)", "prototype"),
         ("2 + 2", "Key caps: one nub and two nubs", "`cad/out/key_cap_clear_resin.stl` (one switch) and "
          "`cad/out/key_cap_two_nub_clear_resin.stl` (two switches), clear resin, one standard finish",
          "JLC3DP", "$4–8", "prototype"),
-        ("1", "Rev 0.5 test board (outline only, no layout yet)", f"{rw:g} × {rh:g} mm (EST), "
-         "`cad/out/proto_rev05_board_outline.dxf`: RP2350B, CH334F, AT42QT2120, PD sink area, 2 × USB-C, "
-         "JST-GH pair, ZIF, JST-SH, HY2.0, knob module header", "JLCPCB (assembled)",
-         "in the $75–125 JLC order (cost.md)", "prototype"),
+        ("1", "Knob test stand", f"`cad/out/print_knob_test_stand.stl`, {w_:g} × {d_:g} mm, "
+         f"{h_:g} mm to the motor seat. The 2204 screws on with 4 × {kts['motor_screw']} from below; an "
+         f"MT6701 breakout ({P.MT6701_BREAKOUT[0]:g} mm wide, EST: measure it) slides in on rails under "
+         "the deck. With `knob.stl` and `knob_hub.stl`", "JLC3DP (PETG or resin)", "$3–8", "prototype"),
         ("1 set", "Standoffs (model lengths; round to stock, shim the rest)", so, "hardware kit", "~$5",
          "prototype"),
     ]

@@ -137,7 +137,7 @@ Mini / DRV8313, which needs 8–30 V.
 Firmware notes:
 - Five FOC loops on one RP2350B are unproven. FOC runs on core 1 from RAM,
   targeting ≥ 2–5 kHz per motor; all drivers are initialized before any is
-  enabled. Rev 0 times 1 real and 4 dummy loops first.
+  enabled. The test kit times 1 real and 4 dummy loops first.
 - The 2204 has 84 cogging steps per turn, which don't line up with 24 or 48
   detents. Each knob gets a cogging feed-forward table from calibration.
 - On wake, the detent grid re-anchors at the current angle, so the knob
@@ -157,17 +157,19 @@ screw in the arm presses the switch. A plain 8 × 1.6 mm FR-4 neck is likely sev
 times too stiff (design review H3, decision D10), so:
 1. First a $0 test: saw a tongue into scrap FR-4 and load it on the kitchen
    scale.
-2. Rev 0 gets a **tunable hinge** (perforations that can be drilled or cut
-   out) and an adjustable **set-screw striker** per switch, so each knob's
-   press gap is set on the bench, with the top plate off.
+2. Rev A's knob board gets a **tunable hinge** (perforations that can be
+   drilled or cut out) and an adjustable **set-screw striker** per switch,
+   so each knob's press gap is set on the bench, with the top plate off.
+   Rev A is the first real hinge (the Rev 0 knob module was dropped).
 3. If sideways force on the knob causes false clicks (the cap top is far
    above the hinge), the next revision moves to a parallel-guided flexure.
 
 **Knob board floorplan** (D16, D6): each driver sits on the 19 mm back
 strip next to its motor header, off the tongues, so only sensor traces
 cross each hinge. Before the full order, floorplan the board with real
-footprints (RP2350B QFN-80, TMC6300, connectors) and mirror that on Rev 0.
-Current-shunt footprints go on Rev 0 only. The knob board is
+footprints (RP2350B QFN-80, TMC6300, connectors). Motor current is
+measured on the test kit at the bench supply and the USB power meter (the
+Rev 0 module and its shunt footprints were dropped). The knob board is
 **top-side only** (D6, shown feasible in the model), so JLC's cheaper
 single-side assembly fits everything. It needs SMD right-angle motor
 headers (part not chosen; THT is the fallback) and a reverse-mount BOOTSEL
@@ -250,9 +252,10 @@ surface because of the key stack.) The knobs moved forward 4 mm to make the
 band 11.2 mm tall (model). It sits close to the motor bells, so it has a
 grounded guard trace, hatched ground on the bottom layer, and firmware
 ignores touches for 300 ms around knob motion or a press
-([pcb.md](pcb.md)). The realistic touch test (full-length strip, motor
-running, panel lit) comes before the layout is frozen; only if it fails do
-the knobs move further forward (D11).
+([pcb.md](pcb.md)). The realistic touch test (full-length band, motor
+running, panel lit) happens on Rev A, the first build with a running motor
+under a printed plate. If it fails, the band gets one revision with the
+knobs further forward (D11), or is dropped (it's optional, D12).
 
 Touch controller (D12): **AT42QT2120** (Microchip, SOIC-20; LCSC C614938,
 $1.89, 69 in stock on 2026-10-17, not marked end-of-life; Farnell and RS also stock it). It replaces the
@@ -271,39 +274,44 @@ bosses. Screws that get undone for service go into **M3 heat-set inserts**
 screws, not self-tapped plastic threads (D14). Log temperatures
 for 2 h at full brightness on the first build.
 
-## Stages (prototype: 2 keys + 1 knob on the real 7B)
+## Stages (prototype: 2 keys on the 7B + a knob test stand, then Rev A)
 
-The prototype uses the real display board (Waveshare 7B), not a small
-stand-in screen, and one JLC order carries the Rev 0 knob module, a
-"Rev 0.5" test board (RP2350B + CH334F hub + touch controller + the
-full-build connectors), the prototype frame PCB, the caps and the knobs
-(D3). So the first full-build panel doesn't meet any of these for the first
-time. Parts: [parts.md](parts.md).
+Plan changed 2026-10-18 (D3). Final parts are bought early, tested on the
+bench and reused in the full build: the Waveshare 7B, six 2204 motors (5 +
+1 spare), the magnets and the display cable. A throwaway test kit covers
+the rest: a SparkFun TMC6300 breakout, an MT6701 breakout, a WeAct RP2350B
+core board and a CH334F hub module (these two stay as the firmware dev
+bench), a printed knob test stand, and one custom PCB, the rev C 2-key
+frame PCB on the real 7B. No custom knob or controller board before the
+full build. Parts and costs: [parts.md](parts.md), [cost.md](cost.md).
+
+**Prototype (test kit):**
 
 1. **Images over USB:** the display firmware (ESP-IDF) shows images sent
    over its WebUSB bulk interface on the 7B. Measure throughput and the
    flash-write glitch early.
-2. **Switches:** a press sends an HID event; a stored keymap works with no
+2. **Two devices, one hub:** the 7B and the core board behind the CH334F
+   module; the configurator pairs them. A stored keymap works with no
    software running; a "host" key changes its own image.
-3. **Knob:** on the Rev 0 knob module (MT6701 + TMC6300 + press switch on
-   a tongue), driven from the Rev 0.5 board; SimpleFOC closed loop;
-   clicky/smooth/stops set from the PC. Also test: the press feel (scrap
-   FR-4 first, then the tunable hinge), and driving the TMC6300 with 3 PWM
-   signals + inverter.
-3b. **Touch band:** a full-length, 10–12-segment strip under an offcut of
-   the printed plate, read by the AT42QT2120 on the Rev 0.5 board, with
-   the motor running and the panel lit
-   ([prototype-tests.md](prototype-tests.md)).
-3c. **USB and connectors:** the Rev 0.5 board's hub, RP2350B, JST-GH link,
-   FFC/ZIF and JST-SH, and the two-device pairing, on Linux, Windows and
-   macOS.
-4. **Mechanics:** the two top-left keys on the prototype frame PCB (rev C)
-   + clear caps; adjust until a press anywhere
-   on the key clicks cleanly, and compare one switch per key with two.
-   Caps are JLC3DP clear resin prints; the prototype plates are laser-cut
-   acrylic.
-5. **Decide go/no-go:** if the knob and cap feel are both good → full
-   21-key/5-knob design.
+3. **Knob:** the 2204 on the printed test stand over the MT6701 breakout,
+   driven by the SparkFun TMC6300 from the core board. SimpleFOC closed
+   loop; clicky/smooth/stops set from the PC; current, standby and wake;
+   1 real + 4 dummy FOC loops for timing. Each low side runs from an
+   inverted PWM output, as the knob board's inverter will.
+4. **Keys:** the two top-left keys on the rev C frame PCB + clear caps on
+   the 7B; adjust until a press anywhere on the key clicks cleanly, and
+   compare one switch per key with two. Caps are JLC3DP clear resin
+   prints; the plates are laser-cut acrylic.
+5. **Hinge (free):** a tongue sawn into scrap FR-4, loaded on the kitchen
+   scale (D10).
+6. **Decide go/no-go:** if the knob and cap feel are both good → Rev A.
+
+**Rev A (the full build):** first test of everything the kit can't
+show: the hinge and press feel, the motor mount fit, our RP2350B, hub,
+CC sensing and touch circuits, the connectors and cables, and the touch
+band next to a running motor ([prototype-tests.md](prototype-tests.md)).
+Plan on one revision of whichever board fails, and order only that board,
+not the whole panel ([cost.md](cost.md)).
 
 Software: on the ESP32-S3, **ESP-IDF 5.x** (esp_lcd + esp_tinyusb; the
 7B's RGB panel needs sdkconfig options a precompiled Arduino core can't

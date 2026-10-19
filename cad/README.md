@@ -19,16 +19,16 @@ the motor diameter.
 | File | Use |
 |---|---|
 | `clickdeck_full.step` | Full device, every part named and colored. Open in FreeCAD or Fusion 360 |
-| `clickdeck_proto.step` | 2-key + 1-knob prototype on the real 7B, with the Rev 0.5 test board's outline |
+| `clickdeck_proto.step` | 2-key prototype on the real 7B, with the knob test stand beside it |
 | `key_cutaway.step` | One key cut in half, to inspect the cap/tab/switch stack |
 | `*_frame_pcb_outline.dxf` | Board outline with key windows. KiCad: File → Import → Graphics, layer Edge.Cuts |
-| `full_knob_board_outline.dxf`, `proto_knob_module_outline.dxf` | Knob board outlines with the tongue slots |
+| `full_knob_board_outline.dxf` | Knob board outline with the tongue slots |
 | `full_usb_board_outline.dxf` | USB board (hub) outline |
 | `full_touch_band_outline.dxf` | Touch band outline (stops short of the frame PCB's ZIF) |
-| `proto_rev05_board_outline.dxf` | Rev 0.5 test board outline (RP2350B + CH334F + touch + connectors; no layout yet) |
 | `cabling.png` | Top view of the internal cabling, display and top plate removed |
 | `print_case_tray.stl`, `print_top_plate.stl`, `print_stand.stl` | Case parts for a home printer (fit a 256 mm bed) or JLC3DP, in print orientation (plate face-down). PETG; M3 heat-set inserts in the plate's posts |
 | `print_plate_prop.stl` | Tool: two of these hold the top plate 40 mm up while its cables are plugged in |
+| `print_knob_test_stand.stl` | Prototype knob test stand (JLC3DP): the 2204 on a deck, an MT6701 breakout on rails under it (`MT6701_BREAKOUT`, EST) |
 | `print_fit_coupon.stl` | Print first: cap hole, magnet pocket and hub bore at -0.1/0/+0.1 mm; set `HOLE_COMP` from it |
 | `proto_*_plate_3mm_acrylic.dxf` | Laser-cut plates for the prototype (SendCutSend/Ponoko) |
 | `full_top_plate.dxf` | Top plate outline for the full device |

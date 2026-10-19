@@ -1,24 +1,25 @@
-# Rev 0 knob module (prototype)
+# Knob channel (one knob of the knob board)
 
-One knob's section of the full knob board: MT6701 sensor, TMC6300 driver
-with 3-PWM drive, B3U press switch, motor and sensor on a hinged tongue. It plugs into the
-Rev 0.5 test board (RP2350B + hub, same JLC order; [pcb.md](pcb.md)), or
-into an RP2350B core board with jumper wires before that arrives. This is
-the netlist-level spec to draw the KiCad schematic from. Untested.
+> **The standalone Rev 0 knob module is dropped (2026-10-18, D3).** The
+> knob is first tested on bought breakouts (SparkFun TMC6300 + an MT6701
+> board on a printed test stand; [parts.md](parts.md)), and the circuit
+> below is first built on Rev A's knob board ([pcb.md](pcb.md)). This page
+> stays as the design of **one knob channel** of that board: MT6701
+> sensor, TMC6300 driver with 3-PWM drive, B3U press switch, motor and
+> sensor on a hinged tongue. The knob board repeats it 5× around one
+> RP2350B. Parts marked "module only" were for the standalone board and
+> don't go on the knob board. Untested.
 
-In the full build the knobs run on the knob board's RP2350B, which has its
-own USB connection through an internal hub ([wiring.md](wiring.md)). Rev 0's
-J1 header is plain 3.3 V signals, so any 3.3 V controller can drive it
-([parts.md](parts.md)).
+The knobs run on the knob board's RP2350B, which has its own USB
+connection through an internal hub ([wiring.md](wiring.md)).
 
-Outline (with the tongue slots): `cad/out/proto_knob_module_outline.dxf`.
 **Layout waits on measuring the 2204 motor** (bolt pattern, base height).
 
 ## Parts
 
 | Ref | Part | Package | LCSC | Notes |
 |---|---|---|---|---|
-| U1 | TMC6300-LA-T | QFN-20 3×3 | C5274455 (59 in stock at LCSC, $5.93, checked 2026-10-17); C5196961 is out of stock | Extended part; JLC assembles it. Source through JLC Global Sourcing or consign from DigiKey (~$2.44, ~4,100 in stock); reserve the full-build quantity once Rev 0 passes |
+| U1 | TMC6300-LA-T | QFN-20 3×3 | C5274455 (59 in stock at LCSC, $5.93, checked 2026-10-17); C5196961 is out of stock | Extended part; JLC assembles it. Source through JLC Global Sourcing or consign from DigiKey (~$2.44, ~4,100 in stock); reserve the Rev A quantity once the test kit passes |
 | U2 | MT6701CT-STD | SOP-8 | C3003196 (JLC, extended; check JLC stock on layout day) | Magnetic angle sensor, SSI mode. Not the MT6701**QT** (C2913974): that's a 3×3 QFN-16, and it was out of stock at LCSC on 2026-10-17. The package sets the sensor height and so the magnet gap |
 | U3 | SN74LVC3G04DCTR | SM8 (DCT, SSOP-8 class; not VSSOP) | C139324 | Triple inverter, derives low-side inputs. Check the footprint |
 | SW1 | B3U-1000P | SMD | C231329 | Press switch, **top side**, on the board's fixed front border in front of the tongue. An arm on the printed motor spacer reaches over the slot; an M2×3 set screw in the arm is the adjustable striker. Same as the full knob board ([pcb.md](pcb.md)) |
@@ -33,18 +34,22 @@ Outline (with the tongue slots): `cad/out/proto_knob_module_outline.dxf`.
 | R1 | 10 kΩ | 0402 | (basic) | U2 CSN pull-up (keeps the sensor idle when unwired) |
 | R2–R5 | 10 kΩ | 0402 | (basic) | Pull-downs on `NSTDBY`, `PWM_U`, `PWM_V`, `PWM_W`, so the driver stays off during reset, BOOTSEL or a crash (RP2350 erratum E9 makes the internal pull-downs unreliable) |
 | R6–R8 | 1 kΩ | 0402 | (basic) | Series resistors on UH, VH, WH (limit current if a PWM pin is high while the driver is in standby) |
-| RS1, RS2 | 0 Ω (or a ~0.1 Ω shunt) | 1206 | (basic) | BRUV and BRW (low-side foot points) to GND. Fit 0 Ω; swap in a shunt to measure motor current. Rev 0 only: the full board ties them straight to GND |
-| Q1 | P-FET (or a Schottky) | SOT-23 / SMA | TBD | Reverse-polarity protection on the 5 V input |
-| D1 | SMBJ6.0A TVS | SMB | TBD | Across VS, clamps bench-supply mistakes |
-| JP1–JP3 | Solder jumpers, 3-pad | — | — | Low-side source: inverter (default) or header pin (6-PWM mode) |
-| J1 | 1×15 pin header, 2.54 mm | THT | — | Signals to the controller board. GND on both end pins (see pinout) |
-| J2 | Polarized 2-pin connector (JST-VH or XT30), large +/− silkscreen | THT | TBD | 5 V and GND from the bench supply (short, thick wires) |
+| RS1, RS2 | 0 Ω (or a ~0.1 Ω shunt) | 1206 | (basic) | BRUV and BRW (low-side foot points) to GND. Module only: the knob board ties them straight to GND (D16). Motor current is measured on the test kit instead |
+| Q1 | P-FET (or a Schottky) | SOT-23 / SMA | TBD | Module only: reverse-polarity protection on the bench-supply input. The knob board's motor rail has the TPS259470 eFuse |
+| D1 | SMBJ6.0A TVS | SMB | TBD | Module only: across VS, clamps bench-supply mistakes |
+| JP1–JP3 | Solder jumpers, 3-pad | — | — | Module only: low-side source, inverter (default) or header pin (6-PWM mode) |
+| J1 | 1×15 pin header, 2.54 mm | THT | — | Module only: signals to the controller board. GND on both end pins (see pinout). On the knob board these are traces to the RP2350B |
+| J2 | Polarized 2-pin connector (JST-VH or XT30), large +/− silkscreen | THT | TBD | Module only: 5 V and GND from the bench supply (short, thick wires) |
 | J3 | 1×3 pin header, 2.54 mm, right angle | THT | C2886703 (verify male pins) | Motor phases U, V, W. Matches the 3-pin servo-style plug one 2204 listing shows, as on the full knob board; if the motor arrives with bare wires or another plug, fit pads instead. Use a shrouded or keyed header if the plug has a key |
 
 LCSC numbers were looked up on 2026-10-17; "basic" parts avoid JLC's
 extended-part fee. Confirm everything in JLC's parts library when ordering.
 
 ## Netlist
+
+Written for the standalone module (J1–J3 headers). On the knob board, the
+J1 signals are traces to the RP2350B, `+5V` is the eFuse-protected motor
+rail, and the motor plugs into an SMD right-angle header.
 
 **Power**
 - `+5V`: J2 → Q1 (reverse-polarity protection) → U1 VS (pins per
@@ -83,7 +88,7 @@ extended-part fee. Confirm everything in JLC's parts library when ordering.
 **Press switch (SW1)**
 - Between J1 `PRESS` and GND. Firmware enables the GPIO pull-up.
 
-**J1 pinout (1×15, 2.54 mm)**
+**J1 pinout (1×15, 2.54 mm; module only)**
 `1 GND · 2 PWM_U · 3 PWM_V · 4 PWM_W · 5 NSTDBY · 6 CS · 7 CLK · 8 3V3 ·
 9 DATA · 10 PRESS · 11 DIAG · 12 UL · 13 VL · 14 WL · 15 GND`
 (pins 12–14 only matter in 6-PWM mode). GND sits on both ends and 3V3 is
@@ -120,7 +125,7 @@ never next to GND, so a jumper shifted by one pin can't short the rail.
   keeps this split: drivers off the tongue (design review D16).
 - **Hinge stiffness (D10):** a plain 8 × 1.6 mm FR-4 neck likely needs
   8–27 N at the knob, against a 1.5–4 N target. Before ordering, saw a
-  tongue into scrap FR-4 and load it on the kitchen scale. Rev 0's hinge has
+  tongue into scrap FR-4 and load it on the kitchen scale. Rev A's hinge has
   perforations that can be drilled or cut open to soften it, so one board
   can be tuned instead of reordered. If side force on the knob causes false
   clicks, the next revision uses a parallel-guided flexure.
@@ -143,8 +148,12 @@ never next to GND, so a jumper shifted by one pin can't short the rail.
 
 ## Bring-up order
 
-0. Before any power: check J2 polarity and that 5 V, 3V3 and GND aren't
-   shorted to each other. Measure the motor's phase resistance R and
+Steps 1–6 run first on the test kit (breakouts; the SparkFun board has no
+shunt, so read motor current at the bench supply), then per knob on
+Rev A's knob board.
+
+0. Before any power: check the 5 V polarity and that 5 V, 3V3 and GND
+   aren't shorted to each other. Measure the motor's phase resistance R and
    phase-to-stator resistance (must be open).
 1. 3.3 V only: read the MT6701 over SSI (24-bit frames, CRC checked) while
    turning the motor by hand.
@@ -152,9 +161,9 @@ never next to GND, so a jumper shifted by one pin can't short the rail.
    spin at low voltage limit. With `NSTDBY` low and a PWM pin high, VIO
    stays below 0.4 V (no back-powering).
 3. Closed-loop FOC; store calibration (lessons.md #4). Measure Kt. Store R
-   per knob and scale duty by the measured VS. Read motor current across a
-   shunt in RS1/RS2.
-4. Haptics: detents, smooth, end stops; then the press switch. Reseat the
+   per knob and scale duty by the measured VS. Read motor current at the
+   supply.
+4. Haptics: detents, smooth, end stops; then the press switch (Rev A). Reseat the
    motor plug reversed and confirm the direction check catches it.
 5. Standby/wake cycling: confirm ≤ 5 mA in standby on the power meter.
 6. Loop timing for the full board: run 1 real and 4 dummy FOC loops (all 15
