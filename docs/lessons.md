@@ -18,6 +18,11 @@ Sources and licenses:
   lessons from its issues are free to use; copied code needs its license
   and attribution kept.
 
+Reference for haptic behavior (D20): clickdeck's knob feel follows
+documented open-source behavior, SimpleFOC's motor control and SmartKnob's
+detent and end-stop profiles (detent strength, end-stop strength, snap
+point, detents at chosen positions), rather than inventing its own.
+
 ## Knobs and motors
 
 1. **The exact motor disappears.** SmartKnob's motor sold out, every

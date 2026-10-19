@@ -12,6 +12,7 @@ Outputs go to cad/out/:
   *.png       quick preview renders
 """
 
+import math
 import sys
 import time
 from pathlib import Path
@@ -58,9 +59,9 @@ def plate_prop():
 
 
 def fit_coupon():
-    """Hole-fit test: key cap hole, magnet pocket and hub D-bore at -0.1 / 0 / +0.1 mm."""
+    """Hole-fit test: key cap guide hole, magnet pocket and hub D-bore at -0.1 / 0 / +0.1 mm."""
     plate = Box(84.0, 64.0, P.TOP_PLATE_T + 1.0, align=(Align.MIN, Align.MIN, Align.MIN))
-    w = P.CAP_SIZE + 2 * P.CAP_CLEAR
+    w = P.CAP_SIZE + 2 * P.KEY_GUIDE_CLEAR
     for i, d in enumerate((-0.1, 0.0, 0.1)):
         x = 14.0 + i * 28.0
         plate -= Pos(x, 16.0, -1) * Box(w + d, w + d, 10)
@@ -157,7 +158,6 @@ def main():
     export_dxf(info["frame_sketch"], str(OUT / "full_frame_pcb_outline.dxf"))
     export_dxf(info["plate_sketch"], str(OUT / "full_top_plate.dxf"))
     export_dxf(pinfo["frame_sketch"], str(OUT / "proto_frame_pcb_outline.dxf"))
-    export_dxf(pinfo["plate_sketch"], str(OUT / "proto_top_plate_3mm_acrylic.dxf"))
     export_dxf(pinfo["base_sketch"], str(OUT / "proto_base_plate_3mm_acrylic.dxf"))
     export_dxf(info["knob_board_sketch"], str(OUT / "full_knob_board_outline.dxf"))
     export_dxf(info["usb_board_sketch"], str(OUT / "full_usb_board_outline.dxf"))
@@ -185,6 +185,10 @@ def main():
             f"- {label}: {bb.size.X:.0f} x {bb.size.Y:.0f} x {bb.size.Z:.0f} mm, "
             + ("fits" if fits else "DOES NOT FIT")
             + f" a {P.PRINT_BED[0]:.0f} mm bed")
+
+    # Prototype top plate: printed (it carries the cap guides, D8), face-down
+    pplate = Rot(X=180) * next(it.part for it in proto if it.label == "top_plate_proto")
+    export_stl(Pos(0, 0, -pplate.bounding_box().min.Z) * pplate, str(OUT / "print_proto_top_plate.stl"))
 
     def at_origin(part):
         bb = part.bounding_box()
@@ -215,9 +219,13 @@ def main():
         defl = keystack.frame_deflection(kf["rect"], kf["key_xy"], model.PCB_WIN, kf["supports"], kf["loads"],
                                          kf["knob_wins"], kf["knob_size"])
         nubs = 2 if (name == "Prototype" and P.PROTO_SECOND_SWITCH) else 1
-        drop = keystack.cap_max_drop(model.key_stop_geometry(nubs))
-        w, d, h = inf["outer_mm"]
         st = inf["stack"]
+        g = model.key_stop_geometry(nubs)
+        g_len = model.key_guide_length(st)
+        tilt = keystack.guide_tilt(P.KEY_GUIDE_CLEAR, g_len)
+        arm, edge = keystack.guide_edge_drop(g, tilt)
+        drop = keystack.cap_max_drop(g, tilt)
+        w, d, h = inf["outer_mm"]
         tilted = inf.get("tilted_mm")
         lines += [
             f"## {name}",
@@ -233,6 +241,11 @@ def main():
             f"- Key stack (D8): caps and frame PCB {P.GLASS_GAP:.2f} mm above the glass, down-stop "
             f"{P.KEY_STOP_GAP:.2f} mm; worst cap drop {drop:.2f} mm + frame flex {max(defl):.3f} mm/N "
             f"({max(defl) * P.KEY_PRESS_DESIGN_N:.2f} mm at {P.KEY_PRESS_DESIGN_N:g} N)",
+            f"- Cap guide (D8, B3): straight-line travel in the plate's key hole and skirt, "
+            f"{P.KEY_GUIDE_CLEAR:g} mm per side over {g_len:.1f} mm; max tilt {math.degrees(tilt):.2f}° "
+            f"(limit {P.KEY_TILT_MAX_DEG:g}°; B3's 0.58° reached the glass at the old 0.2 mm gap); "
+            f"far-edge drop {edge:.2f} mm pivoting on the nub, {P.SW_TRAVEL_MAX + edge:.2f} mm with the "
+            f"switch bottomed, of {P.GLASS_GAP:.2f} mm to the glass",
         ]
         if "knob_test_stand" in inf:
             kts = inf["knob_test_stand"]

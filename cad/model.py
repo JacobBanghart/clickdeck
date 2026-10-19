@@ -212,6 +212,48 @@ def key_cap(st: Stack, nubs: int = 1) -> Part:
     return body
 
 
+def key_guide_length(st: Stack) -> float:
+    """Engagement of the cap guide (D8, B3): the plate's key hole and its skirt, from the
+    plate top down to KEY_GUIDE_GAP above the frame PCB."""
+    return st.plate_top - (st.pcb_top + P.KEY_GUIDE_GAP)
+
+
+def key_guide_sketch(nubs: int = 1) -> Sketch:
+    """Plan of the guide skirt around one cap (cap coordinates): a ring KEY_GUIDE_WALL
+    wide around the cap body, KEY_GUIDE_CLEAR off it, cut away (KEY_GUIDE_POCKET clear)
+    where the cap's lips, tab and lugs, the next row's tab and the switches pass. The
+    cap slides straight up and down in it; there is no pivot."""
+    c, g, m = P.CAP_SIZE / 2, P.KEY_GUIDE_CLEAR, P.KEY_GUIDE_POCKET
+    w_in = P.CAP_SIZE + 2 * g + P.HOLE_COMP
+    r_in = P.CAP_EDGE_R + g
+    w_out, r_out = w_in + 2 * P.KEY_GUIDE_WALL, r_in + P.KEY_GUIDE_WALL
+    far = 5.0
+    lx0, lx1 = P.STOP_LUG_X
+    with BuildSketch() as sk:
+        RectangleRounded(w_out, w_out, r_out)
+        RectangleRounded(w_in, w_in, r_in, mode=Mode.SUBTRACT)
+        for sx in (-1, 1):                         # side lips and their down-stop rails
+            with Locations((sx * (c + far / 2 - 0.5), 0)):
+                Rectangle(far + 1, P.LIP_LEN + 2 * m, mode=Mode.SUBTRACT)
+            with Locations((sx * (lx0 + lx1) / 2, c + far / 2 - 0.5)):   # back lugs
+                Rectangle(lx1 - lx0 + 2 * m, far + 1, mode=Mode.SUBTRACT)
+        for sy in (-1, 1):                         # front: own tab and switch; back: the next
+            with Locations((0, sy * (c + far / 2 - 0.5))):   # row's tab (and a second tab)
+                Rectangle(P.TAB_W + 2 * m, far + 1, mode=Mode.SUBTRACT)
+    return sk.sketch
+
+
+def key_guides(st: Stack, key_xy, nubs: int = 1) -> Part:
+    """Guide skirts for every key, to fuse onto the top plate's underside."""
+    ring = key_guide_sketch(nubs)
+    z0 = st.pcb_top + P.KEY_GUIDE_GAP
+    out = None
+    for x, y in key_xy:
+        r = Pos(x, y, z0) * extrude(ring, amount=st.plate_bot - z0 + 0.01)
+        out = r if out is None else out + r
+    return out
+
+
 def switch(st: Stack) -> Part:
     base = Box(P.SW_L, P.SW_W, P.SW_H - 0.35, align=MIN)
     stem = Pos(0, 0, P.SW_H - 0.35) * Cylinder(0.6, 0.35, align=MIN)
@@ -256,12 +298,12 @@ def plate_sketch(outline: tuple[float, float, float, float], radius: float,
     """Top plate outline. win_ledge: the knob windows' through-holes are this much
     smaller per side (the ledge their covers sit on; the pocket above is cut in 3D)."""
     x0, x1, y0, y1 = outline
-    w = P.CAP_SIZE + 2 * P.CAP_CLEAR + P.HOLE_COMP
+    w = P.CAP_SIZE + 2 * P.KEY_GUIDE_CLEAR + P.HOLE_COMP     # the key holes are the cap guide (D8)
     with BuildSketch() as sk:
         with Locations(((x0 + x1) / 2, (y0 + y1) / 2)):
             RectangleRounded(x1 - x0, y1 - y0, radius)
         with Locations(*key_xy):
-            RectangleRounded(w, w, P.CAP_EDGE_R + P.CAP_CLEAR, mode=Mode.SUBTRACT)
+            RectangleRounded(w, w, P.CAP_EDGE_R + P.KEY_GUIDE_CLEAR, mode=Mode.SUBTRACT)
         with Locations(*win_xy):
             RectangleRounded(win_size[0] - 2 * win_ledge, win_size[1] - 2 * win_ledge,
                              1.0, mode=Mode.SUBTRACT)
@@ -1156,6 +1198,7 @@ def full_device(tilt: bool = True) -> tuple[list[Item], Layout, dict]:
     lw, lt = P.KNOB_WIN_LEDGE
     psk = plate_sketch(outer, P.CORNER_R, L.key_xy, L.cut_xy, L.cut_size, L.knob_xy, win_ledge=lw)
     plate = top_plate(psk, st, P.TOP_PLATE_T, L)
+    plate += key_guides(st, L.key_xy)              # cap guide skirts (D8, B3)
     for x, y in L.cut_xy:                          # window pockets above the ledge
         plate -= Pos(x, y, st.plate_bot + lt) * extrude(
             RectangleRounded(L.cut_size[0] + P.HOLE_COMP, L.cut_size[1] + P.HOLE_COMP, 1.0), amount=P.TOP_PLATE_T)
@@ -1550,8 +1593,9 @@ def knob_test_stand(x: float, y: float) -> tuple[list[Item], dict]:
 
 
 def prototype() -> tuple[list[Item], Layout, dict]:
-    """2 keys on the real Waveshare 7B in a laser-cut acrylic sandwich, plus the
-    printed knob test stand beside it (D3, changed 2026-10-18).
+    """2 keys on the real Waveshare 7B between a printed top plate (it carries the
+    cap guides) and a laser-cut acrylic base, plus the printed knob test stand
+    beside it (D3, changed 2026-10-18).
 
     Uses the full build's geometry: the panel and display board at the same place,
     the two top-left keys and knob 0's display window. The knob runs on bought
@@ -1615,7 +1659,8 @@ def prototype() -> tuple[list[Item], Layout, dict]:
     psk = plate_sketch(outline, 3.0, keys, cut_xy, cut_size, [], corner_holes,
                        small_holes_xy=holes)
     plate = Pos(0, 0, st.plate_bot) * extrude(psk, amount=P.PROTO_PLATE_T)
-    items.append(Item(plate, "top_plate_acrylic", C_PLATE, 4))
+    plate += key_guides(st, keys, nubs=2 if P.PROTO_SECOND_SWITCH else 1)   # cap guides (D8): printed plate
+    items.append(Item(plate, "top_plate_proto", C_PLATE, 4))
     items += knob_windows(st, L, P.PROTO_PLATE_T)
 
     # Knob test stand on the desk, right of the plates

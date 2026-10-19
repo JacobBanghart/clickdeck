@@ -6,7 +6,8 @@
 - Keys: 21 at 22.0 mm pitch, cap 18.0 mm
 - Knob display window: 26.0 x 15.0 mm
 - Z stack: glass 21.80, frame PCB 22.60-24.20, switch top 25.80, top plate 27.50-29.50, motor 11.60-24.70
-- Key stack (D8): caps and frame PCB 0.80 mm above the glass, down-stop 0.50 mm; worst cap drop 0.52 mm + frame flex 0.046 mm/N (0.14 mm at 3 N)
+- Key stack (D8): caps and frame PCB 0.80 mm above the glass, down-stop 0.50 mm; worst cap drop 0.49 mm + frame flex 0.046 mm/N (0.14 mm at 3 N)
+- Cap guide (D8, B3): straight-line travel in the plate's key hole and skirt, 0.015 mm per side over 5.1 mm; max tilt 0.34° (limit 0.35°; B3's 0.58° reached the glass at the old 0.2 mm gap); far-edge drop 0.17 mm pivoting on the nub, 0.52 mm with the switch bottomed, of 0.80 mm to the glass
 - Frame PCB screws: 5 pan-head off the glass, 9 countersunk (flush) over it
 - Display board: 6.3 mm behind the knob board, 2.7 mm above the floor (Waveshare STEP depths)
 - Internal cables (bought, plug-in): usb_display 100 mm, usb_knob_gh 100 mm, keys_ffc 80 mm, touch 80 mm, hy_link 50 mm; 300 mm motor leads coil 6.6 mm high (11.1 mm room under the panel)
@@ -18,13 +19,14 @@
 - Keys: 2 at 22.0 mm pitch, cap 18.0 mm
 - Knob display window: 26.0 x 15.0 mm
 - Z stack: glass 21.80, frame PCB 22.60-24.20, switch top 25.80, top plate 27.50-30.50, motor 11.60-24.70
-- Key stack (D8): caps and frame PCB 0.80 mm above the glass, down-stop 0.50 mm; worst cap drop 0.52 mm + frame flex 0.009 mm/N (0.03 mm at 3 N)
+- Key stack (D8): caps and frame PCB 0.80 mm above the glass, down-stop 0.50 mm; worst cap drop 0.39 mm + frame flex 0.009 mm/N (0.03 mm at 3 N)
+- Cap guide (D8, B3): straight-line travel in the plate's key hole and skirt, 0.015 mm per side over 6.1 mm; max tilt 0.28° (limit 0.35°; B3's 0.58° reached the glass at the old 0.2 mm gap); far-edge drop 0.14 mm pivoting on the nub, 0.49 mm with the switch bottomed, of 0.80 mm to the glass
 - Knob test stand (print): 40 x 40 x 26.6 mm to the motor seat; MT6701 breakout 16 mm wide (EST) on rails under the deck; motor screws M2×5 from below
 - Standoffs: M3, plate to plate (corners) 24.5 mm, M3, base plate to the 7B's tabs 12.6 mm, M2, frame PCB to top plate 3.3 mm
 - Fit checks: OK
 
 ## Stability (estimate)
-- Estimated mass 717 g (stand 228 g, shelled); tips backward at 10.6 N on a top-row key (a firm press is ~3 N), or 3.9 N pulling the USB cable straight back. Rough densities, see cad/stability.py
+- Estimated mass 719 g (stand 228 g, shelled); tips backward at 10.6 N on a top-row key (a firm press is ~3 N), or 3.9 N pulling the USB cable straight back. Rough densities, see cad/stability.py
 
 ## Printing (case parts)
 - case_tray: 178 x 147 x 28 mm, fits a 256 mm bed

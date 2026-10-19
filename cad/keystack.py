@@ -1,10 +1,16 @@
-"""Key stack checks (D8): how far a cap can drop, and how much the frame PCB flexes.
+"""Key stack checks (D8): how far a cap can drop, how far it can tilt in its guide,
+and how much the frame PCB flexes.
+
+- `guide_tilt`: the cap slides straight up and down in the plate's guide (no
+  pivots). A rigid body of width w in a guide w + 2c wide over an engagement
+  length L tilts at most until w cos t + L sin t = w + 2c.
 
 - `cap_max_drop`: the cap is a rigid body resting on its switch nub(s). Its
   flange can rise CAP_TO_PLATE before it hits the top plate, each nub can go
-  down SW_TRAVEL_MAX (switch bottomed), each down-stop foot KEY_STOP_GAP. A
-  small linear program (small-angle tilt + plunge) finds the worst drop of
-  any corner of the cap's bottom face relative to the frame PCB.
+  down SW_TRAVEL_MAX (switch bottomed), each down-stop foot KEY_STOP_GAP, and
+  the guide limits the tilt about either axis. A small linear program
+  (small-angle tilt + plunge) finds the worst drop of any corner of the cap's
+  bottom face relative to the frame PCB.
 - `frame_deflection`: a grillage (beam lattice) model of the frame PCB's
   strips: FR-4 beams in bending and torsion, pinned at the screws. Returns the
   deflection per newton at each switch. Rough: plate action between strips,
@@ -12,15 +18,37 @@
 """
 
 import itertools
+import math
 
 import numpy as np
 
 import params as P
 
 
-def cap_max_drop(g: dict) -> float:
-    """Worst downward travel (mm) of the cap's bottom corners, for any press."""
+def guide_tilt(clear: float, length: float, width: float = P.CAP_SIZE) -> float:
+    """Largest tilt (radians) of a cap `width` wide in a guide with `clear` per side
+    over `length` of engagement."""
+    R, phi = math.hypot(width, length), math.atan2(length, width)
+    return phi - math.acos(min(1.0, (width + 2 * clear) / R))
+
+
+def guide_edge_drop(g: dict, tilt: float) -> tuple[float, float]:
+    """Cap pivoting on its switch nub at rest, tilted `tilt` about both axes (the
+    guide limits each axis on its own): the lever arm (mm, |dx| + |dy| from the nub
+    to the farthest bottom point) and that point's drop (mm)."""
+    arm = max(abs(bx - nx) + abs(by - ny) for nx, ny in g["nubs"] for bx, by in g["bottom"])
+    return arm, arm * math.tan(tilt)
+
+
+def cap_max_drop(g: dict, tilt: float | None = None) -> float:
+    """Worst downward travel (mm) of the cap's bottom corners, for any press.
+    tilt: largest tilt (radians) the guide allows about either axis (None: unguided)."""
     G, H = [], []
+    if tilt is not None:
+        t = math.tan(tilt)
+        for row in ([0.0, 1.0, 0.0], [0.0, -1.0, 0.0], [0.0, 0.0, 1.0], [0.0, 0.0, -1.0]):
+            G.append(row)
+            H.append(t)
     for x, y in g["nubs"]:
         G.append([1.0, x, y])
         H.append(P.SW_TRAVEL_MAX)

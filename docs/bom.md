@@ -134,6 +134,7 @@ The rest of the prototype list is in [parts.md](parts.md).
 | 1 | Prototype frame PCB, rev C | 58.3 × 30.7 mm, the full build's two top-left keys on the 7B; 4 B3U footprints (a second switch above each key for the D8 force test), 4 M2 holes off the glass, 2 countersunk over it, solder pads off the glass. `hardware/proto-frame/`. The only custom PCB before Rev A | JLCPCB (assembled) | $35–55 with shipping and duty (cost.md) | prototype |
 | 2 + 2 | Key caps: one nub and two nubs | `cad/out/key_cap_clear_resin.stl` (one switch) and `cad/out/key_cap_two_nub_clear_resin.stl` (two switches), clear resin, one standard finish | JLC3DP | $4–8 | prototype |
 | 1 | Knob test stand | `cad/out/print_knob_test_stand.stl`, 40 × 40 mm, 26.6 mm to the motor seat. The 2204 screws on with 4 × M2×5 from below; an MT6701 breakout (16 mm wide, EST: measure it) slides in on rails under the deck. With `knob.stl` and `knob_hub.stl` | JLC3DP (PETG or resin) | $3–8 | prototype |
+| 1 | Prototype top plate | `cad/out/print_proto_top_plate.stl`, 3 mm, with the cap guide skirts (0.015 mm per side, D8). Set `HOLE_COMP` from the fit coupon first | JLC3DP or home printer (PETG or resin) | $5–10 | prototype |
 | 1 set | Standoffs (model lengths; round to stock, shim the rest) | M3, plate to plate (corners): **24.5 mm**; M3, base plate to the 7B's tabs: **12.6 mm**; M2, frame PCB to top plate: **3.3 mm** | hardware kit | ~$5 | prototype |
 
 ## Totals

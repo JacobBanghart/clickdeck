@@ -55,7 +55,7 @@ like the full frame's.
   over the glass. Copper stays 0.5 mm from every board and window edge, and
   the windows have R0.5 corners (what the router mills).
 
-It hangs from the acrylic top plate on M2 standoffs, with the caps and the
+It hangs from the printed top plate on M2 standoffs, with the caps and the
 board **0.8 mm above the glass** (D8; was 0.2). The cap's down-stop (rails
 under its side lips, lugs at its back corners) lands on this board 0.5 mm
 after the switch's rest position, past the switch's worst-case 0.35 mm

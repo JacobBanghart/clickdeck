@@ -29,8 +29,9 @@ the motor diameter.
 | `print_case_tray.stl`, `print_top_plate.stl`, `print_stand.stl` | Case parts for a home printer (fit a 256 mm bed) or JLC3DP, in print orientation (plate face-down). PETG; M3 heat-set inserts in the plate's posts |
 | `print_plate_prop.stl` | Tool: two of these hold the top plate 40 mm up while its cables are plugged in |
 | `print_knob_test_stand.stl` | Prototype knob test stand (JLC3DP): the 2204 on a deck, an MT6701 breakout on rails under it (`MT6701_BREAKOUT`, EST) |
-| `print_fit_coupon.stl` | Print first: cap hole, magnet pocket and hub bore at -0.1/0/+0.1 mm; set `HOLE_COMP` from it |
-| `proto_*_plate_3mm_acrylic.dxf` | Laser-cut plates for the prototype (SendCutSend/Ponoko) |
+| `print_fit_coupon.stl` | Print first: cap guide hole, magnet pocket and hub bore at -0.1/0/+0.1 mm; set `HOLE_COMP` from it |
+| `print_proto_top_plate.stl` | Prototype top plate (3 mm, face-down), with the cap guide skirts (D8) |
+| `proto_base_plate_3mm_acrylic.dxf` | Laser-cut base plate for the prototype (SendCutSend/Ponoko) |
 | `full_top_plate.dxf` | Top plate outline for the full device |
 | `key_cap_clear_resin.stl`, `knob_window.stl` | Clear resin (SLA) parts: key caps (one nub; rails and lugs underneath are the down-stop), knob-window covers (JLC3DP) |
 | `key_cap_two_nub_clear_resin.stl` | Prototype cap with a nub at both ends, for the two-switch test (D8) |
@@ -44,8 +45,9 @@ the motor diameter.
 - `model.py`: parts and assemblies. The vertical stack is derived from the knob motor height,
   and the key stack hangs from the top plate (`make_stack`).
 - `build.py`: exports and previews.
-- `keystack.py`: key stack checks (D8): the worst cap drop for any press (a small linear
-  program over the cap's tilt) and the frame PCB's flex at each switch (a grillage model).
+- `keystack.py`: key stack checks (D8): the cap's tilt in its guide (clearance over
+  engagement), the worst cap drop for any press (a small linear program over the cap's
+  tilt) and the frame PCB's flex at each switch (a grillage model).
 - `render.py`: preview renderer (no GPU needed).
 
 ## Coordinates

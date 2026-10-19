@@ -27,18 +27,22 @@ pass here means "the model is consistent", not "it will build".
 | Cables clear every part (motor bells included); bends ≥ 10 mm on the USB-C cable; plate cables reach with the plate lifted 40 mm | ✅ all clear |
 | Service: top plate, then display, then knob board lift straight out | ✅ all three lift out |
 | A paperclip reaches BOOT and RESET through the back wall, and BOOTSEL through the floor | ✅ all three reachable |
-| Key stack (D8): every cap's down-stop lands on the frame PCB, and the worst cap drop plus the frame's flex at a 3 N press stays 0.1 mm off the glass | ✅ clear of the glass (full build and prototype) |
+| Key stack (D8): every cap's down-stop lands on the frame PCB, and the worst cap drop plus the frame's flex at a 3 N press stays 0.1 mm off the glass. Cap guide (B3): the cap tilts at most 0.35° in the plate's guide, and that tilt can't put its far edge on the glass | ✅ clear of the glass (full build and prototype) |
 
 Key stack (D8), from `cad/keystack.py`:
 
 | | Full build | Prototype |
 |---|---|---|
+| Cap guide: clearance per side, engagement | 0.015 mm, 5.1 mm | 0.015 mm, 6.1 mm |
+| Max cap tilt in the guide (limit 0.35°; B3: 0.58° reached the glass at the old 0.2 mm gap) | 0.34° | 0.28° |
+| Far-edge drop from that tilt, pivoting on the nub (with the switch bottomed) | 0.17 mm (0.52 mm) | 0.14 mm (0.49 mm) |
+| Tilt that would put the far edge on the glass | 1.62° | 1.62° |
 | Cap bottom ↔ glass at rest | 0.80 mm | 0.80 mm |
 | Down-stop gap (cap feet ↔ frame PCB) | 0.50 mm | 0.50 mm |
-| Worst cap-edge drop, any press, PCB rigid | 0.52 mm | 0.52 mm |
+| Worst cap-edge drop, any press, PCB rigid (stops + guide) | 0.49 mm | 0.39 mm |
 | Frame PCB flex at the worst switch (grillage) | 0.046 mm/N | 0.009 mm/N |
-| Cap drop + flex at 3 N | 0.66 mm | 0.55 mm |
-| Same at a hard 5 N press | 0.75 mm | 0.57 mm |
+| Cap drop + flex at 3 N | 0.63 mm | 0.42 mm |
+| Same at a hard 5 N press | 0.72 mm | 0.44 mm |
 
 Minimum gaps (nominal, from the model):
 
@@ -160,7 +164,7 @@ Stand the tray upright on two blocks (~50 mm high) under its left and right wall
 
 ### 6. Build the top plate (on the bench)
 
-With the top plate face up, drop the five clear knob-window covers into their pockets (they rest on a ledge) and fix each with a little clear UV glue or clear tape on the ledge. Lay the plate face down. Drop the clear caps into their holes, tabs toward the front edge. Plug the key cable (FFC) into the frame PCB's ZIF connector (flip the latch up, slide the cable in, latch down), then fit the frame PCB over the plate's two locating pins (switches facing the caps) and screw it to the bosses: pan-head screws along the back and left edges (off the glass), countersunk ones everywhere else (flush underneath, so nothing touches the glass). Every key should click and none read pressed at rest: if one does, add a 0.1 mm shim washer between the nearest bosses and the PCB. Stick the touch band into its pocket under the plate, below the knob display windows, with full-coverage 3M 467MP/468MP transfer tape (no air gaps), and plug the touch cable into it.
+With the top plate face up, drop the five clear knob-window covers into their pockets (they rest on a ledge) and fix each with a little clear UV glue or clear tape on the ledge. Lay the plate face down. Drop the clear caps into their holes, tabs toward the front edge; each should slide freely in its guide with no side play. Plug the key cable (FFC) into the frame PCB's ZIF connector (flip the latch up, slide the cable in, latch down), then fit the frame PCB over the plate's two locating pins (switches facing the caps) and screw it to the bosses: pan-head screws along the back and left edges (off the glass), countersunk ones everywhere else (flush underneath, so nothing touches the glass). Every key should click and none read pressed at rest: if one does, add a 0.1 mm shim washer between the nearest bosses and the PCB. Stick the touch band into its pocket under the plate, below the knob display windows, with full-coverage 3M 467MP/468MP transfer tape (no air gaps), and plug the touch cable into it.
 
 ![Build the top plate (on the bench)](../cad/out/assembly/step6_top_plate_sub.png)
 

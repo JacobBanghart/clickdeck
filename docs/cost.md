@@ -214,8 +214,8 @@ itself costs ~$170–310 (throwaway kit plus tools). Details:
 |---|---|
 | SparkFun TMC6300 breakout ROB-21867, with US shipping (no China duty) | $23–27 |
 | WeAct RP2350B core board, CH334F hub module, MT6701 breakout, breadboard and jumpers (AliExpress), with ~35% duty. The core board and hub stay as the firmware dev bench | $18–31 |
-| JLC order: rev C prototype frame PCB (5 made, 2 assembled with 4 B3U each), 2 + 2 clear caps, the knob test stand, knob and hub (JLC3DP), shipping, 35–40% duty | $45–80 |
-| Laser-cut acrylic plates (US, shipping included) | $15–30 |
+| JLC order: rev C prototype frame PCB (5 made, 2 assembled with 4 B3U each), 2 + 2 clear caps, the prototype top plate (it carries the cap guides), the knob test stand, knob and hub (JLC3DP), shipping, 35–40% duty | $50–90 |
+| Laser-cut acrylic base plate (US, shipping included) | $10–20 |
 | **Subtotal** | **$100–170** |
 
 An earlier estimate (~$50–65) counted only the kit's sticker prices.

@@ -30,7 +30,9 @@ pages or swipes ([design-review.md](design-review.md), D4).
 - Actions: HID shortcuts, media keys, macros (key sequences with delays),
   page switches, and "host" actions handed to the daemon.
 - Knob feel per knob and page: detents, smooth, spring, end stops,
-  strength, and what turning and pressing send.
+  strength, a tick at a preset, and what turning and pressing send.
+  (Attention nudges and haptic notifications are an optional firmware
+  module, off by default; the page shows them only if the device has it.)
 - Touch band actions: tap and swipe.
 - Images: drop in a picture; the page scales it to the key size the device
   reports and uploads it compressed.

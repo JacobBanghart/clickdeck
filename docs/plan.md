@@ -3,7 +3,7 @@
 ## Goals
 
 **Final device**
-- At least 20 keys, each showing its own image (Elgato Stream Deck look).
+- At least 20 keys, each showing its own image under a clear cap.
 - Keys use **micro switches** (mouse/controller-style click), not rubber domes.
 - At least 5 knobs, each with a display area right next to it.
 - Knobs: **clicky vs. smooth switchable in software** (hard requirement).
@@ -23,6 +23,23 @@
 - Hall-effect switches.
 - Huge SmartKnob-sized knobs; aim for something closer to the MX Master
   MagSpeed wheel in size.
+
+**Design constraints (owner, locked 2026-10-18; design review D8, D19–D21)**
+- **Keys travel straight.** Caps move straight up and down, guided by the
+  plate. No pivots, hinges or rockers on the keys, in this or any future
+  revision. The knob press hinge (D10) is separate and not affected.
+- **One shared display.** All key images and knob display areas come from
+  the single shared LCD (Waveshare 7B). No separate small screens per key,
+  and no screen inside or on top of a knob. The knob display areas stay
+  above the knobs on the shared panel (`KNOB_WIN` in `cad/params.py`). More
+  keys would need a bigger single panel, not more screens.
+- **Core haptics first.** The knob feel is the focus: clicky detents,
+  smooth, a set number of clicks, end stops, a tick at a preset. Attention
+  nudges and haptic notifications are an optional firmware feature, off by
+  default, in a separate module so a build can leave it out.
+- **Its own look.** The face shape, stand, key and knob styling and
+  branding stay clickdeck's own. Comparisons with the Stream Deck + XL are
+  fine; the case and stand aren't modeled to look like it.
 
 ## Architecture
 
@@ -71,7 +88,7 @@ full page ~1.8 s. So RLE/JPEG is the default, not an option. Also: upload
 icons once and reference them by CRC; redraw only the parts of the screen
 that changed. Target: a full page in under 300 ms.
 
-### Keys: Elgato style
+### Keys: images under clear caps
 One LCD panel under a **frame-shaped PCB** (square window cut out per key).
 A clear resin cap sits in each window; a tab on the cap presses a micro
 switch mounted on the PCB strip between windows.
@@ -88,15 +105,23 @@ cap's stop (design review B1–B3, decision D8):
   Rails under each cap's side lips and lugs at its back corners stop on the
   frame PCB after 0.5 mm of travel, past the B3U's worst-case 0.35 mm. 0.1
   and 0.2 mm shim washers tune the stack. `cad/keystack.py` checks that the
-  worst cap drop (0.52 mm) plus the frame's flex (0.046 mm/N worst, down
+  worst cap drop (0.49 mm, with the guide below) plus the frame's flex (0.046 mm/N worst, down
   from 4.2 mm/N) leaves at least 0.1 mm to the glass at a 3 N press.
+- **Cap guide (B3):** caps move straight up and down, guided by the plate.
+  The plate's key hole continues down as a skirt around each cap, cut away
+  where the lips, tab, lugs and switches pass, to 0.2 mm above the frame
+  PCB. At 0.015 mm per side over 5.1 mm the cap tilts at most 0.34°, well
+  under the 0.58° that put the far edge on the glass in B3. This is the
+  tightest fit in the build: set `HOLE_COMP` from the fit coupon and check
+  on the prototype that each cap slides freely. `assembly.py --check` fails
+  if the tilt passes 0.35° or could put the far edge on the glass.
 - **Second switch:** the prototype frame PCB has a second switch footprint
   per key. The 5-point force test decides whether the full build needs two
   switches per key.
 
 Laser-cut acrylic caps are out:
 sheet tolerance alone is larger than the key stack's budget. The cap has
-0.2 mm of free play; an optional foam or silicone ring on the flange stops
+0.2 mm of vertical free play; an optional foam or silicone ring on the flange stops
 rattle. Caps come in one standard clear finish for now; revisit the look
 once real caps are in hand.
 
@@ -109,7 +134,7 @@ once real caps are in hand.
 ```
 
 Knobs sit just past the panel edge; each knob's "display" is an area of
-the same panel.
+the same panel. There are no other screens (D19).
 
 Full build target: Waveshare **ESP32-S3-LCD-7B** (non-touch, SKU 31727,
 $33.99), 7" 1024×600 RGB panel with **adjustable backlight**. Chosen over
@@ -129,8 +154,12 @@ between keys is 3.6 mm, so 13 mm mouse switches don't fit.
 
 ### Knobs
 Small brushless gimbal motor + magnetic angle sensor + low-voltage driver,
-run with the SimpleFOC library. Software modes: clicky (detent count/
-strength), smooth (free or light drag), end stops, haptic ticks.
+run with the SimpleFOC library. Software modes (the core feel): clicky
+(detent count/strength), smooth (free or light drag), a set number of
+clicks, end stops, a tick at a preset. Haptic behavior follows documented
+open-source behavior: SimpleFOC's motor control and SmartKnob's detent and
+end-stop profiles ([lessons.md](lessons.md)). Attention nudges and haptic
+notifications are an optional firmware module, off by default (D20).
 Driver must work from USB 5 V: TMC6300 (2–11 V). **Not** the SimpleFOC
 Mini / DRV8313, which needs 8–30 V.
 
@@ -191,8 +220,8 @@ worth (about 0.8–1.5 A, set by the port; below)**, enforced by a firmware arbi
   moment instead of browning out).
 - **Time-limit end stops.** Pushing against a stop is the only sustained
   full-torque case; ease off if someone leans on it.
-- **Queue haptic notifications** so pulses never overlap. Calibrate knobs
-  one at a time.
+- **Calibrate knobs one at a time.** If a build includes the optional
+  haptic-effects module, it queues its pulses so they never overlap.
 
 **Power policy (D9): full haptics need a USB-C port that offers 1.5 A or
 more, over a C-to-C cable.** The USB board reads the host port's
@@ -301,7 +330,8 @@ full build. Parts and costs: [parts.md](parts.md), [cost.md](cost.md).
 4. **Keys:** the two top-left keys on the rev C frame PCB + clear caps on
    the 7B; adjust until a press anywhere on the key clicks cleanly, and
    compare one switch per key with two. Caps are JLC3DP clear resin
-   prints; the plates are laser-cut acrylic.
+   prints. The top plate is printed (it carries the cap guides); the base
+   plate is laser-cut acrylic.
 5. **Hinge (free):** a tongue sawn into scrap FR-4, loaded on the kitchen
    scale (D10).
 6. **Decide go/no-go:** if the knob and cap feel are both good → Rev A.

@@ -35,7 +35,7 @@ connectors) are first answered on Rev A.
 | | Question | Affects |
 |---|---|---|
 | ⚠️ | Is the B3U's 0.15 mm travel a satisfying click, or too short? | Key switch choice |
-| ⚠️ | Does a press anywhere on the cap, including the far corner, click cleanly without tilting? One switch or two per key? | Cap, tab, frame support and down-stop (D8) |
+| ⚠️ | Does a press anywhere on the cap, including the far corner, click cleanly without tilting? Does the cap slide freely in its 0.015 mm guide? One switch or two per key? | Cap, guide, tab, frame support and down-stop (D8) |
 | ⚠️ | Is the 2204's cogging noticeable in smooth mode? | Motor choice (fallback: SparkFun ROB-20441) |
 | ❓ | Knob current at rest, while clicking, at an end stop | Power budget numbers |
 | ❓ | **Rev A.** Does the hinged tongue give a good press feel (force, travel, no wobble when turning), and does side force cause false clicks? | Hinge perforations and striker setting; parallel flexure if side force clicks (D10) |
@@ -77,7 +77,7 @@ Everything else:
 ## Decided for now, revisit later
 
 - **21 keys (7×3).** 24 keys (8×3) fit on the same board; 32 needs a bigger
-  screen or moving the knob displays.
+  single shared panel. Separate screens for keys or knobs are out (D19).
 - **IPS LCD, not OLED.** OLED looks better under clear caps but static icons
   risk burn-in. Could be trialled later with a small OLED test screen.
 - **Internal USB hub instead of a UART link** (decided 2026-10-17): the
@@ -109,10 +109,11 @@ Options are in [design-review.md](design-review.md). ✅ All answered:
 - ✅ D6 assembly: top-side only; shown feasible in the model (press switch on
   the front border, pressed by the motor spacer's arm)
 - ✅ D7 internal hub: kept
-- ✅ D8 key support: 14 M2 frame screws (5 pan-head, 9 countersunk), cap
-  down-stop at 0.5 mm travel, 0.8 mm gap to the glass, 0.1/0.2 mm shims;
-  second-switch footprint on the prototype, decided by the force test
-  ([plan.md](plan.md))
+- ✅ D8 key support (resolved 2026-10-18): 14 M2 frame screws (5 pan-head,
+  9 countersunk), cap down-stop at 0.5 mm travel, 0.8 mm gap to the glass,
+  0.1/0.2 mm shims; caps guided straight by the plate (no rocker, hinged or
+  tilting caps); a second switch per key stays an option, with its
+  footprint on the prototype, decided by the force test ([plan.md](plan.md))
 - ✅ D9 power: 1.5 A+ C-to-C for full haptics ([wiring.md](wiring.md))
 - ✅ D10 hinge: scrap-FR-4 test, tunable hinge + set-screw striker, parallel
   flexure if needed ([knob-module.md](knob-module.md))
@@ -132,3 +133,9 @@ Options are in [design-review.md](design-review.md). ✅ All answered:
   knob hold for reflash or keymap changes
 - ✅ D18 updates: no OTA slots; the configurator flashes through each
   chip's ROM bootloader ([recovery.md](recovery.md))
+- ✅ D19 displays (2026-10-18): one shared panel only; no screens per key or
+  on the knobs
+- ✅ D20 haptics (2026-10-18): core knob feel first; attention nudges and
+  haptic notifications are an optional firmware module, off by default
+- ✅ D21 look (2026-10-18): clickdeck's own look; comparisons with the + XL
+  are fine

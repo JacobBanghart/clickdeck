@@ -10,9 +10,8 @@
 > checking it yourself.
 
 
-A custom Stream Deck–style USB controller: per-key images, real clicky micro
-switches, and motor-driven knobs that switch between clicky and smooth in
-software.
+A custom USB macro controller: per-key images, real clicky micro switches,
+and motor-driven knobs that switch between clicky and smooth in software.
 
 ![Full device](cad/out/freecad_three_quarter.png)
 
@@ -20,10 +19,11 @@ software.
 
 What this adds:
 - **Programmable knobs.** Each knob switches per function between clicky,
-  smooth, a set number of clicks, or hard end stops, and can push back
-  (a tick at a preset, a nudge for attention). They also press to click.
+  smooth, a set number of clicks, or hard end stops, and can give a tick
+  at a preset. They also press to click.
   Stream Deck dials have one fixed feel.
-- **Clicky keys.** Micro switches instead of soft rubber pads.
+- **Clicky keys.** Micro switches instead of soft rubber pads. Caps move
+  straight up and down, guided by the plate.
 - **Set up in the browser, works anywhere.** A VIA-style web configurator
   (Chrome/Edge, over WebUSB) sets the key layout, shortcuts and macros,
   knob feel, images and firmware, and stores everything on the device. After
@@ -70,8 +70,8 @@ Breakdown: [docs/cost.md](docs/cost.md); every part: [docs/bom.md](docs/bom.md).
 |---|---|
 | ![Exploded](cad/out/full_exploded.png) | ![Key section](cad/out/key_section.png) |
 
-Prototype (2 keys on the real 7B in laser-cut acrylic, plus a printed knob
-test stand with bought breakouts):
+Prototype (2 keys on the real 7B, a printed top plate on a laser-cut acrylic
+base, plus a printed knob test stand with bought breakouts):
 
 ![Prototype](cad/out/proto_exploded.png)
 

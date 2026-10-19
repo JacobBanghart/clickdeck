@@ -23,7 +23,7 @@ Interfaces per chip:
 |---|---|---|
 | Inputs | **HID keyboard** (boot protocol) | Keys, macros and knobs send their stored shortcuts. Works with no software on any OS |
 | Inputs | **HID consumer control** | Media keys: volume, mute, play/pause |
-| Inputs | **Vendor bulk (WebUSB)** | Data channel: keymap, knob settings, haptics, power settings, events for "host" actions. Low bandwidth |
+| Inputs | **Vendor bulk (WebUSB)** | Data channel: keymap, knob feel settings, power settings, events for "host" actions. Low bandwidth |
 | Display | **Vendor bulk (WebUSB)** | Data channel: images, pages, display settings |
 
 - **Why bulk, not HID, for data:** WebHID moves 64-byte reports, one per
@@ -267,11 +267,18 @@ Fields:
 | `friction` | 0–1 (smooth mode drag) |
 | `min`, `max` | end stops in detents (omit for unbounded) |
 | `stop_strength` | 0–1 |
+| `marks` | positions (in detents) that give a tick as the knob passes them, e.g. a preset |
 | `position` | current position (so a knob can start at the app's current value) |
 
-`HAPTIC` plays a one-off effect on a knob: `tick`, `buzz`, `bump`, with
-strength and duration (queued so pulses never overlap, power budget rules
-apply).
+These fields are the core knob feel (D20). Their behavior follows
+SimpleFOC and SmartKnob's documented detent and end-stop profiles
+([lessons.md](lessons.md)).
+
+**Optional, not part of v0:** host-triggered haptic effects (attention
+nudges, notifications) belong to an optional firmware module, off by
+default, that a build can leave out. If it's ever added, it gets its own
+message and a `haptic-effects` feature flag in `HELLO_ACK`, and the host
+uses it only when the device lists that flag.
 
 ## Display and power (host → device)
 

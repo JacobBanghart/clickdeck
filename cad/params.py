@@ -7,9 +7,10 @@ part before ordering anything that depends on them.
 # --- Keys ----------------------------------------------------------------
 KEY_COLS = 7
 KEY_ROWS = 3
-KEY_PITCH = 22.0          # center-to-center, about Stream Deck XL density
+KEY_PITCH = 22.0          # center-to-center
 CAP_SIZE = 18.0           # clear cap body, square
-CAP_CLEAR = 0.2           # cap-to-hole clearance per side (top plate + PCB window)
+CAP_CLEAR = 0.2           # cap-to-window clearance per side, base of the PCB window
+                          # (the plate's guide uses KEY_GUIDE_CLEAR)
 CAP_PROTRUDE = 1.5        # how far caps stand above the top plate
 CAP_TOP_FILLET = 0.6
 CAP_EDGE_R = 1.0          # vertical cap edges (the PCB/plate window corners can't be sharp)
@@ -29,6 +30,17 @@ STOP_RAIL_W = 0.6         # rail under each side lip (outer part of the lip, ove
 STOP_LUG_X = (5.5, 8.5)   # back lugs: x range from the cap center (clear of the next row's tab)
 STOP_LUG_REACH = 1.8      # back lugs stick out this far past the cap's back edge
 SW_TRAVEL_MAX = 0.35      # B3U actuator travel to the click, worst case (Omron A162-E1: pretravel max)
+# Cap guide (D8, B3): caps move straight up and down, guided by the plate. No
+# rocker, hinged, tilting or pivoting caps. The plate's key hole continues down as
+# a skirt around the cap (cut away where the lips, tabs, lugs and switches pass) to
+# just above the frame PCB. Tilt = guide clearance over engagement length.
+KEY_GUIDE_CLEAR = 0.015   # cap to guide, per side: a fine sliding fit (set HOLE_COMP from
+                          # the fit coupon; check on the prototype that the cap slides freely)
+KEY_GUIDE_WALL = 0.8      # skirt wall thickness (two 0.4 mm perimeters)
+KEY_GUIDE_GAP = 0.2       # skirt bottom to the frame PCB's top face
+KEY_GUIDE_POCKET = 0.3    # skirt clearance around the cap's lips, tabs, lugs and the switches
+KEY_TILT_MAX_DEG = 0.35   # design limit, well under the 0.58° that put the far edge on the
+                          # glass in B3 (old 0.2 mm gap)
 KEY_PRESS_DESIGN_N = 3.0  # a firm press; the cap must stay off the glass at this force
 KEY_GLASS_MARGIN = 0.1    # required cap/PCB-to-glass clearance at the design force
 FR4_E, FR4_G = 20000.0, 4000.0   # N/mm², for the frame PCB deflection estimate (grillage)
@@ -148,8 +160,7 @@ PLATE_SHAFT_HOLE_D = 8.0                # top plate hole, shaft_adapter style
 KNOB_WIN = (26.0, 15.0)                 # knob display area per knob (max size)
 KNOB_WIN_LEDGE = (0.9, 0.8)             # plate ledge under each clear window cover (width, thickness)
 # Touch band: a thin capacitive sensor PCB glued under the top plate, right
-# below the knob displays. Tap or swipe on the plate surface (like the + XL
-# touch strip). Touching the display glass itself doesn't work: it sits ~7 mm
+# below the knob displays. Tap or swipe on the plate surface. Touching the display glass itself doesn't work: it sits ~7 mm
 # below the top surface because of the key stack.
 TOUCH_BAR = True                        # False: no band, no touch cable/header (D12: optional)
 TOUCH_BAR_T = 0.8                       # thin PCB
@@ -162,7 +173,7 @@ MOTOR_TO_PLATE = 0.8                    # bell (hub flange) to plate underside
 # --- Case -----------------------------------------------------------------
 # Case parts should fit a common home 3D printer bed (Bambu A1/P1, Prusa MK4).
 PRINT_BED = (256.0, 256.0, 256.0)
-# The case is a slab on a separate wedge stand, like the Stream Deck + XL.
+# The case is a slab on a separate wedge stand that tilts it toward the user.
 TILT_DEG = 42.0           # slab angle toward the user (40–45° range chosen)
 STAND_INSET = 8.0         # stand is this much narrower than the slab on each side
 STAND_LIFT = 3.0          # stand material under the slab's front-bottom edge
@@ -221,15 +232,15 @@ DISPLAY_BUTTONS = {"BOOT": 59.2, "RESET": 48.1}
 DISPLAY_BUTTON_Z = 0.3      # button center below the board's underside (STEP)
 TOOL_D = 5.0                # screwdriver shaft diameter used for the access check
 
-# --- Prototype (2 keys on the real 7B), laser-cut acrylic sandwich ----------
+# --- Prototype (2 keys on the real 7B): printed top plate, acrylic base -----
 # Changed 2026-10-18 (D3): the real Waveshare 7B and the full build's 2 top-left
 # keys with their own small frame PCB (second-switch footprints for the force
 # test). The knob is tested on its own printed stand (below), with bought
 # breakouts; the knob board, hub and touch circuits are first tested on Rev A.
 PROTO_KEY_IDX = (0, 1)     # which of the full build's keys (top-left two)
-PROTO_PLATE_T = 3.0        # 3 mm cast acrylic, top and base
+PROTO_PLATE_T = 3.0        # top plate: 3 mm print (it carries the cap guides); base: 3 mm cast acrylic
 PROTO_STANDOFF_D = 6.0     # M3 hex standoff (drawn round)
-PROTO_PLATE_MARGIN = 9.0   # acrylic plates reach this far past the panel
+PROTO_PLATE_MARGIN = 9.0   # plates reach this far past the panel
 PROTO_FRAME_RIGHT = 8.0    # proto frame PCB margin right of the keys (holes + a routing channel)
 PROTO_COPPER_EDGE = 0.5    # proto frame PCB copper-to-edge clearance
 PROTO_SECOND_SWITCH = True # second B3U footprint above each key window (D8 force test)
