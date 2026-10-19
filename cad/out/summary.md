@@ -10,8 +10,8 @@
 - Cap guide (D8, B3): straight-line travel in the plate's key hole and skirt, 0.05 mm per side over 5.1 mm; max tilt 1.17° (guide slop, not a feature; the down-stop keeps the cap off the glass)
 - Frame PCB screws: 5 pan-head off the glass, 9 countersunk (flush) over it
 - Display board: 6.3 mm behind the backplane, 5.8 mm above the floor (Waveshare STEP depths)
-- Internal cables (bought, plug-in): usb_display 100 mm, usb_knob_gh 100 mm, keys_ffc 80 mm, touch 80 mm, hy_link 50 mm; each haptic module coils its 300 mm motor lead in front of the bell (7.4 x 3.8 x 13 mm)
-- Touch band: 11.2 mm tall under the knob displays, sensing through 1.6 mm of plate
+- Internal cables (bought, plug-in): usb_display 100 mm, usb_knob_gh 100 mm, keys_ffc 100 mm, hy_link 50 mm; each haptic module coils its 300 mm motor lead in front of the bell (7.4 x 3.8 x 13 mm)
+- Touch band: off (optional add-on, D24; CLICKDECK_TOUCH_BAR=1 builds it)
 - Fit checks: OK
 
 ## Prototype
@@ -37,7 +37,7 @@
 - Fit checks: OK
 
 ## Stability (estimate)
-- Estimated mass 649 g (stand 228 g, shelled); tips backward at 8.9 N on a top-row key (a firm press is ~3 N), or 3.3 N pulling the USB cable straight back. Rough densities, see cad/stability.py
+- Estimated mass 647 g (stand 228 g, shelled); tips backward at 8.9 N on a top-row key (a firm press is ~3 N), or 3.3 N pulling the USB cable straight back. Rough densities, see cad/stability.py
 
 ## Printing (case parts)
 - case_tray: 178 x 147 x 31 mm, fits a 256 mm bed
@@ -45,8 +45,8 @@
 - stand: 162 x 113 x 101 mm, fits a 256 mm bed
 
 ## JLC panel (estimate)
-- Boards: frame PCB 169.5 x 95.6, backplane 161.1 x 57.8, USB board 81.0 x 33.3, touch band 155.3 x 11.2 mm; 300 cm² of bounding boxes
-- Panel: ~215 x 169 mm = 362 cm² (2 mm gaps, 5 mm rails on two edges)
-- Assumption: JLC's large-size fee counts the assembled area, 2 panels for one build = 724 cm² against 650 cm² (5 assembled for a group buy = 1811 cm²)
+- Boards: frame PCB 169.5 x 95.6, backplane 161.1 x 57.8, USB board 81.0 x 33.3 mm; 282 cm² of bounding boxes
+- Panel: ~215 x 155 mm = 334 cm² (2 mm gaps, 5 mm rails on two edges)
+- Assumption: JLC's large-size fee counts the assembled area, 2 panels for one build = 668 cm² against 650 cm² (5 assembled for a group buy = 1669 cm²)
 - Module boards (D23), own designs: haptic 28.4 x 30.5 mm, lite 28.4 x 30.5 mm
-- WARNING: JLC panel area 724 cm² for one build is over the 650 cm² large-size threshold (~$57 fee) (accepted)
+- WARNING: JLC panel area 668 cm² for one build is over the 650 cm² large-size threshold (~$57 fee) (accepted)

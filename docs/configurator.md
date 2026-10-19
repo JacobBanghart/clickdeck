@@ -33,7 +33,7 @@ pages or swipes ([design-review.md](design-review.md), D4).
   strength, a tick at a preset, and what turning and pressing send.
   (Attention nudges and haptic notifications are an optional firmware
   module, off by default; the page shows them only if the device has it.)
-- Touch band actions: tap and swipe.
+- Touch band actions, if a band is fitted (optional add-on, D24): tap and swipe.
 - Images: drop in a picture; the page scales it to the key size the device
   reports and uploads it compressed.
 - Brightness and idle timeout.

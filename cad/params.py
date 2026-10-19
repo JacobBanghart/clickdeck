@@ -4,6 +4,8 @@ Values marked (EST) come from datasheets or seller listings. Measure the real
 part before ordering anything that depends on them.
 """
 
+import os
+
 # --- Keys ----------------------------------------------------------------
 KEY_COLS = 7
 KEY_ROWS = 3
@@ -113,7 +115,8 @@ MOTOR_SCREW_BC = 16.0                   # base screw bolt circle, 4x M2 (EST: me
 MOTOR_THREAD_DEPTH = 3.0                # threaded depth in the stator base (EST: measure)
 MOTOR_LOCATE_PIN_D = 1.5                # two spacer pins into NPTH holes in the tongue (centering)
 MOTOR_SPACER_ARM_W = 5.0                # arm from the spacer to over the press switch
-TMC6300 = (3.0, 3.0, 0.9)               # QFN-20; on the module's fixed front border, off the tongue (D16)
+DRIVER = (3.0, 3.0, 0.8)                # DRV8311H, WQFN-24 3x3 (D24; TMC6300 fallback is a QFN-20 3x3, 0.9 tall);
+                                        # on the module's fixed front border, off the tongue (D16)
 KNOB_PRESS_GAP = 0.2                    # press switch actuator to its striker (nominal)
 STRIKER_LEN = 3.0                       # M2x3 set screw in the spacer arm (striker); set at calibration
 KNOB_UNDER_CLEAR = 2.0                  # prototype stack only: board underside to the floor
@@ -152,7 +155,11 @@ KNOB_WIN_LEDGE = (0.9, 0.8)             # plate ledge under each clear window co
 # Touch band: a thin capacitive sensor PCB glued under the top plate, right
 # below the knob displays. Tap or swipe on the plate surface. Touching the display glass itself doesn't work: it sits ~7 mm
 # below the top surface because of the key stack.
-TOUCH_BAR = True                        # False: no band, no touch cable/header (D12: optional)
+# Off by default (D24): an optional add-on. False: no band, no touch cable, and the
+# backplane's SH header is a footprint only (DNP). The knobs don't move either way, so
+# a band can be added later. CLICKDECK_TOUCH_BAR=1 builds it (CI checks that build).
+TOUCH_BAR = False
+TOUCH_BAR = TOUCH_BAR or os.environ.get("CLICKDECK_TOUCH_BAR") == "1"
 TOUCH_BAR_T = 0.8                       # thin PCB
 TOUCH_BAR_MARGIN = 0.8                  # clearance to the window above and motors below
 TOUCH_BAR_MIN_H = 5.0

@@ -61,7 +61,9 @@ point, detents at chosen positions), rather than inventing its own.
    → Check JLC stock before every order. Source the TMC6300 through JLC
    Global Sourcing or consign it from DigiKey, and reserve the full-build
    quantity once the test kit passes. Keep DRV8316 (plan B) drawn in the
-   schematic.
+   schematic. Since D24 (2026-10-19) the haptic module uses the DRV8311H,
+   which is in JLC's own stock (7,399 on 2026-10-19), and the TMC6300 is
+   the fallback; the rule stands: check stock before every order.
 
 4. **Auto-calibration at boot is fragile.** SimpleFOC's `initFOC` spins the
    motor at startup to find pole pairs and zero angle; with the MT6701 it

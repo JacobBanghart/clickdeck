@@ -14,10 +14,19 @@
   stored on the device. Optional host software for live integrations
   (Linux first).
 - Knobs also **press to click**, like Stream Deck dials.
-- A **touch band** under the knob displays for taps and swipes.
+- An optional **touch band** under the knob displays for taps and swipes
+  (an add-on, off by default since D24).
 - Simple to build: case printable at home (256 mm bed), one JLC order.
   Cost isn't a design driver (a single build costs more than a Stream
   Deck + XL; [cost.md](cost.md)), but the numbers stay honest.
+- **Cost target (owner, locked 2026-10-19, D24):** the full version
+  (5 haptic knobs, 21 keys, display) at **$250 retail at 100 units**, plus
+  shipping and taxes. Easy cuts applied: the DRV8311H driver, the touch
+  band off by default, and for a 100-unit run factory-direct motors,
+  owner-printed resin caps and bulk cables and hardware. At 100 units it
+  comes out at ~$165–215 per device before one-time costs, so $250 holds
+  near zero margin only if the one-time costs aren't spread over those 100
+  ([cost.md](cost.md), "Path to $250").
 
 **Explicitly not wanted**
 - Hall-effect switches.
@@ -73,7 +82,7 @@
    │             ├── 5 knob slots (pogo pins): haptic module (MT6701 + driver + press switch),
    │             │     lite module (push encoder) or blank
    │             ├── 21-key matrix (frame PCB, switches only)
-   │             └── I²C ──► touch band (under the top plate)
+   │             └┄┄ I²C ┄┄► touch band (optional add-on, under the top plate)
    └── USB ──► ESP32-S3 + 7" display board (USB device 2; bought: Waveshare ESP32-S3-LCD-7B, 1024×600)
                  ├── WebUSB data channel → pages, images, display settings (~0.5 MB/s)
                  └── drives the LCD   → all key images + knob display areas
@@ -183,8 +192,12 @@ clicks, end stops, a tick at a preset. Haptic behavior follows documented
 open-source behavior: SimpleFOC's motor control and SmartKnob's detent and
 end-stop profiles ([lessons.md](lessons.md)). Attention nudges and haptic
 notifications are an optional firmware module, off by default (D20).
-Driver must work from USB 5 V: TMC6300 (2–11 V). **Not** the SimpleFOC
-Mini / DRV8313, which needs 8–30 V.
+Driver must work from USB 5 V: the **DRV8311H** (3–20 V, D24), with the
+TMC6300 (2–11 V) as the fallback. **Not** the SimpleFOC Mini / DRV8313,
+which needs 8–30 V. Rejected for D24: the STSPIN233 (99-week lead time),
+the DRV8316 (cost) and a discrete bridge (part count, no protection). The
+SS6343M (LeadPower, 3–16 V, $0.43) is a cheaper candidate tested on the
+driver bench board.
 
 Firmware notes:
 - Five FOC loops on one RP2350B are unproven. FOC runs on core 1 from RAM,
@@ -194,13 +207,18 @@ Firmware notes:
   detents. Each knob gets a cogging feed-forward table from calibration.
 - On wake, the detent grid re-anchors at the current angle, so the knob
   doesn't snap.
-- In free smooth mode the driver stays in standby (3-PWM shorts the windings
-  at zero torque, which drags) and wakes only for effects.
+- In free smooth mode the driver sleeps with its outputs in Hi-Z (3-PWM
+  shorts the windings at zero torque, which drags) and wakes only for
+  effects. The DRV8311H takes 1–3 ms to wake and draws 7–13 mA awake, so
+  idle drivers sleep.
 
 All five slots are run by the **RP2350B on the backplane** (D23). Each
-haptic module's motor is driven with 3 PWM signals through its slot (the
-TMC6300 on the module needs 6, so an inverter there derives the low sides;
-DRV8316 is the fallback). Details in [pcb.md](pcb.md) and
+haptic module's motor is driven with 3 PWM signals through its slot: the
+DRV8311H in 3x PWM mode takes them directly (each INHx sets a half-bridge
+high or low; the enable line holds nSLEEP and the INLx pins, so low means
+asleep and Hi-Z). No inverter (D24; the TMC6300 needed 6 inputs and one).
+Nobody is known to run the DRV8311 with SimpleFOC yet, so the test kit
+checks it on the driver bench board. Details in [pcb.md](pcb.md) and
 [knob-module.md](knob-module.md).
 
 **Slots and modules (D23).** Each slot has an opening in the top plate,
@@ -231,10 +249,10 @@ review H3, decision D10), so:
    above the hinge), the next revision moves to a parallel-guided flexure.
 Lite modules use the encoder's own push switch.
 
-**Module floorplan** (D16, D6): the driver, inverter, switch and motor
-header sit on the module's fixed front border, off the tongue, so only
-sensor traces cross a neck. Before ordering, floorplan the module and the
-backplane with real footprints (RP2350B QFN-80, TMC6300, the pad field).
+**Module floorplan** (D16, D6): the driver, switch and motor header sit
+on the module's fixed front border, off the tongue, so only sensor traces
+cross a neck. Before ordering, floorplan the module and the backplane with
+real footprints (RP2350B QFN-80, DRV8311H WQFN-24, the pad field).
 Motor current is measured on the test kit at the bench supply and the USB
 power meter. Every board is **top-side only** (D6), so JLC's cheaper
 single-side assembly fits everything; the backplane still needs a
@@ -249,8 +267,9 @@ worth (about 0.8–1.5 A, set by the port; below)**, enforced by a firmware arbi
 
 - **Wake on movement.** All angle sensors stay on (10–14 mA each). A
   knob's driver wakes when it moves more than a fraction of a degree
-  (well under 1 ms, too fast to feel) and goes back to standby after
-  1–2 s without movement.
+  and goes back to sleep after 1–2 s without movement. The DRV8311H
+  takes 1–3 ms to wake (D24); the wake-latency test checks it can't be
+  felt.
 - **Share the budget.** One active knob gets the full current limit; if
   two move at once, each gets half (they feel slightly weaker for that
   moment instead of browning out).
@@ -315,6 +334,13 @@ without a host, the display never idle-blanks
 ([protocol.md](protocol.md)).
 
 ### Touch band
+**Optional add-on, off by default (D24).** The default build and BOM leave
+it out (`TOUCH_BAR = False` in `cad/params.py`); the backplane keeps the SH
+header's footprint, not fitted, and the knobs don't move, so a builder can
+add the band later: order the band, fit the header (or order the backplane
+with it) and reprint the top plate with `TOUCH_BAR = True` (it adds the
+band's pocket). CI builds and checks that option too.
+
 A thin capacitive sensor PCB under the top plate, just below the knob
 displays: tap or swipe on the plate surface, like the + XL's touch strip.
 (Touching the display glass itself doesn't work: it sits ~7 mm below the top
@@ -332,9 +358,8 @@ $1.89, 69 in stock on 2026-10-17, not marked end-of-life; Farnell and RS also st
 discontinued MPR121. Its built-in slider uses only 3 channels (too coarse
 over ~155 mm), so all 12 channels run as separate electrodes and firmware
 works out the position from their signal levels. The band is a
-nice-to-have and unplugs; if the part can't be sourced, the band is
-dropped, not the build (`TOUCH_BAR = False` in `cad/params.py` removes the
-band, its cable and the backplane's SH header from the model).
+nice-to-have and unplugs; if the part can't be sourced, the band stays
+out.
 
 ### Case material
 The case holds about 2.3 W in a closed box, and the 7B is rated 0–65 °C.
@@ -352,9 +377,10 @@ four 2204 motors from two sellers (2 for Rev A's haptic modules + 2 spare),
 the magnets and the display cable. A throwaway test kit covers
 the rest: a SparkFun TMC6300 breakout, an MT6701 breakout, a WeAct RP2350B
 core board and a CH334F hub module (these two stay as the firmware dev
-bench), a printed knob test stand, and one custom PCB, the rev C 2-key
-frame PCB on the real 7B. No custom knob or controller board before the
-full build. Parts and costs: [parts.md](parts.md), [cost.md](cost.md).
+bench), a printed knob test stand, and two small custom PCBs: the rev C
+2-key frame PCB on the real 7B and the driver bench board (D24: a DRV8311H
+channel and an SS6343M channel). No custom knob module or controller board
+before the full build. Parts and costs: [parts.md](parts.md), [cost.md](cost.md).
 
 **Prototype (test kit):**
 
@@ -367,8 +393,10 @@ full build. Parts and costs: [parts.md](parts.md), [cost.md](cost.md).
 3. **Knob:** the 2204 on the printed test stand over the MT6701 breakout,
    driven by the SparkFun TMC6300 from the core board. SimpleFOC closed
    loop; clicky/smooth/stops set from the PC; current, standby and wake;
-   1 real + 4 dummy FOC loops for timing. Each low side runs from an
-   inverted PWM output, as the haptic module's inverter will.
+   1 real + 4 dummy FOC loops for timing. Then the same motor on the
+   driver bench board: the DRV8311H (the haptic module's driver, 3 PWM +
+   enable, as on the module) and the SS6343M, compared with the TMC6300
+   ([prototype-tests.md](prototype-tests.md)).
 4. **Keys:** the two top-left keys on the rev C frame PCB + clear caps on
    the 7B; adjust until a press anywhere on the key clicks cleanly, and
    compare one switch per key with two. Caps are JLC3DP clear resin
@@ -385,8 +413,9 @@ full build. Parts and costs: [parts.md](parts.md), [cost.md](cost.md).
 1 lite module** (so both module types are proven) and blanks in the other
 slots. First test of everything the kit can't show: the hinge and press
 feel, the motor mount fit, the slot connector and module swaps, slot
-detection, our RP2350B, hub, CC sensing and touch circuits, the connectors
-and cables, and the touch band next to a running motor
+detection, our RP2350B, hub and CC sensing, the connectors and cables
+(the touch band, optional since D24, is tested on the first build that
+fits one)
 ([prototype-tests.md](prototype-tests.md)). Plan on one revision of
 whichever board fails, and order only that board: the backplane and the
 module boards are separate designs now ([cost.md](cost.md)).

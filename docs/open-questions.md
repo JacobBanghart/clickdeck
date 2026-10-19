@@ -11,8 +11,8 @@ Status: ❓ open · ⚠️ risk to watch · ✅ answered
 | | Question | How we answer it | Affects |
 |---|---|---|---|
 | ✅ | Is the 7B's 3-pin sensor connector GPIO6? **Yes**: J8 = 3V3, GND, GPIO6 (schematic, 2026-10-17). Now used by the optional one-wire link from the backplane (D5) | — | [wiring.md](wiring.md) |
-| ✅ | Does the TMC6300 have built-in break-before-make, so one inverter can derive its low-side inputs (3-PWM plan A)? **Yes** (datasheet: "Internal break-before-make (BBM) logic ensures that no cross-conduction occurs"). Catch: in standby no input may be high, so the inverter is powered from the standby pin ([knob-module.md](knob-module.md)). Still verify: on the test kit with inverted PWM outputs, then on Rev A | — | Driver choice |
-| ✅ | TMC6300 sourcing (D2). LCSC had 59 TMC6300-LA-T (C5274455) at $5.93 on 2026-10-17; DigiKey lists ~4,100 at ~$2.44. **Answer:** source it through JLC Global Sourcing or consign it from DigiKey; reserve the Rev A quantity (10 per build) in JLC's parts library once the test kit passes. Keep the DRV8316 fallback drawn | Check JLC stock right before each order | Driver choice, cost |
+| ✅ | (Superseded by D24: the DRV8311H takes 3 PWM directly; this holds for the TMC6300 fallback.) Does the TMC6300 have built-in break-before-make, so one inverter can derive its low-side inputs (3-PWM plan A)? **Yes** (datasheet: "Internal break-before-make (BBM) logic ensures that no cross-conduction occurs"). Catch: in standby no input may be high, so the inverter is powered from the standby pin ([knob-module.md](knob-module.md)). Still verify: on the test kit with inverted PWM outputs, then on Rev A | — | Driver choice |
+| ✅ | (Superseded by D24: the driver is now the DRV8311H, C5218862, 7,399 in JLC stock on 2026-10-19; TMC6300 stock has dropped to DigiKey 343, LCSC 163.) TMC6300 sourcing (D2). LCSC had 59 TMC6300-LA-T (C5274455) at $5.93 on 2026-10-17; DigiKey lists ~4,100 at ~$2.44. **Answer:** source it through JLC Global Sourcing or consign it from DigiKey; reserve the Rev A quantity (10 per build) in JLC's parts library once the test kit passes. Keep the DRV8316 fallback drawn | Check JLC stock right before each order | Driver choice, cost |
 | ✅ | MT6701 package (D2). **Answer:** **MT6701CT-STD**, SOP-8 (JLC C3003196), not the QFN-16 MT6701QT. JLC's stock is separate from LCSC's | Confirm JLC stock on layout day; the package sets the magnet gap | Backplane, `params.py` |
 | ❓ | Mitoot 2204's real bolt pattern, height and KV (sellers disagree) | Calipers when the motor arrives | Haptic module holes, `params.py` |
 | ✅ | ~~Can an RP2350B bootloader update reliably over the UART link from the ESP32-S3?~~ Not needed: the RP2350B now has its own USB connection through the internal hub and updates with its built-in UF2 bootloader (2026-10-17) | — | Backplane flashing ([plan.md](plan.md)) |
@@ -39,12 +39,12 @@ connectors) are first answered on Rev A.
 | ⚠️ | Is the 2204's cogging noticeable in smooth mode? | Motor choice (fallback: SparkFun ROB-20441) |
 | ❓ | Knob current at rest, while clicking, at an end stop | Power budget numbers |
 | ❓ | **Rev A.** Does the module's tongue on its two torsion necks give a good press feel (force, travel, no wobble when turning), and does side force cause false clicks? | Neck width, module PCB thickness, striker setting; parallel flexure if side force clicks (D10) |
-| ❓ | **Rev A.** Does the touch band work through the printed plate, next to a running motor and a lit panel, with no false touches from a hand on a knob? With the AT42QT2120, is the interpolated position within ±5%? | Touch band design; knobs move forward if it fails (D11) |
+| ❓ | **First build with the band** (optional since D24). Does the touch band work through the printed plate, next to a running motor and a lit panel, with no false touches from a hand on a knob? With the AT42QT2120, is the interpolated position within ±5%? | Touch band design; knobs move forward if it fails (D11) |
 | ❓ | How fast do images go over USB? (Plan on ~0.5 MB/s; target a full page < 300 ms) | Protocol (compression, framing) |
 | ❓ | Can the RP2350B run 5 FOC loops at ≥ 2–5 kHz each? | Knob firmware |
 | ❓ | Does the MT6701 breakout read all 14 bits over SSI on the RP2350B (SPI mode, last-bit clock edge, CRC)? See the notes in [parts.md](parts.md) | Sensor driver, backplane |
 | ❓ | Does the motor fit and center on the stand's deck as on the haptic module (bolt pattern, magnet gap)? The board's own fit is first checked on Rev A | `MOTOR_*` in `params.py` |
-| ⚠️ | Rev A is the first build of the backplane, the knob modules, the USB board and the touch band. Which board needs its one planned revision? | [cost.md](cost.md) (single-board respin costs) |
+| ⚠️ | Rev A is the first build of the backplane, the knob modules (with the new DRV8311H) and the USB board. Which board needs its one planned revision? | [cost.md](cost.md) (single-board respin costs) |
 
 ## Answer before the full build
 
@@ -59,7 +59,7 @@ Cabling (new with the internal hub; [wiring.md](wiring.md)):
 | ✅ | Power on default 500 mA ports (D9). **Answer:** full haptics need a 1.5 A+ port over C-to-C; on default ports haptics are nearly off; ~0.8 A motor budget on 1.5 A ports until measured; optional PD sink footprint ([wiring.md](wiring.md)) | Measure real motor current on the test kit, then on Rev A | Power budget |
 | ❓ | FFC contact side: type B (opposite sides) assumes top-contact ZIFs on both boards | ZIF datasheet | Key cable order |
 | ❓ | One JLC panel means one board thickness, but the touch band was planned at 0.8 mm | Rev A: the band is 1.6 mm in the panel; if it can't sense through the plate, its one revision is ordered separately at 0.8 mm | Touch band, cost |
-| ⚠️ | Extended-part fees: the base panel has 16 extended part types (19 on the old single knob board; 24 before the basic/preferred swaps), the haptic module design 5 and the lite module design 1 ($3.07 each per order and design at JLC; list in cost.md), not ~5. Cost isn't a design driver (D1), but [cost.md](cost.md) includes these and US import duty | Count from the BOM with JLC's BOM tool; get a real JLC cart quote with a US address | Cost |
+| ⚠️ | Extended-part fees: the base panel has 13 extended part types (16 with the optional touch band, D24; 19 on the old single knob board; 24 before the basic/preferred swaps), the haptic module design 4 (5 with the TMC6300 and inverter) and the lite module design 1 ($3.07 each per order and design at JLC; list in cost.md), not ~5. Cost isn't a design driver (D1), but [cost.md](cost.md) includes these and US import duty | Count from the BOM with JLC's BOM tool; get a real JLC cart quote with a US address | Cost |
 | ✅ | Can every board be top-side only (D6)? **Yes, in the model:** each haptic module's press switch sits on the top side of its fixed front border and an arm on the printed motor spacer presses it (an M2×3 set screw in the arm is the striker); the drivers sit on the same border, so only sensor traces cross the hinge. The slot connector's pogo pins are on the backplane's top and press pads under the module (D23); the motor header is a vertical SMD part (C41417360). Still to pick: a reverse-mount BOOTSEL tact switch (fallback: a plain one on the bottom, the only bottom part) | Floorplan with real footprints before the full order | Backplane, assembly cost ([pcb.md](pcb.md)) |
 
 Everything else:
@@ -67,7 +67,7 @@ Everything else:
 | | Question | How we answer it | Affects |
 |---|---|---|---|
 | ❓ | Is a full-screen redraw at 1024×600 fast enough on the ESP32-S3? | Test on a 7B board | Firmware design |
-| ✅ | Touch band controller (D12). **Answer:** **AT42QT2120-SUR** (SOIC-20, LCSC C614938, $1.89, 69 in stock on 2026-10-17; extended part at JLC). The MPR121 is dropped (discontinued, NXP PCN16772). Its slider is only 3 channels, so all 12 channels run as keys and firmware interpolates the position | Check JLC stock on quote day; if it's gone, drop the touch band rather than pay for an alternative (`TOUCH_BAR = False` in `cad/params.py`) | Touch band PCB |
+| ✅ | Touch band controller (D12; the band is off by default since D24). **Answer:** **AT42QT2120-SUR** (SOIC-20, LCSC C614938, $1.89, 69 in stock on 2026-10-17; extended part at JLC). The MPR121 is dropped (discontinued, NXP PCN16772). Its slider is only 3 channels, so all 12 channels run as keys and firmware interpolates the position | Check JLC stock on quote day; if it's gone, drop the touch band rather than pay for an alternative (`TOUCH_BAR = False` in `cad/params.py`) | Touch band PCB |
 | ✅ | Host software (D4). **Answer:** a VIA-style web configurator (WebUSB/WebHID/Web Serial, Chromium) is the main tool, settings stored on the device; an optional daemon for live integrations. OpenDeck/Companion Satellite clients maybe later ([configurator.md](configurator.md)) | — | Host software |
 | ❓ | Image throughput over the WebUSB vendor bulk interface on the 7B (plan ~0.5 MB/s) | Measure on the prototype | Protocol |
 | ✅ | Display reflash confirmation without the GPIO6 link. **Answer (D17 changed):** no confirmation by default, so no pinhole. Only with the optional lock on and no link does a display-only reflash need the BOOT pinhole | — | [protocol.md](protocol.md), [recovery.md](recovery.md), [configurator.md](configurator.md) |
@@ -84,6 +84,18 @@ Everything else:
 | ❓ | Alignment of printed carriers: the pads (1.8 mm) allow ±0.4 mm; the base's key pins, the plate's dividers and the slot bosses through the backplane locate the module. Is a home-printed PETG base and cover inside that, and is the base's 2.5 mm (the pins' working height, ±0.25 mm) held? The motor bell runs 0.67 mm from the plate's dividers (model): enough with real motors and prints? | Fit coupon, then the first module | `HOLE_COMP`, `POGO_WORK` |
 | ❓ | Mate cycles: the pins are rated 10,000 cycles; tens of swaps are expected. Do the ENIG pads wear through, or the inserts loosen, after ~50 swaps? | Rev A swap test ([prototype-tests.md](prototype-tests.md)) | Pads, inserts |
 | ❓ | Patent screen for swappable knob modules before selling | Before any sale | — |
+
+## Cost target and driver (D24)
+
+| | Question | How we answer it | Affects |
+|---|---|---|---|
+| ❓ | **DRV8311H with SimpleFOC.** Nobody is known to run it with SimpleFOC yet. Does it run `BLDCDriver3PWM` (3 PWM + enable) cleanly: smooth-mode current, detent feel against the TMC6300, driver temperature at an end-stop hold, no faults at 4.75 V, a wake you can't feel (1–3 ms)? | Driver bench board on the knob test stand ([prototype-tests.md](prototype-tests.md), "Driver comparison"), before the Rev A order | Haptic module driver; the TMC6300 fallback is a module respin |
+| ❓ | **SS6343M as a cheaper driver** (LeadPower, C5370899, $0.43, 4,220 in stock, 3–16 V, QFN-24 3 × 4 mm, EN + PWM per phase). Chinese-only datasheet, no known users. Does it pass the same tests? Is KiCad's QFN-24 3 × 4 mm footprint right for it (checked against the drawing, not the part)? | Same bench board, second channel; check JLC's preview of the bench board | A later module revision (~$0.5 per module) |
+| ❓ | Does an unpowered DRV8311H's nFAULT load the shared, pulled-up fault line while the motor rail is off? | Bench board: VM off, 3V3 pull-up on the fault line, measure the current | Fault line on slot contact C6 ([wiring.md](wiring.md)) |
+| ❓ | **Motor factory samples.** Unbranded 2204 260KV hollow-shaft motors at $3.5–6 FOB (Alibaba, 50–100 minimum): phase resistance, KV, bolt patterns, thread depth and cogging against the Mitoot motors | Samples from 2–3 factories; measure and spin by hand before any bulk order | 100-unit cost, `MOTOR_*` in `params.py` |
+| ❓ | **Home-printed cap clarity.** Do caps and knob windows printed on an Elegoo Saturn 4 Ultra 16K (washed, cured, clear-coated) look as clear over the panel as JLC3DP's? | Print one plate of caps and compare it side by side with JLC3DP caps on the 7B | 100-unit cost (owner printing, ~$16–30 per device) |
+| ❓ | **FFC length.** LCSC's 12-pin 1.0 mm reverse FFC comes in 100 mm (C80646), not 80. The route needs 74 mm with the plate lifted; does the extra ~20 mm fold away by the right wall without pressing on the ZIF or the fence? | Rev A: close the case with a 100 mm cable | Key cable, BOM |
+| ⚠️ | **$250 at 100 units** works only near zero margin and without spreading the one-time costs (patent clearance, FCC testing, development, printers: ~$8.6–22k) over the 100 ([cost.md](cost.md), "Path to $250") | Owner's call after a working device: run size (300–500), an at-cost group buy, or early-backer pricing | Pricing |
 
 ## Lite modules (D22)
 
@@ -167,3 +179,7 @@ Options are in [design-review.md](design-review.md). ✅ All answered:
 - ✅ D23 modules (2026-10-19): knobs are modules in five slots (haptic,
   lite or blank), swapped from the top; a backplane with the RP2350B under
   them; modules have no MCU ([knob-module.md](knob-module.md))
+- ✅ D24 cost target (2026-10-19): $250 retail at 100 units for the full
+  version; DRV8311H driver (TMC6300 fallback), touch band off by default,
+  factory motors, owner-printed caps, bulk cables and hardware; a driver
+  bench board in the test kit ([cost.md](cost.md))

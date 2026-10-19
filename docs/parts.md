@@ -9,10 +9,12 @@ parts:
    the bench and then go into the full build ("Rev A").
 2. **A throwaway test kit.** Bought breakouts for the knob (SparkFun
    TMC6300, an MT6701 board), a WeAct RP2350B core board and a CH334F hub
-   module (both stay as the firmware dev bench), and one custom PCB: the
-   rev C 2-key frame PCB on the real 7B, with 2 + 2 caps, a printed top
-   plate (it carries the cap guides) and a laser-cut acrylic base. A
-   printed knob test stand holds the motor over the sensor.
+   module (both stay as the firmware dev bench), and two small custom
+   PCBs: the rev C 2-key frame PCB on the real 7B, with 2 + 2 caps, a
+   printed top plate (it carries the cap guides) and a laser-cut acrylic
+   base; and the driver bench board (D24: the haptic module's DRV8311H and
+   a cheaper SS6343M, next to the SparkFun TMC6300). A printed knob test
+   stand holds the motor over the sensor.
 3. **Free tests:** the scrap-FR-4 hinge test (D10).
 
 Dropped: the Rev 0 knob module and the Rev 0.5 test board. Rev A is the
@@ -67,20 +69,26 @@ are searches: pick a listing with good ratings and a clear pinout photo.
 
 | Qty | Part | ~Price | Link |
 |---|---|---|---|
-| 1 | **SparkFun TMC6300 brushless motor driver breakout, ROB-21867** (2–11 V, 2 A peak). The same driver chip as the haptic module. It takes 6 PWM inputs (UH/UL, VH/VL, WH/WL). Headers aren't fitted: solder them (iron above) or use a makerspace | $17.95 + ~$5–9 shipping | [SparkFun](https://www.sparkfun.com/sparkfun-brushless-motor-driver-3-phase-tmc6300.html) |
+| 1 | **SparkFun TMC6300 brushless motor driver breakout, ROB-21867** (2–11 V, 2 A peak). The haptic module's fallback driver (D24; the module now uses the DRV8311H, on the bench board in Order 4): the known-good reference the other two are compared with. It takes 6 PWM inputs (UH/UL, VH/VL, WH/WL). Headers aren't fitted: solder them (iron above) or use a makerspace | $17.95 + ~$5–9 shipping | [SparkFun](https://www.sparkfun.com/sparkfun-brushless-motor-driver-3-phase-tmc6300.html) |
 
-## Order 4: JLCPCB + JLC3DP (~$50–90 with shipping and duty, after the motor arrives)
+## Order 4: JLCPCB + JLC3DP (~$80–130 with shipping and duty, after the motor arrives)
 
 One order, one shipping and duty charge. It waits for the motor, because
 the knob test stand's screw holes come from measuring it.
 
+- **Driver bench board** (D24, `hardware/driver-bench/`), 56 × 40 mm,
+  JLC-assembled (5 made, 2 assembled): a DRV8311H channel and an SS6343M
+  channel, a 1×10 2.54 mm header to the WeAct RP2350B (3 PWM shared, an
+  enable and a fault line per channel, 3V3, GND), a 1×3 motor header per
+  channel and a 2-pin 5 V input. Solder the headers yourself (through-hole,
+  from a 1×40 strip). ~$30–40 with duty, no extra shipping in this order.
 - **Rev C prototype frame PCB** (`hardware/proto-frame/`,
   `proto_frame_pcb_outline.dxf`), 58.3 × 30.7 mm: the full build's two
   top-left keys at the same place on the 7B. Four B3U footprints,
   JLC-assembled: SW1/SW2 under the keys, SW3/SW4 the optional second
   switches to compare one switch per key with two. 4 M2 pan-head holes off
   the glass and 2 countersunk holes over it (JLC's countersink option).
-  The only custom PCB before Rev A.
+  With the driver bench board, the only custom PCBs before Rev A.
 - **Caps: 2 + 2**, JLC3DP clear resin (SLA), one standard clear finish
   ([JLC3DP clear printing guide](https://jlc3dp.com/fr/blog/clear-3d-printing-guide)):
   two one-nub caps (`key_cap_clear_resin.stl`) for the one-switch test and
@@ -127,11 +135,16 @@ force for 0.15 mm of travel; it sizes Rev A's hinge perforations.
   standby) and MT6701 breakout (SSI: CS, CLK, DO). 5 V for the driver
   comes from the bench supply with short, thick leads, not breadboard
   jumpers ([lessons.md](lessons.md) #2).
-- **3-PWM on the breakout:** the haptic module drives each low side from an
-  inverter. On the breakout, drive each low-side input from the inverted
-  output of the same PWM slice, which is what the inverter does. Keep the
-  standby rule: no input high while standby is low
-  ([knob-module.md](knob-module.md)).
+- **3-PWM on the SparkFun breakout:** drive each low-side input from the
+  inverted output of the same PWM slice (the TMC6300 fallback's inverter
+  did that). Keep its standby rule: no input high while standby is low.
+- **Driver bench board:** the same three PWM pins drive both of its
+  channels; set one channel's enable high at a time (SimpleFOC
+  `BLDCDriver3PWM` with that enable pin). Feed 5 V into its 2-pin input
+  through the USB power meter (or the bench supply for the 4.75 V test),
+  and move the motor plug between the channel headers and the SparkFun
+  breakout. Tests: [prototype-tests.md](prototype-tests.md), "Driver
+  comparison".
 - **MT6701 over SSI:** read the full 24-bit frame (3 bytes) and check its
   CRC. On some MCUs the SPI peripheral only sees 13 of the 14 angle bits,
   because SSI isn't quite SPI and the last bit gets no falling clock edge;
@@ -147,15 +160,16 @@ force for 0.15 mm of travel; it sizes Rev A's hinge perforations.
   Order 4. Also check the plug on the motor leads.
 - Generic breakouts and ESP32 clones differ in pin order. Wire from the
   listing's pinout, not a tutorial.
-- **Touch is deferred to Rev A.** The band is optional (D12); its
-  realistic test needs the AT42QT2120 next to a running motor under the
-  printed plate, which only Rev A has.
+- **Touch isn't in the kit.** The band is an optional add-on, off by
+  default (D12, D24); its realistic test needs the AT42QT2120 next to a
+  running motor under the printed plate, so it waits for the first build
+  that fits one.
 
 ## Rough total
 
 Final parts ~$120–175 (Orders 1–2, with duty; counted in the full build),
-throwaway kit ~$100–170 (SparkFun, breakouts, JLC order, plates), tools
-~$70–140. Details and the development total: [cost.md](cost.md).
+throwaway kit ~$130–210 (SparkFun, breakouts, JLC order with the driver
+bench board, plates), tools ~$70–140. Details and the development total: [cost.md](cost.md).
 
 ## Sequence
 
@@ -173,5 +187,5 @@ Rough durations; plan on 6–9 weeks to the go/no-go and the Rev A order.
 5. Boards and prints arrive → knob on the test stand, keys on the 7B
    (stages 3–4).
 6. Run the tests in [prototype-tests.md](prototype-tests.md) and decide.
-7. Rev A order (2–3 weeks, longer if the TMC6300 or MT6701 need
+7. Rev A order (2–3 weeks, longer if the DRV8311H or MT6701 need
    pre-ordering). Check JLC stock again on quote day.

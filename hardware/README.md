@@ -18,17 +18,18 @@ Python), plus the project's `.venv` for the CAD.
 | Board | Status | Folder |
 |---|---|---|
 | Prototype frame PCB, rev C (2 keys on the 7B) | Generated, DRC clean, untested | [`proto-frame/`](proto-frame/) |
+| Driver bench board (D24: DRV8311H + SS6343M channels, test kit) | Generated, DRC clean, untested | [`driver-bench/`](driver-bench/) |
 | Rev A frame PCB (21 keys) | After the prototype. Outline: `cad/out/full_frame_pcb_outline.dxf` | — |
 | Rev A backplane (D23: RP2350B, connectors, a pogo-pin slot connector per knob slot) | After the prototype ([pcb.md](../docs/pcb.md), [wiring.md](../docs/wiring.md)). Outline: `cad/out/full_backplane_outline.dxf` | — |
-| Rev A haptic module (one knob: TMC6300, MT6701, press switch, motor header) | After the prototype; first build of the knob circuit ([knob-module.md](../docs/knob-module.md)). Outline: `cad/out/module_haptic_pcb_outline.dxf` | — |
+| Rev A haptic module (one knob: DRV8311H, MT6701, press switch, motor header) | After the prototype; first build of the knob circuit ([knob-module.md](../docs/knob-module.md)). Outline: `cad/out/module_haptic_pcb_outline.dxf` | — |
 | Rev A lite module (D22: push encoder) | With the haptic module; same outline and pads ([knob-module.md](../docs/knob-module.md), end). Outline: `cad/out/module_lite_pcb_outline.dxf` | — |
 | Rev A USB board (CH334F hub) | After the prototype. Outline: `cad/out/full_usb_board_outline.dxf` | — |
-| Rev A touch band | After the prototype (optional, D12). Outline: `cad/out/full_touch_band_outline.dxf` | — |
+| Touch band (optional add-on, off by default, D24) | When a build fits it (D12). Outline: `cad/out/full_touch_band_outline.dxf` | — |
 
 Dropped 2026-10-18 (D3): the Rev 0 knob module and the Rev 0.5 test
 board. The prototype uses bought breakouts for the knob, controller and
-hub ([parts.md](../docs/parts.md)), so rev C is the only custom board
-before Rev A. Plan on one revision of whichever Rev A board fails, ordered
+hub ([parts.md](../docs/parts.md)), so rev C and the driver bench board
+(D24) are the only custom boards before Rev A. Plan on one revision of whichever Rev A board fails, ordered
 alone ([cost.md](../docs/cost.md)).
 
 ## Prototype frame PCB (rev C)
@@ -83,6 +84,61 @@ separate schematic for a 4-switch board).
 |---|---|
 | ![top](proto-frame/render_top.png) | ![bottom](proto-frame/render_bottom.png) |
 
+## Driver bench board (D24)
+
+A small 2-layer board for the test kit: one **DRV8311H** channel (the
+haptic module's driver since D24) and one **SS6343M** channel (a cheaper
+candidate), driven by the WeAct RP2350B core board, next to the SparkFun
+TMC6300 breakout, so all three run the same 2204 + MT6701 test stand
+([prototype-tests.md](../docs/prototype-tests.md)). Unlike rev C it isn't
+cut from the CAD: `gen_pcb.py` defines the parts, nets and placement and
+routes it with a small grid router (escape stubs on the QFNs, a ground
+pour on both layers), then `export.sh` runs DRC and writes the JLC files.
+
+- **Size:** 56 × 40 mm, 2-layer 1.6 mm, four M3 holes. HASL is enough for
+  a throwaway board (ENIG ~$15–20 more). JLC assembles the SMD parts (two
+  extended types: the two drivers); the 2.54 mm headers are through-hole,
+  soldered by hand like the breakouts' headers (cut from a 1×40 strip,
+  LCSC C2337).
+- **J1, 1×10 to the core board:** `1 GND · 2 PWM_A · 3 PWM_B · 4 PWM_C ·
+  5 EN1 · 6 FLT1 · 7 3V3 · 8 FLT2 · 9 EN2 · 10 GND`. The three PWM lines go
+  to both drivers; each channel has its own enable (10 kΩ pull-down) and
+  fault line (open drain, 10 kΩ pull-up to 3V3). Enable one channel at a
+  time. 3V3 sits between the fault lines, never next to GND.
+- **J4, 5 V in (VM):** 2-pin header: USB 5 V through the USB-C power meter
+  and a USB-C breakout, or the bench supply (set 4.75 V for the brown-out
+  test). 22 µF at the input.
+- **J2 / J3, motor:** 1×3 headers, one per channel; move the motor plug.
+  The SS6343M's header is labeled C-B-A top to bottom (phase order doesn't
+  matter: the firmware finds it).
+- **U1 DRV8311HRRWR** (C5218862), wired as on the haptic module: INHA/B/C
+  ← PWM_A/B/C; nSLEEP and INLA/B/C ← EN1; MODE and SLEW to AVDD (3x PWM,
+  5 A overcurrent level); GAIN to GND; CSAREF on AVDD; SOA/SOB/SOC open.
+  2 × 22 µF + 100 nF on VM/VIN_AVDD, 100 nF CP to VM, 1 µF + 100 nF on
+  AVDD.
+- **U2 SS6343M-QF-TP** (C5370899, QFN-24 3 × 4 mm, 0.4 mm): ENA/B/C and
+  nSLEEP ← EN2; PWMA/B/C ← PWM_A/B/C; VIN, VIN_LDO to VM with 2 × 22 µF +
+  100 nF; 1 µF VCP to VIN; 4.7 µF on V3P3; LSS and GND to ground. Its
+  datasheet is in Chinese only and nobody is known to use it: the footprint
+  is KiCad's QFN-24 3 × 4 mm 0.4 mm (EP 1.65 × 2.65), checked against the
+  datasheet's drawing (EP 1.7 × 2.7, 0.2 × 0.3 mm leads): check it again in
+  JLC's preview.
+- **Tracks:** 0.2 mm signals, 0.5 mm for VM, ground and the motor phases
+  where there's room (0.2 mm next to the QFN pins). Fine for a bench board
+  at ~1 A peaks.
+
+```sh
+hardware/driver-bench/export.sh     # generate -> DRC -> JLC files
+```
+
+Outputs: `driver-bench.kicad_pcb`, `netlist.txt` (the schematic, as a
+netlist), `jlc/driver-bench-gerbers.zip`, `jlc/driver-bench-bom.csv` and
+`jlc/driver-bench-cpl.csv` (check the QFN rotations in JLC's preview).
+
+| Top | Bottom |
+|---|---|
+| ![top](driver-bench/render_top.png) | ![bottom](driver-bench/render_bottom.png) |
+
 ## Notes for the boards still to draw
 
 - **Top side only (D6).** Every part goes on one side so JLC's single-side
@@ -93,7 +149,7 @@ separate schematic for a 4-switch board).
   SMD pogo pins on the backplane's top pressing ENIG pads under the module;
   BOOTSEL is a reverse-mount tact switch (or, if none is found, a plain one
   on the bottom: the only bottom part).
-- **Drivers off the tongue (D16):** the model puts each TMC6300 on its
+- **Drivers off the tongue (D16):** the model puts each DRV8311H on its
   module's fixed front border. Only the MT6701's lines cross a hinge neck.
 - **Slot connector (D23):** 18 pogo pins per slot, 3 × 6 at 3.0 × 2.5 mm,
   under each module's front border; pinout in [wiring.md](../docs/wiring.md).
@@ -113,5 +169,7 @@ separate schematic for a 4-switch board).
   detented and smooth Bourns PEC11R); JLC hand-solders it, so the board
   stays top-side assembly. Each module has an ID diode from its column to
   ID row A (haptic) or B (lite), so the firmware knows what's in each slot.
-- **Touch band (D12):** optional; `TOUCH_BAR = False` in `cad/params.py`
-  removes the band, its cable and the backplane's SH header from the model.
+- **Touch band (D12, D24):** optional, off by default (`TOUCH_BAR = False`
+  in `cad/params.py`): no band or cable in the model, and the backplane's
+  SH header is a footprint only. `TOUCH_BAR = True` (or
+  `CLICKDECK_TOUCH_BAR=1`) builds it.

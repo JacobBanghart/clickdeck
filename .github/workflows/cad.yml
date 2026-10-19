@@ -34,3 +34,24 @@ jobs:
             echo "::error::cad/out/summary.md is stale. Run 'python cad/build.py' and commit cad/out/."
             exit 1
           }
+
+  touch-band:
+    # The touch band is an optional add-on, off by default (D24). Build and check it once,
+    # default slots only, in parallel with the main job.
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          cache: pip
+          cache-dependency-path: cad/requirements.txt
+
+      - name: Install pinned CAD toolchain
+        run: pip install -r cad/requirements.txt
+
+      - name: Assembly and fit checks with the touch band fitted (default slots)
+        env:
+          CLICKDECK_TOUCH_BAR: "1"
+        run: python cad/assembly.py --check --default-only

@@ -18,13 +18,13 @@ repo.
                                                                        (5 V for the display board too)
 
  backplane (RP2350B) ◄── 12-pin FFC ── frame PCB (21 key switches + diodes)
-        ├──── JST-SH 6-pin cable ────► touch band (touch controller, I²C)
+        ├┄┄┄┄ JST-SH 6-pin cable ┄┄┄┄► touch band (optional add-on, off by default, D24)
         ├──── 18 pogo pins ×5 slots ─► knob modules (haptic: driver, sensor, motor; lite: encoder) or blanks
         └┄┄┄┄ HY2.0 3-pin lead (optional) ┄┄► Waveshare 7B J8 (GPIO6): page, wake
 ```
 
 **Knob slots (D23):** the knobs are modules. Each of the five slots takes a
-haptic module (TMC6300, MT6701, press switch, its motor plugged in), a
+haptic module (DRV8311H driver, MT6701, press switch, its motor plugged in), a
 lite module (push encoder) or a blank. Modules have no MCU; they connect
 to the backplane through the slot connector (below) and nothing else. The
 haptic module's motor plugs into a header on the module itself.
@@ -83,9 +83,10 @@ difference).
 by the USB link and the loop, so the key FFC runs from a ZIF connector on top
 of the frame PCB's right edge, down the 1 mm gap between the panel and the
 right wall, into a ZIF connector on the backplane's right end. The touch
-band's connector sits at its right end, right of slot 4, facing right so
-the plug stays clear of the slot's opening; its cable drops along the
-right wall to a top-entry header beside the ZIF.
+band (optional, off by default, D24) has its connector at its right end,
+right of slot 4, facing right so the plug stays clear of the slot's
+opening; its cable drops along the right wall to a top-entry header beside
+the ZIF. Without the band that header is a footprint only.
 
 **Knob slots across the front.** The backplane runs under the five slots
 with a slot connector (18 pogo pins) under each module's front border; the
@@ -246,12 +247,12 @@ All on the boards, fitted by JLC. Part numbers: [bom.md](bom.md).
 | Backplane | Slot connector ×5: 18 SMD pogo pins each (C2988082) | Pads under each module | Under each slot's front; pinout in "Slot connector" below (D23) |
 | Haptic module | 1×3 2.54 mm vertical SMD header (HX PZ2.54-1x3P TP-YQ, C41417360) | Motor plug | On the module's front border, plug upright. Keyed plugs: check against the motor's |
 | Backplane | 12-pin 1.0 mm flip-lock ZIF | Key FFC | Right end, on a small tab. Series resistors and three SRV05-4-P-T7 arrays on the key lines |
-| Backplane | JST-SH 6-pin, top entry (BM06B-SRSS-TB) | Touch cable | Right end, front. One SRV05-4-P-T7 on SDA/SCL |
+| Backplane | JST-SH 6-pin, top entry (BM06B-SRSS-TB) | Touch cable | Right end, front. One SRV05-4-P-T7 on SDA/SCL. Footprint only by default; fitted with the touch band (D24) |
 | Backplane | HY2.0 3-pin, footprint always, fitting optional | Link lead to the 7B's J8 | GPIO6 link (see below) |
 | Backplane | BOOTSEL button: reverse-mount tact switch (part not chosen), plunger through the board, reached through a pinhole in the case floor | — | Recovery ([recovery.md](recovery.md)) |
 | Backplane | USB test pads | — | Bench recovery only. Silkscreen "unplug GH first" (the pads would back-feed with the cable in) |
 | Frame PCB | 12-pin 1.0 mm flip-lock ZIF, top side | Key FFC | Right edge; the frame PCB's edge is about 1.2 mm inside the panel's metal edge (model) |
-| Touch band | JST-SH 6-pin, side entry (SM06B-SRSS-TB), underside | Touch cable | Right end, past the last motor |
+| Touch band (optional) | JST-SH 6-pin, side entry (SM06B-SRSS-TB), underside | Touch cable | Right end, past the last motor |
 
 ### Pinouts
 
@@ -302,8 +303,8 @@ Bought ready-made; lengths from the model (`cad/assembly.py`, table in
 |---|---|---|
 | USB-C to USB-C, USB 2.0, one 90° side-exit plug + one straight plug | 100 mm | Loop sized for it (route 98 mm) |
 | JST-GH 1.25 mm 8-pin, both ends, pin 1 to pin 1, 26 AWG | 100 mm | Route 73 mm, the rest as a gentle S. Check pin-1-to-pin-1 continuity on arrival |
-| FFC 12-pin 1.0 mm, contacts on opposite sides (type B) | 80 mm | Top plate lifts 40 mm with it plugged in (needs 70 mm) |
-| JST-SH 1.0 mm 6-pin, both ends, pin 1 to pin 1 | 80 mm | Same (needs 69 mm). A longer spare folds against knob 4's bell |
+| FFC 12-pin 1.0 mm, contacts on opposite sides (type B): LCSC C80646 | 100 mm | Top plate lifts 40 mm with it plugged in (needs 74 mm). LCSC stocks 100 mm, not 80 (D24); the extra ~20 mm folds with the rest of the spare in the gap by the right wall (check on Rev A) |
+| JST-SH 1.0 mm 6-pin, both ends, pin 1 to pin 1 (touch band only) | 80 mm | Same (needs 75 mm). A longer spare folds against knob 4's bell |
 | HY2.0 3-pin, both ends (optional link) | 50 mm | Backplane to the 7B's J8 (route 27 mm) |
 
 **FFC contact side:** with top-contact ZIF connectors on the top of both
@@ -348,9 +349,9 @@ front of the bell and behind the cover's front wall, clear of the spinning
 bell (model). A 30 cm lead may not fit there: measure it on arrival, and
 ask the seller for a short lead if it doesn't (open question).
 
-**Service loops.** The top plate lifts 40 mm with the key and touch cables
-still plugged in (checked), which is enough to reach the ZIF latch and the
-touch plug at the backplane's right end. The display board's USB cable and
+**Service loops.** The top plate lifts 40 mm with the key cable (and the
+touch cable, if fitted) still plugged in (checked), which is enough to reach
+the ZIF latch and the touch plug at the backplane's right end. The display board's USB cable and
 the USB link unplug before the display or the backplane come out (guide in
 [assembly.md](assembly.md)).
 
@@ -376,7 +377,7 @@ step that connects it (checked in the model, like the screwdriver access).
   an ADC resistor per slot would have needed five of the eight ADC pins
   and two more GPIOs than there are.
 - **ESD:** the cap gaps leave ~5.6 mm air paths to the B3U terminals, and
-  the lines run 80 mm of FFC to bare GPIO. The frame PCB has a GND guard
+  the lines run 100 mm of FFC to bare GPIO. The frame PCB has a GND guard
   ring around each window; the backplane has series resistors and three
   SRV05-4-P-T7 arrays at the ZIF.
 
@@ -398,21 +399,26 @@ row first, left to right as seen from above:
 |---|---|---|---|---|---|---|
 | A (front) | GND | VMOT | VMOT | GND | 3V3 | GND |
 | B | PWM_U / ENC_A | PWM_V / ENC_B | PWM_W | NSTDBY | SSI_DO | SSI_CLK |
-| C | SSI_CS | COL_k | ROW_PRESS | ROW_IDA | ROW_IDB | NC (reserved) |
+| C | SSI_CS | COL_k | ROW_PRESS | ROW_IDA | ROW_IDB | nFAULT |
 
 - **VMOT:** the eFuse-protected motor rail, two pins (1.5 A each). Lite
   modules and blanks leave it unconnected.
-- **PWM_U/V/W, NSTDBY:** per slot. The 10 kΩ pull-downs (RP2350 erratum E9)
-  sit on the haptic module, next to its driver, so a lite module's lines
-  aren't loaded.
+- **PWM_U/V/W, NSTDBY:** per slot. On a haptic module PWM_U/V/W drive the
+  DRV8311H's INHA/B/C and NSTDBY its nSLEEP and INLA/B/C (3x PWM, D24). The
+  10 kΩ pull-downs (RP2350 erratum E9) sit on the haptic module, next to its
+  driver, so a lite module's lines aren't loaded.
+- **nFAULT (C6, D24):** the haptic module's driver fault output, open
+  drain. Bussed across the five slots to one GPIO with one 10 kΩ pull-up
+  on the backplane (wired-OR, no diodes). Lite modules and blanks leave it
+  unconnected.
 - **ENC_A/B reuse PWM_U/V.** U and V of a slot are GPIO 2m and 2m+1 (one
   PWM slice, so they share a frequency; and consecutive, as the PIO
   quadrature reader needs). On a lite slot the firmware sets them as
   inputs. That's safe both ways: the lite module has 10 kΩ in series on A
   and B, so a slot misread as haptic drives at most 0.33 mA into a closed
   encoder contact; a haptic module misread as lite sees inputs, its
-  pull-downs keep NSTDBY and the PWM lines low, and the driver stays in
-  standby.
+  pull-downs keep NSTDBY and the PWM lines low, and the driver sleeps with
+  its outputs in Hi-Z (re-checked for the DRV8311H, D24).
 - **SSI:** CLK and CS are shared by all slots (bussed on the backplane);
   each slot has its own data line, read together by PIO. Pull-downs on
   the data lines keep empty and lite slots at a known level.
@@ -430,14 +436,14 @@ row first, left to right as seen from above:
 | Per slot: PWM U, V, W (lite: encoder A, B on U, V), NSTDBY, SSI data; × 5 | 25 |
 | SSI clock + chip select, shared | 2 |
 | Key matrix: 7 columns + rows 1–3 (keys), row 4 (knob presses), rows 5–6 (module ID) | 13 |
-| I²C to touch band (polled, no interrupt) | 2 |
+| I²C to the optional touch band (polled, no interrupt; kept free without it) | 2 |
 | 5 V monitor (ADC) | 1 |
 | CC1/CC2 current-offer sense (ADC) | 2 |
 | Link to the display board (UART TX, optional lead) | 1 |
 | **Total** | **46 of 48** |
 
-Two spare: one for the five drivers' DIAG lines (diode-OR, on the
-modules), one free. The old single knob board used 45 (with a board-ID
+Two spare: one for the five drivers' nFAULT lines (open drain, wired-OR
+through slot contact C6, D24), one free. The old single knob board used 45 (with a board-ID
 strap); the slots add the second ID row and drop the strap. Nothing is
 muxed.
 
@@ -459,6 +465,9 @@ erratum E9; see [knob-module.md](knob-module.md)).
 - Nothing else: no chips.
 
 ## Touch band connections
+
+Optional add-on, off by default (D24): `TOUCH_BAR = True` in
+`cad/params.py` adds it to the model and the BOM.
 
 - Touch controller **AT42QT2120** (SOIC-20, LCSC C614938) + 12 electrodes,
   1–10 kΩ in series with each electrode next to the chip. All 12 channels

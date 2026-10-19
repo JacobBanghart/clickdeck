@@ -1,6 +1,8 @@
 """Assembly and service: steps, build checks, pictures, animation, and the guide.
 
     .venv/bin/python cad/assembly.py --check     # checks only (fast; CI)
+    CLICKDECK_TOUCH_BAR=1 .venv/bin/python cad/assembly.py --check --default-only
+                                                 # the touch band option (D24), default slots only (CI)
     .venv/bin/python cad/assembly.py --bom       # checks + docs/bom.md only
     .venv/bin/python cad/assembly.py             # checks + step pictures + guide
     .venv/bin/python cad/assembly.py --animate   # also the animation: GIF, plus MP4 if ffmpeg is installed (~15 min)
@@ -104,8 +106,8 @@ KNOB_SIDE = ("plug_ffc_knob", "plug_knob_touch")
 STEPS = [
     Step("tray", "Print the case; fit magnets, feet and inserts",
          "Print the tray, top plate and stand (all fit a 256 mm bed) in PETG, 4 walls, "
-         "≥25% infill (100% over the touch band area of the top plate; no carbon- or "
-         "metal-filled filament). PLA softens in the case's ~2.3 W of heat. Glue the four "
+         "≥25% infill (" + ("100% over the touch band area of the top plate; " if P.TOUCH_BAR else "")
+         + "no carbon- or metal-filled filament). PLA softens in the case's ~2.3 W of heat. Glue the four "
          "tray magnets into the pockets underneath. Stick the two rubber feet near the front "
          "edge (for flat use; on the stand they sit in pockets). With a soldering iron "
          "(insert tip, ~240 °C), press an M3 heat-set insert "
@@ -157,16 +159,19 @@ STEPS = [
          "the bosses: pan-head screws along the back and left edges (off the glass), "
          "countersunk ones everywhere else (flush underneath, so nothing touches the glass). "
          "Every key should click and none read pressed at rest: if one does, add a 0.1 mm "
-         "shim washer between the nearest bosses and the PCB. Stick the touch band into its pocket under the plate, below the knob "
-         "display windows, with full-coverage 3M 467MP/468MP transfer tape (no air "
-         "gaps), and plug the touch cable into it.",
+         "shim washer between the nearest bosses and the PCB."
+         + (" Stick the touch band into its pocket under the plate, below the knob "
+            "display windows, with full-coverage 3M 467MP/468MP transfer tape (no air "
+            "gaps), and plug the touch cable into it." if P.TOUCH_BAR else ""),
          TOP_SUB, move=(0, 0, -35), bench=True, view=(-60, -40), screw_view=(-60, -40)),
     Step("close", "Close the case",
          "With the PC unplugged: shake out any loose screws or debris. Rest the top plate on "
          "the two printed props (`print_plate_prop.stl`) on the tray's walls, which hold it "
-         "~40 mm up with its cables plugged in. Plug the key cable into the backplane's ZIF "
-         "connector at its right end and the touch cable into the header beside it; the spare "
-         "cable folds into the gap by the right wall, outside the fence next to slot 4. Take "
+         "~40 mm up with " + ("its cables" if P.TOUCH_BAR else "the key cable") + " plugged in. Plug "
+         "the key cable into the backplane's ZIF connector at its right end"
+         + (" and the touch cable into the header beside it; the spare cable folds"
+            if P.TOUCH_BAR else "; the spare cable folds") + " into the gap by the right wall, "
+         "outside the fence next to slot 4. Take "
          "the props out and lower the top plate (its tabs and the dividers between the slot "
          "openings register it). With the tray still on its blocks, drive the four M3 screws up "
          "from underneath into the inserts in its posts. The slots are still empty: the knob "
@@ -1223,11 +1228,15 @@ def write_guide(info, checks, shots, service):
         "1. Pull the slab off the stand (magnets).",
         "2. Pull the knob caps straight up.",
         "3. Undo the four M3 screws under the tray (the top plate's posts).",
-        "4. Lift the top plate straight up, with the caps, frame PCB and touch band on it. The",
-        "   modules and blanks stay in their slots; the plate's openings lift over them.",
-        f"   Its two cables reach {P.LIFT_SERVICE:.0f} mm; at that height unplug them at the",
-        "   backplane's right end (flip the ZIF latch up to free the key cable; pull the touch",
-        "   plug straight up).",
+        *(["4. Lift the top plate straight up, with the caps, frame PCB and touch band on it. The",
+           "   modules and blanks stay in their slots; the plate's openings lift over them.",
+           f"   Its two cables reach {P.LIFT_SERVICE:.0f} mm; at that height unplug them at the",
+           "   backplane's right end (flip the ZIF latch up to free the key cable; pull the touch",
+           "   plug straight up)."] if P.TOUCH_BAR else
+          ["4. Lift the top plate straight up, with the caps and frame PCB on it. The modules",
+           "   and blanks stay in their slots; the plate's openings lift over them. The key",
+           f"   cable reaches {P.LIFT_SERVICE:.0f} mm; at that height flip the ZIF latch up at the",
+           "   backplane's right end to free it."]),
         "",
         f"![Top plate lifted off](../cad/out/assembly/{service['open']})",
         "",
@@ -1299,15 +1308,19 @@ def lcsc(c):
     return f"[{c}]({LC.format(c)})"
 
 
+# Touch band (D12, D24): an optional add-on, off by default. Its board, chip and cable
+# leave the default BOM; the backplane keeps the SH header's footprint, not fitted.
+TB = P.TOUCH_BAR
+BASE_EXT_TYPES = 13 + (3 if TB else 0)       # extended part types on the base panel (cost.md)
 BOM_JLC_BOARDS = [
     # qty, part, spec, source, ~price, used in
-    ("1 panel", "PCBs: backplane, frame PCB, touch band, USB board, panelized",
+    ("1 panel", "PCBs: backplane, frame PCB, " + ("touch band, " if TB else "") + "USB board, panelized",
      "2-layer FR-4 1.6 mm, ENIG (owner decision: flat pads for the 0.4 mm QFNs and the pogo contacts); "
      "outlines from `cad/out/*.dxf`. Every part on one side of "
      "each board (D6), so JLC's Economic (single-side) assembly can take them. The frame PCB has "
      "countersunk M2 holes (JLC countersink option, V: fee) so its screws sit flush over the glass. "
      "JLC makes 5 panels and assembles at least 2", "JLCPCB",
-     "$45–70 for 5 panels (ENIG, 4-design fee); fees in cost.md",
+     f"$45–70 for 5 panels (ENIG, {4 if TB else 3}-design fee); fees in cost.md",
      "all boards"),
 ]
 BOM_JLC_PARTS = [
@@ -1331,17 +1344,21 @@ BOM_JLC_PARTS = [
      + " has 0) (V: pad drawing on layout day)", "~$0.2", "backplane"),
     ("1", "FFC/FPC connector, 12-pin 1.0 mm, flip-lock ZIF, right angle",
      "e.g. XUNPU FPC-1.0FX-12PWCR-H20 (V: contact side, height)", lcsc("C19269355"), "~$0.2", "backplane"),
-    ("1", "JST BM06B-SRSS-TB", "6-pin SH header, top entry (touch cable; leave off without the band)",
-     lcsc("C160392"), "~$0.4", "backplane"),
+    ("1" if TB else "— (footprint, DNP)", "JST BM06B-SRSS-TB", "6-pin SH header, top entry (touch cable). "
+     + ("Fitted with the touch band" if TB else "Not fitted by default (D24): the footprint stays so a "
+        "touch band can be added later (fit the header, or order the backplane with it)"),
+     lcsc("C160392"), "~$0.4" if TB else "—", "backplane"),
     ("1 (optional)", "HY2.0 3-pin header, 2.0 mm, SMD side entry", "GPIO6 link to the 7B's J8 (D5); the "
      "footprint is always on the board, fit it if you use the link", "LCSC (V: part not chosen)", "~$0.1",
      "backplane"),
     ("1", "BOOTSEL button", "reverse-mount SMD tact switch (plunger through the board, pressed through the "
      "floor pinhole). If none is found: a plain SMD tact switch on the bottom side, the board's only "
      "bottom-side part", "LCSC (V: part not chosen)", "~$0.1", "backplane"),
-    ("4", "SRV05-4-P-T7 ESD arrays", "4 lines each, SOT-23-6, pin 5 to 3V3. Three on the 10 key-matrix "
-     "lines at the ZIF, one on SDA/SCL at the SH header; series resistors on every line",
-     lcsc("C85364") + " (preferred extended: no loading fee; 36,942 in JLC stock, 2026-10-17)", "~$0.8",
+    ("4" if TB else "3", "SRV05-4-P-T7 ESD arrays", "4 lines each, SOT-23-6, pin 5 to 3V3. Three on the 10 "
+     "key-matrix lines at the ZIF, one on SDA/SCL at the SH header (DNP with the header); series resistors "
+     "on every line",
+     lcsc("C85364") + " (preferred extended: no loading fee; 36,942 in JLC stock, 2026-10-17)",
+     "~$0.8" if TB else "~$0.6",
      "backplane"),
     ("90", "Pogo pin, SMD, BAT WIRELESS BWCD-L3W2.0H1.0", "slot connectors (D23): 18 per slot, upright on "
      f"the top side (D6), {P.POGO[1]:g} mm tall, {P.POGO[0]:g} mm barrel, {P.POGO[2]:g} mm stroke, ~1 N, 1.5 A, "
@@ -1349,8 +1366,9 @@ BOM_JLC_PARTS = [
      lcsc("C2988082") + " (32,763 in JLC stock, $0.0596 at 50–149, 2026-10-19; extended) (V: drawing, "
      "force at 0.5 mm)", "~$5.4", "backplane"),
     ("1 set", "Backplane passives", "~470 µF bulk on the motor rail; decoupling; 1 kΩ BOOTSEL resistor at "
-     "the MCU end; pull-downs on the five SSI data lines and the two ID rows; CC sense filters; I²C "
-     "pull-ups for the touch band (the drivers' pull-downs sit on the haptic modules)",
+     "the MCU end; pull-downs on the five SSI data lines and the two ID rows; one 10 kΩ pull-up on the "
+     "shared nFAULT line (the slots' contact C6, D24); CC sense filters; I²C pull-ups for the touch band "
+     "(the drivers' pull-downs sit on the haptic modules)",
      "JLC basic parts", "$2–4", "backplane"),
     ("1", "TPS259470ARPWR eFuse (motor rail)", "soft-start switch for the motor rail only (to the slots' "
      "VMOT pins), enabled by firmware after reading CC and only with a haptic module fitted. Same part as the USB board's two VBUS switches: true reverse blocking, "
@@ -1362,14 +1380,13 @@ BOM_JLC_PARTS = [
      "frame PCB"),
     ("1", "FFC/FPC connector, 12-pin 1.0 mm, flip-lock ZIF", "same as on the backplane",
      lcsc("C19269355"), "~$0.2", "frame PCB"),
-    # Touch band
-    ("1", "Touch controller: AT42QT2120 (or none)", "capacitive slider controller, I²C, on the band's "
-     "parts side. Optional (D12): if it's expensive or out of stock, drop the band "
-     "(`TOUCH_BAR = False` in params.py removes the band, its cable and the backplane's SH header)",
-     lcsc("C614938") + " (V: stock; 69 on 2026-10-17)", "~$1.9", "touch band"),
-    ("1", "JST SM06B-SRSS-TB", "6-pin SH header, side entry", lcsc("C160405"), "~$0.9", "touch band"),
-    ("1 set", "Touch band passives", "1–10 kΩ in series with each electrode; ferrite bead + 10 µF on 3V3",
-     "JLC basic parts", "~$0.2", "touch band"),
+    # Touch band (optional add-on, D24: only with TOUCH_BAR = True)
+    *([("1", "Touch controller: AT42QT2120", "capacitive slider controller, I²C, on the band's "
+        "parts side. Optional (D12, D24): off by default", lcsc("C614938") + " (V: stock; 69 on 2026-10-17)",
+        "~$1.9", "touch band"),
+       ("1", "JST SM06B-SRSS-TB", "6-pin SH header, side entry", lcsc("C160405"), "~$0.9", "touch band"),
+       ("1 set", "Touch band passives", "1–10 kΩ in series with each electrode; ferrite bead + 10 µF on 3V3",
+        "JLC basic parts", "~$0.2", "touch band")] if TB else []),
     # USB board
     ("1", "WCH CH334F", "4-port USB 2.0 hub, QFN-24; PSELF strapped low (bus-powered), 0 Ω option to flip",
      lcsc("C5187527") + " (8,489 in stock, $0.63, 2026-10-17)", "~$0.6", "USB board"),
@@ -1437,13 +1454,13 @@ MODULE_JLC = {
          "D10); 18 ENIG pads underneath meet the slot's pogo pins (pads aren't parts, so every part is on "
          "top, D6). Its own JLC design: 5 made, at least 2 assembled (cost.md)", "JLCPCB",
          "$4–8 of a $20–40 order", "Build the knob modules"),
-        ("1", "TMC6300-LA-T", "3-phase motor driver, 2–11 V, on the fixed front border (D16)",
-         lcsc("C5274455") + " (201 in stock, 2026-10-17; DigiKey ~4,100)",
-         "~$2.4 from DigiKey via Global Sourcing; ~$5 at LCSC", "Build the knob modules"),
+        ("1", "DRV8311HRRWR (TI)", "3-phase motor driver, 3–20 V, 5 A peak, hardware variant, WQFN-24 3 × 3 mm "
+         "0.4 mm, on the fixed front border (D16). 3x PWM (MODE to AVDD); nSLEEP and INLA/B/C on NSTDBY (D24). "
+         "Fallback: TMC6300-LA-T " + lcsc("C5274455") + " (other footprint: a module respin)",
+         lcsc("C5218862") + " (7,399 in JLC stock, $0.95 at 500, 2026-10-19; extended)", "~$1.0–1.4",
+         "Build the knob modules"),
         ("1", "MT6701CT-STD", "magnetic angle sensor, SSI, SOP-8 (not the QT: that's a 3×3 QFN-16), on the "
          "tongue under the magnet", lcsc("C3003196") + " (V: JLC stock)", "~$1.6", "Build the knob modules"),
-        ("1", "SN74LVC3G04DCTR", "triple inverter (3-PWM drive), SM8 (DCT) package", lcsc("C139324"), "~$0.2",
-         "Build the knob modules"),
         ("1", "B3U-1000P", "knob press switch on the front border (the spacer's arm presses it)",
          lcsc("C231329"), "~$0.2", "Build the knob modules"),
         ("2", "1N4148W", "press switch and module-ID diodes (key matrix; wiring.md)", "JLC basic part",
@@ -1451,9 +1468,10 @@ MODULE_JLC = {
         ("1", "Pin header 1×3, 2.54 mm, vertical SMD (HX PZ2.54-1x3P TP-YQ)", "motor plug, upright on the "
          "front border; staggered SMD pins (D6)", lcsc("C41417360") + " (47,856 in JLC stock, $0.039, "
          "2026-10-19) (V: fits the motor's plug)", "~$0.04", "Build the knob modules"),
-        ("1 set", "Module passives", "2 × 22 µF 0805 at the driver; 10 kΩ pull-downs on NSTDBY and the three "
-         "PWM nets (RP2350 erratum E9: they live with the driver, so a lite module's lines stay free); "
-         "~1 kΩ series on the high-side inputs; BRUV/BRW to GND; 10 kΩ CSN pull-up; decoupling",
+        ("1 set", "Module passives", "2 × 22 µF 0805 25 V (C45783) and 100 nF on VM/VIN_AVDD; 100 nF CP to VM; "
+         "1 µF on AVDD; 100 nF on CSAREF (tied to AVDD); 10 kΩ pull-downs on NSTDBY and the three PWM nets "
+         "(RP2350 erratum E9: they live with the driver, so a lite module's lines stay free); 10 kΩ CSN "
+         "pull-up; decoupling. MODE and SLEW tied to AVDD, GAIN to GND, the current-sense outputs open",
          "JLC basic parts", "~$0.3", "Build the knob modules"),
     ],
     "lite": [
@@ -1510,8 +1528,9 @@ MODULE_BOUGHT = {
     "haptic": [
         ("1", "2204 gimbal motor (Mitoot 2204 260KV or similar)", "~28 × 13 mm, hollow shaft; lead ~30 cm with a "
          "3-pin 2.54 mm servo-style (Futaba/JR) plug per one listing (V: check plug and lead on arrival; "
-         "measure base/bell hole patterns and thread depths against params.py)", "AliExpress (two sellers)",
-         "$8–12", "Build the knob modules"),
+         "measure base/bell hole patterns and thread depths against params.py)",
+         "AliExpress (two sellers); for a 100-unit run, factory-direct after samples (cost.md)",
+         "$8–12 ($5–9 landed at 100)", "Build the knob modules"),
         ("1", "Diametric magnet 6 × 2.5 mm", "for the MT6701", "AliExpress", "~$1", "Build the knob modules"),
         ("1", f"M2×{P.STRIKER_LEN:g} set screw", "press striker, in the spacer's arm", "hardware kit", "~$0.1",
          "Build the knob modules"),
@@ -1587,7 +1606,8 @@ def write_bom(info, proto_info=None, infos=None):
     def slot_screws(inf, n):
         return [sc for sc in inf["screws"] if sc.label.startswith((f"screw_motor{n}_", f"screw_hub{n}_",
                                                                     f"screw_slot{n}_"))]
-    price = {"cable_usb_display": "$2–4", "cable_usb_knob_gh": "$1–2 (26 AWG)", "cable_keys_ffc": "$0.5–1",
+    price = {"cable_usb_display": "$2–4", "cable_usb_knob_gh": "$1–2 (26 AWG)",
+             "cable_keys_ffc": "$0.06 (LCSC " + lcsc("C80646") + ", reverse) to $1",
              "cable_touch": "$0.5–1", "cable_hy_link": "~$0.5 (optional)"}
 
     def table(rows):
@@ -1615,8 +1635,8 @@ def write_bom(info, proto_info=None, infos=None):
          "outside)", "AliExpress", "~$1", num["tray"]),
         ("1 set", "M2 shim washers, 0.1 and 0.2 mm", "between the frame PCB and its bosses, to tune the key "
          "stack", "AliExpress", "~$1", num["top_plate_sub"]),
-        ("1", "3M 467MP or 468MP transfer tape", "full coverage under the touch band (no air gaps)",
-         "AliExpress / DigiKey", "~$3", num["top_plate_sub"]),
+        *([("1", "3M 467MP or 468MP transfer tape", "full coverage under the touch band (no air gaps)",
+            "AliExpress / DigiKey", "~$3", num["top_plate_sub"])] if TB else []),
         ("—", "Epoxy", "magnets", "any", "~$3", num["tray"]),
         ("— (optional)", "Thin foam or silicone ring", "on each key cap's flange, against rattle", "any", "~$1",
          num["top_plate_sub"]),
@@ -1643,8 +1663,11 @@ def write_bom(info, proto_info=None, infos=None):
         "> check each one in JLC's parts library when ordering.",
         "",
         "Knobs are modules in slots (D23). This list has two parts: the **base device** (display,",
-        "keys, case, backplane, USB board, touch band, cables: no knobs) and what **each knob",
-        "module or blank** adds. Every slot takes a haptic module, a lite module or a blank.",
+        "keys, case, backplane, USB board, cables: no knobs) and what **each knob module or",
+        "blank** adds. Every slot takes a haptic module, a lite module or a blank. The touch band",
+        "is " + ("fitted in this build (`TOUCH_BAR = True`)." if TB else "an optional add-on, off by "
+                 "default (D24): its board, chip and cable aren't in this list (`TOUCH_BAR = True` in "
+                 "params.py adds them; the backplane keeps the SH header's footprint)."),
         f"The model's default build is the owner's first: {cfg}.",
         "",
         "The builder solders and crimps nothing: JLC fits every board-mounted part, and every",
@@ -1665,7 +1688,7 @@ def write_bom(info, proto_info=None, infos=None):
         "",
         "JLC's assembly minimum is 2 boards, so you pay for the parts on a spare set too",
         "(see [cost.md](cost.md)). JLC charges a setup fee once for the panel, plus a fee per",
-        "\"extended\" part type: 16 types with the parts above (list and fees in cost.md).",
+        f"\"extended\" part type: {BASE_EXT_TYPES} types with the parts above (list and fees in cost.md).",
         "Prices are LCSC's at the quantity for 2 boards, 2026-10-17.",
         "",
         "#### 3D prints",
@@ -1684,8 +1707,10 @@ def write_bom(info, proto_info=None, infos=None):
         "",
         "Search terms that find them: \"USB C to USB C 90 degree 10cm\" (pick a side-angle "
         "(left/right) plug for the display end, not up/down); \"JST GH 1.25 8 pin double head "
-        "cable 10cm\" (same direction, 26 AWG); \"FFC 12 pin 1.0mm 80mm\" (reverse/opposite side); "
-        "\"JST SH 1.0 6 pin double head 8cm\"; optional: \"HY2.0 3 pin double head 5cm\" (GPIO6 link).",
+        "cable 10cm\" (same direction, 26 AWG); the FFC is LCSC C80646 (12-pin 1.0 mm, 100 mm, "
+        "reverse/opposite side), or \"FFC 12 pin 1.0mm 100mm\" type B; "
+        + ("\"JST SH 1.0 6 pin double head 8cm\"; " if TB else "")
+        + "optional: \"HY2.0 3 pin double head 5cm\" (GPIO6 link).",
         "",
         "#### Hardware",
         "",
@@ -1708,10 +1733,11 @@ def write_bom(info, proto_info=None, infos=None):
         "",
         "## Totals",
         "",
-        "Base device **~$345–540** with your own 3D printer, plus per module (US import duty",
-        "included; one build, module boards ordered with the base): haptic ~$46–66 each for two",
-        "(~$30–42 each for five), lite ~$26–33 each for two, blank ~$1. The owner's first build",
-        "(2 haptic + 3 blank) comes to **~$440–675**. Prices above are per part; the totals also",
+        "Base device **~$320–505** with your own 3D printer, plus per module (US import duty",
+        "included; one build, module boards ordered with the base): haptic ~$42–57 each for two",
+        "(~$28–38 each for five), lite ~$26–33 each for two, blank ~$1. The owner's first build",
+        "(2 haptic + 3 blank) comes to **~$405–620**" + (" (the touch band adds ~$30)" if TB else "")
+        + ". Prices above are per part; the totals also",
         "include JLC's PCB, setup and extended-part fees, the parts on the spare boards, shipping and",
         "duty. Breakdown and the 5, 25 and 100 unit figures: [cost.md](cost.md).",
         "",
@@ -1739,13 +1765,16 @@ def main():
     tinfo = info
     proto, _, pinfo = model.prototype()
     checks = run_checks(flat, info, tilted, tinfo, proto=(proto, pinfo))
+    checks["problems"] += [f"fit: {w}" for w in L.warnings]   # build.py's fit warnings for this build
     others = {}
-    for cfg in P.CHECK_CONFIGS:                       # other slot configurations (D23)
+    # --default-only: skip the other slot configurations (the touch band run, D24)
+    for cfg in (() if "--default-only" in sys.argv else P.CHECK_CONFIGS):   # other slot configurations (D23)
         o_flat, _, o_info = model.full_device(tilt=False, slots=cfg)
         others[cfg] = (o_info, run_checks_slots(o_flat, o_info))
     problems = checks["problems"] + [m for _, r in others.values() for m in r["problems"]]
-    secs = " + ".join(f"{r['seconds']:.0f}s" for _, r in others.values())
-    print(f"checks ({checks['seconds']:.0f}s + {secs}): {len(problems)} problem(s)")
+    secs = "".join(f" + {r['seconds']:.0f}s" for _, r in others.values())
+    print(f"checks ({checks['seconds']:.0f}s{secs}, touch band {'on' if P.TOUCH_BAR else 'off'}): "
+          f"{len(problems)} problem(s)")
     for p in problems:
         print("  -", p)
     print(f"  screws reachable: {checks['access_ok']}/{len(info['screws'])}, "

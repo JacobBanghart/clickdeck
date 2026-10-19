@@ -441,16 +441,16 @@ def knob_stack(st: Stack, x: float, y: float, n: int, screws: list | None = None
     magnet, spacer, 2204 motor, motor header and plug, the spare lead, hub and knob.
 
     Every board part is on the top side (D6). The motor and the MT6701 sit on the
-    tongue; the driver, inverter, header and press switch on the fixed front border
+    tongue; the driver, header and press switch on the fixed front border
     (D16). The spacer's arm reaches forward over the slot, and an M2 set screw in the
     arm's tip (the striker) presses the switch when the tongue flexes down.
     """
     kpt = st.knob_pcb_top
     sensor = Pos(x, y, kpt) * Box(*P.MT6701, align=MIN)
     py = press_switch_y(y)
-    # Driver, inverter and the driver's two 22 µF on the front border, right of the arm
-    chips = Pos(x + 6.0, y - 17.4, kpt) * Box(*P.TMC6300, align=MIN)
-    chips += Pos(x + 9.2, y - 14.1, kpt) * Box(2.0, 3.1, 1.0, align=MIN)
+    # Driver (DRV8311H, D24), its two 22 µF and its 1 µF AVDD cap on the front border, right of the arm
+    chips = Pos(x + 6.0, y - 17.4, kpt) * Box(*P.DRIVER, align=MIN)
+    chips += Pos(x + 9.4, y - 14.0, kpt) * Box(0.8, 1.6, 0.8, align=MIN)
     for cx in (4.8, 7.4):
         chips += Pos(x + cx, y - 14.0, kpt) * Box(1.25, 2.0, 1.25, align=MIN)
     body = Pos(x, py, kpt) * Box(P.SW_L, P.SW_W, P.SW_H - 0.35, align=MIN)
@@ -1564,7 +1564,8 @@ def full_device(tilt: bool = True, slots: tuple | None = None) -> tuple[list[Ite
 
     # --- Cables (bought, plugged in; lengths from these routes)
     std = {"usb": (100, 150, 200, 250, 300), "gh": (50, 100, 150, 200, 300),
-           "sh": (50, 80, 100, 150, 200, 300), "ffc": (50, 60, 80, 100, 150, 200),
+           # FFC: LCSC's 12-pin 1.0 mm reverse cable comes in 100 mm (C80646), no 80 mm (D24)
+           "sh": (50, 80, 100, 150, 200, 300), "ffc": (100, 150, 200),
            "hy": (50, 100, 150, 200, 300)}
     cables = {}
     for name, (corners, d, r, kind, ends) in cpaths.items():

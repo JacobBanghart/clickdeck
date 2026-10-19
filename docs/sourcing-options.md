@@ -1,6 +1,9 @@
 # Sourcing options for the four boards
 
-Research from 2026-10-17. Nothing here is a live quote. Where a price isn't
+Research from 2026-10-17, before the knob modules (D23) and the cost cuts
+(D24: the DRV8311H driver instead of the TMC6300, the touch band off by
+default); it isn't redone for them, and [cost.md](cost.md) has the current
+numbers. Nothing here is a live quote. Where a price isn't
 published, it says **needs a quote**. All totals are for one finished
 device, US address, own 3D printer, duty included, and compare against the
 current estimate in [cost.md](cost.md): **~$475–735**.

@@ -11,19 +11,19 @@ to five motors), through each slot's 18-pin connector: pogo pins on the
 backplane, ENIG pads under the module ([wiring.md](wiring.md) has the
 pinout and the GPIO budget). No hot-plugging: unplug USB before swapping.
 
-- **Haptic module:** module PCB with the MT6701 sensor, TMC6300 driver
-  with 3-PWM drive, inverter, B3U press switch and the motor's header; the
-  2204 motor and the sensor sit on a hinged tongue. Below: parts, netlist,
-  design notes.
+- **Haptic module:** module PCB with the MT6701 sensor, the DRV8311H
+  driver in 3x PWM mode (D24; the TMC6300 is the fallback), B3U press
+  switch and the motor's header; the 2204 motor and the sensor sit on a
+  hinged tongue. Below: parts, netlist, design notes.
 - **Lite module** (D22): the same PCB outline and pads with a Bourns PEC11R
   push encoder. At the end.
 - **Blank:** one printed cover, flush with the plate. No electronics.
 
 The knob was first meant to be tested on a standalone Rev 0 module
 (dropped 2026-10-18, D3): it's first tested on bought breakouts (SparkFun
-TMC6300 + an MT6701 board on a printed test stand; [parts.md](parts.md)).
-Parts marked "bench module only" were for that board and don't go on the
-haptic module.
+TMC6300 + an MT6701 board on a printed test stand; [parts.md](parts.md)),
+and the DRV8311H on the small driver bench board next to it
+(`hardware/driver-bench/`, D24).
 
 ## Mechanics
 
@@ -72,113 +72,120 @@ use the encoder's own push switch.
 
 ## Parts
 
+Driver changed 2026-10-19 (D24): the **DRV8311H** replaces the TMC6300 and
+its SN74LVC3G04 inverter. In 3x PWM mode it takes the three PWM signals the
+slot already carries, so the inverter goes, and it's in JLC's stock (no
+Global Sourcing). Nobody is known to run it with SimpleFOC yet, so it's
+tested on the driver bench board before Rev A ([prototype-tests.md](prototype-tests.md)).
+
 | Ref | Part | Package | LCSC | Notes |
 |---|---|---|---|---|
 | J0 | 18 ENIG pads (slot connector) | — | — | Under the front border, 3 × 6 at 3.0 × 2.5 mm, 1.8 mm across; pinout in [wiring.md](wiring.md). The pogo pins (C2988082) are on the backplane |
 | D2, D3 | 1N4148W | SOD-123 | (basic) | D2: press switch into the key matrix (COL_k to ROW_PRESS). D3: module ID (COL_k to ROW_IDA) |
-| U1 | TMC6300-LA-T | QFN-20 3×3 | C5274455 (59 in stock at LCSC, $5.93, checked 2026-10-17); C5196961 is out of stock | Extended part; JLC assembles it. Source through JLC Global Sourcing or consign from DigiKey (~$2.44, ~4,100 in stock); reserve the Rev A quantity once the test kit passes |
+| U1 | DRV8311HRRWR (TI) | WQFN-24 3 × 3 mm, 0.4 mm pitch, exposed pad | C5218862 (7,399 in JLC stock, $0.95 at 500, 2026-10-19; LCSC's own stock is separate, 405) | Extended part, JLC assembles it. 3–20 V (UVLO 2.6 V falling), 5 A peak, 210 mΩ high + low side, nSLEEP, internal pull-downs on every logic input, 3.3 V / 100 mA LDO (AVDD), three current-sense amplifiers (unused). Hardware variant **H**: pins set the mode. **Fallback:** TMC6300-LA-T (C5274455): another footprint (QFN-20) and the inverter back, so a module-board respin. Its stock has dropped (DigiKey 343, LCSC 163, 2026-10-19) |
 | U2 | MT6701CT-STD | SOP-8 | C3003196 (JLC, extended; check JLC stock on layout day) | Magnetic angle sensor, SSI mode. Not the MT6701**QT** (C2913974): that's a 3×3 QFN-16, and it was out of stock at LCSC on 2026-10-17. The package sets the sensor height and so the magnet gap |
-| U3 | SN74LVC3G04DCTR | SM8 (DCT, SSOP-8 class; not VSSOP) | C139324 | Triple inverter, derives low-side inputs. Check the footprint |
 | SW1 | B3U-1000P | SMD | C231329 | Press switch, **top side**, on the module's fixed front border in front of the tongue. An arm on the printed motor spacer reaches over the slot; an M2×3 set screw in the arm is the adjustable striker |
-| C1, C2 | 22 µF 10 V X5R | 0805 | (basic part) | VS bulk, at U1 |
+| C1, C2 | 22 µF 25 V X5R | 0805 | C45783 (basic) | VM bulk, at U1 (the datasheet asks ≥ 10 µF; 2 × 22 µF derate to ~10–12 µF at 5 V) |
 | C3 | 220 µF 10 V electrolytic | footprint only | — | Optional extra bulk; fit if motor current dips the 5 V |
-| C4 | 100 nF | 0402 | (basic) | VS high-frequency, at U1 |
-| C5 | 100 nF | 0402 | (basic) | U1 1.8VOUT |
-| C6 | 22 nF 10 V | 0402 | (basic) | U1 VCP to VS (charge pump, 1–100 nF) |
-| C7 | 100 nF | 0402 | (basic) | U1 VIO |
+| C4 | 100 nF | 0402 | (basic) | VM and VIN_AVDD (pins 8 and 7, side by side), at the pins |
+| C5 | 100 nF 16 V X7R | 0402 | (basic) | Charge pump: CP to VM |
+| C6 | 1 µF 6.3 V+ X5R | 0402 | (basic) | AVDD to AGND (0.7–7 µF for ≤ 25 mA) |
+| C7 | 100 nF | 0402 | (basic) | CSAREF to AGND |
 | C8 | 100 nF + 1 µF | 0402 | (basic) | U2 VDD |
-| C9 | 100 nF | 0402 | (basic) | U3 VCC |
 | R1 | 10 kΩ | 0402 | (basic) | U2 CSN pull-up (keeps the sensor idle when unwired) |
-| R2–R5 | 10 kΩ | 0402 | (basic) | Pull-downs on `NSTDBY`, `PWM_U`, `PWM_V`, `PWM_W`, so the driver stays off during reset, BOOTSEL or a crash (RP2350 erratum E9 makes the internal pull-downs unreliable) |
-| R6–R8 | 1 kΩ | 0402 | (basic) | Series resistors on UH, VH, WH (limit current if a PWM pin is high while the driver is in standby) |
-| RS1, RS2 | 0 Ω (or a ~0.1 Ω shunt) | 1206 | (basic) | BRUV and BRW (low-side foot points) to GND. Bench module only: the haptic module ties them straight to GND (D16). Motor current is measured on the test kit instead |
-| Q1 | P-FET (or a Schottky) | SOT-23 / SMA | TBD | Bench module only: reverse-polarity protection on the bench-supply input. The backplane's motor rail has the TPS259470 eFuse |
-| D1 | SMBJ6.0A TVS | SMB | TBD | Bench module only: across VS, clamps bench-supply mistakes |
-| JP1–JP3 | Solder jumpers, 3-pad | — | — | Bench module only: low-side source, inverter (default) or header pin (6-PWM mode) |
-| J1 | 1×15 pin header, 2.54 mm | THT | — | Bench module only: signals to the controller board. GND on both end pins (see pinout). On the haptic module they go to the slot connector's pads |
-| J2 | Polarized 2-pin connector (JST-VH or XT30), large +/− silkscreen | THT | TBD | Bench module only: 5 V and GND from the bench supply (short, thick wires) |
-| J3 | 1×3 pin header, 2.54 mm, vertical SMD (HX PZ2.54-1x3P TP-YQ) | SMD | C41417360 (47,856 in JLC stock, $0.039, 2026-10-19) | Motor phases U, V, W, on the front border; the plug stands upright and the spare lead coils beside it. Matches the 3-pin servo-style plug one 2204 listing shows; if the motor arrives with bare wires or another plug, change the header |
+| R2–R5 | 10 kΩ | 0402 | (basic) | Pull-downs on `NSTDBY`, `PWM_U`, `PWM_V`, `PWM_W`, so the driver stays asleep with its outputs off during reset, BOOTSEL or a crash (RP2350 erratum E9 makes the internal pull-downs unreliable; the driver's own 200–300 kΩ pull-downs are a second line) |
+| J3 | 1×3 pin header, 2.54 mm, vertical SMD (HX PZ2.54-1x3P TP-YQ) | SMD | C41417360 (47,856 in JLC stock, $0.039, 2026-10-19) | Motor phases A, B, C, on the front border; the plug stands upright and the spare lead coils beside it. Matches the 3-pin servo-style plug one 2204 listing shows; if the motor arrives with bare wires or another plug, change the header |
 
-LCSC numbers were looked up on 2026-10-17; "basic" parts avoid JLC's
-extended-part fee. Confirm everything in JLC's parts library when ordering.
+Gone with the TMC6300: the SN74LVC3G04 inverter (C139324), the 1 kΩ series
+resistors on the high-side inputs, the BRUV/BRW ground links and the
+1.8VOUT and VIO capacitors. The bench-module rows (J1, J2, Q1, the TVS, the
+jumpers, the shunts) went with the Rev 0 module (D3); the driver bench
+board ([hardware/README.md](../hardware/README.md)) is the bench version now.
+
+LCSC numbers were looked up on 2026-10-17 (driver 2026-10-19); "basic"
+parts avoid JLC's extended-part fee. Confirm everything in JLC's parts
+library when ordering.
 
 ## Netlist
 
-Written for the standalone bench module (J1–J3 headers). On the haptic
-module, the J1 signals go to the slot connector's pads (pinout in
-[wiring.md](wiring.md)): `+5V` is VMOT, the backplane's eFuse-protected
-motor rail; `PRESS` is D2 to `ROW_PRESS` with the switch to `COL_k`; D3
-ties `COL_k` to `ROW_IDA` (module ID); the motor plugs into J3, an upright
-SMD header. R2–R5 (the E9 pull-downs) stay on the module, next to the
-driver.
+Pin numbers are the DRV8311H's (WQFN-24, datasheet SLVSFN2B). Slot pads
+per [wiring.md](wiring.md).
 
 **Power**
-- `+5V`: J2 → Q1 (reverse-polarity protection) → U1 VS (pins per
-  datasheet), C1–C4, D1 (SMBJ6.0A) to GND.
-- `+3V3`: J1 (from the controller board's 3.3 V) → U2 VDD, R1, C8.
-- `GND`: everything, plus U1's exposed pad (thermal: stitch vias under it)
-  and U1 pins 8 and 9.
+- `VMOT` (pads A2, A3: the backplane's eFuse-protected motor rail) → U1 VM
+  (8) and VIN_AVDD (7), C1–C4. The driver's LDO runs from the motor rail,
+  so the driver is fully off while the rail is off.
+- `+3V3` (pad A5) → U2 VDD, R1, C8.
+- `GND` (pads A1, A4, A6): everything, plus U1 PGND (9), AGND (16) and the
+  exposed pad (thermal: stitch vias under it).
 
-**Driver (U1, TMC6300)**
-- `VIO` (VIO/NSTDBY) ← J1 `NSTDBY` (a GPIO: high = run, low = standby).
-  **Also powers U3** (see "Standby" below). C7 to GND. R2 pull-down.
-- `UH`, `VH`, `WH` ← R6–R8 (1 kΩ) ← J1 `PWM_U`, `PWM_V`, `PWM_W`. R3–R5
-  pull-downs on the `PWM_x` nets.
-- `UL`, `VL`, `WL` ← JP1–JP3 common pin; JP default side = U3 outputs
-  (inverted `PWM_x`), other side = J1 `UL`/`VL`/`WL` for 6-PWM mode.
-- `BRUV` (pin 16) → RS1 → GND; `BRW` (pin 20) → RS2 → GND. These are the
-  low-side source foot points: left open, the motor won't drive. Put a test
-  pad on each, so a shunt can be read with a scope.
-- Pin 19: NC, leave open.
-- `U`, `V`, `W` outputs → J3 (motor).
-- `VCP` → C6 → `+5V`. `1.8VOUT` → C5 → GND. `DIAG` → J1 `DIAG`.
-
-**Inverter (U3, SN74LVC3G04)**
-- `VCC` = `NSTDBY` net (not 3V3). C9 to GND.
-- Inputs `PWM_U`, `PWM_V`, `PWM_W`; outputs to JP1–JP3.
+**Driver (U1, DRV8311H)**
+- INHA (15), INHB (14), INHC (13) ← `PWM_U`, `PWM_V`, `PWM_W` (pads B1–B3);
+  R3–R5 pull-downs.
+- nSLEEP (24) and INLA (18), INLB (19), INLC (20) ← `NSTDBY` (pad B4), all
+  four tied; R2 pull-down. High: awake, each half-bridge follows its INHx
+  (high or low). Low: asleep, and INLx low puts every phase in Hi-Z.
+- MODE (23) → AVDD: **3x PWM** and the lower overcurrent level (5 A typ,
+  3.4 A min). SLEW (22) → AVDD: fastest slew (230 V/µs at 12 V), shortest
+  dead time (≤ 710 ns). GAIN (21) → AGND.
+- AVDD (17) → C6. CSAREF (2) → AVDD, C7. SOA/SOB/SOC (5, 4, 3): not
+  connected (a test pad each, for a scope).
+- CP (6) → C5 → VM.
+- OUTA/OUTB/OUTC (10–12) → J3 (motor).
+- nFAULT (1) → pad C6 (`nFAULT`): open drain, bussed across the five slots
+  on the backplane with one 10 kΩ pull-up to 3V3 (wired-OR, no diodes).
 
 **Sensor (U2, MT6701)**
 - `MODE` pin tied **high** (to VDD) for I²C/SSI (breakout boards often
   default to ABZ, lessons.md #5).
-- SSI: `CSN` ← J1 `CS` (R1 pull-up), `CLK` ← J1 `CLK`, `DO` → J1 `DATA`.
+- SSI: `CSN` ← `SSI_CS` (R1 pull-up), `CLK` ← `SSI_CLK`, `DO` → `SSI_DO`.
   Read the full 24-bit frame and check its CRC.
 - ABZ/UVW/PWM outputs unused (leave open or per datasheet).
 - Centered exactly under the motor shaft; the board's motor holes set the
   magnet position.
 
-**Press switch (SW1)**
-- Between J1 `PRESS` and GND. Firmware enables the GPIO pull-up.
-
-**J1 pinout (1×15, 2.54 mm; bench module only)**
-`1 GND · 2 PWM_U · 3 PWM_V · 4 PWM_W · 5 NSTDBY · 6 CS · 7 CLK · 8 3V3 ·
-9 DATA · 10 PRESS · 11 DIAG · 12 UL · 13 VL · 14 WL · 15 GND`
-(pins 12–14 only matter in 6-PWM mode). GND sits on both ends and 3V3 is
-never next to GND, so a jumper shifted by one pin can't short the rail.
+**Press switch (SW1) and ID**
+- SW1 from `COL_k`, through D2 to `ROW_PRESS`. D3 from `COL_k` to
+  `ROW_IDA` (module ID; [wiring.md](wiring.md)).
 
 ## Design notes
 
-- **3-PWM is safe:** the TMC6300 datasheet: *"Internal break-before-make
-  (BBM) logic ensures that no cross-conduction occurs."* So a low-side
-  input driven by an inverted copy of the high-side input can't short the
-  half-bridge.
-- **Standby:** the datasheet says no digital input may be high while
-  VIO/NSTDBY is pulled low (the input protection diodes would power the chip
-  back up through those pins). An inverter outputs *high* when its input
-  is low, so U3 is powered from the `NSTDBY` net: pulling `NSTDBY` low
-  unpowers U3 and its outputs drop. Firmware must also drive `PWM_U/V/W`
-  low before standby, and stop the motor first.
+- **3x PWM is safe:** in 3x mode each INHx sets its half-bridge high or
+  low, and the driver inserts its own dead time (a handshake between the
+  high and low side), so one PWM line per phase can't short the
+  half-bridge. That's SimpleFOC's `BLDCDriver3PWM` with `NSTDBY` as the
+  enable pin.
+- **Sleep:** `NSTDBY` low puts the driver to sleep (1.5 µA) and its
+  outputs in Hi-Z (INLx low), so the motor turns freely: smooth mode with
+  no drag. The logic inputs are rated to 6 V with no logic supply pin, so
+  there's no back-powering path like the TMC6300's (no inverter trick, no
+  series resistors). Firmware still drives `PWM_x` low before sleep and
+  stops the motor first.
+- **Wake and idle current:** the driver takes 1–3 ms to wake (tWAKE) and
+  draws 7–13 mA from VM while awake, even at zero duty. Firmware sleeps
+  idle drivers and wakes one before an effect; the test kit checks the
+  wake latency by feel.
 - **Reset and fault states:** R2–R5 hold `NSTDBY` and the PWM nets low
   while the MCU is in reset, in BOOTSEL or crashed. A watchdog drops
   `NSTDBY`. On the full board, specify RP2350B stepping A4 (erratum E9 is
   fixed there).
-- **NSTDBY from a GPIO:** VIO accepts 1.8–5.25 V; a 3.3 V GPIO is fine. It
-  supplies the TMC6300's logic and U3, both small loads.
-- **Thermal and supply:** TMC6300 VS wants >10 µF ceramic close to the pin
-  (100 µF electrolytic or 10 µF ceramic minimum per the datasheet). A
-  10 µF ceramic derates to ~4–5 µF at 5 V, so use 2 × 22 µF 0805 per driver,
-  here and on the full board. Keep the VS/GND loop tight; stitching vias
-  under the exposed pad.
-- **Tongue:** the motor and U2 are on the tongue; U1, U3, SW1, J3 and the
+- **Faults:** overcurrent (5 A level), overtemperature and undervoltage
+  turn the outputs off and pull `nFAULT` low; the hardware variant retries
+  by itself after ~5 ms. The five nFAULT pins share one GPIO (the spare
+  one in the pin budget). Firmware ignores it while a driver wakes,
+  drops every `NSTDBY` on a fault, then wakes the haptic slots one at a
+  time to find which one faults. Untested: whether an unpowered DRV8311's
+  nFAULT pin loads the pulled-up line while the motor rail is off
+  (V: measure on the bench board).
+- **Supply caps** per the datasheet's table 8-1: VM ≥ 10 µF bulk plus
+  100 nF, VIN_AVDD 100 nF (it shares VM's bulk here), CP 100 nF to VM,
+  AVDD 0.7–7 µF, CSAREF 100 nF. Keep the VM/PGND loop tight; stitching
+  vias under the exposed pad (RθJA 42.6 °C/W).
+- **Assembly:** WQFN-24 at 0.4 mm pitch, the same as the RP2350B's QFN-80,
+  so it stays inside JLC's Economic assembly limit (D6). Same 3 × 3 mm
+  body as the TMC6300; it sits where the TMC6300 did on the front border,
+  and the module outline doesn't change.
+- **Tongue:** the motor and U2 are on the tongue; U1, SW1, J3 and the
   pads are on the fixed front border, so only the sensor's traces cross the
   hinge (route them straight across one neck, no vias on it). Make the
   hinge traces wide, put them on the neck's neutral axis, and give the slot
@@ -205,15 +212,20 @@ never next to GND, so a jumper shifted by one pin can't short the rail.
 - **Motor plug orientation:** the 1×3 plug fits either way, which swaps
   phases. At first wake, firmware runs a small open-loop move and checks the
   sensor direction; on a mismatch it invalidates the stored calibration.
-- **DIAG:** one per driver, active-high push-pull. It would need a 19th
-  slot contact; for now it's a test pad on the module, and the reserved
-  contact can carry it to the backplane's spare pin (diode-OR) later.
+- **Misread slots** (re-checked for D24): a **lite module read as haptic**
+  gets PWM on its encoder lines through its 10 kΩ series resistors (≤ 0.33
+  mA into a closed contact) and `NSTDBY` high into an unconnected pad;
+  there's no MT6701 frame, so the motor rail stays off for that slot
+  anyway. A **haptic module read as lite** sees its `PWM_U/V` set as
+  inputs and `NSTDBY` undriven: R2 holds nSLEEP and INLx low, so the
+  driver sleeps with its outputs in Hi-Z, even with the motor rail on for
+  the other slots.
 
 ## Bring-up order
 
-Steps 1–6 run first on the test kit (breakouts; the SparkFun board has no
-shunt, so read motor current at the bench supply), then per module on
-Rev A.
+Steps 1–6 run first on the test kit (the SparkFun TMC6300 breakout and the
+driver bench board's DRV8311H and SS6343M channels; read motor current at
+the bench supply), then per module on Rev A.
 
 0. Before any power: check the 5 V polarity and that 5 V, 3V3 and GND
    aren't shorted to each other. Measure the motor's phase resistance R and
@@ -221,8 +233,9 @@ Rev A.
 1. 3.3 V only: read the MT6701 over SSI (24-bit frames, CRC checked) while
    turning the motor by hand.
 2. Add 5 V on the bench supply with a current limit (~300 mA): open-loop
-   spin at low voltage limit. With `NSTDBY` low and a PWM pin high, VIO
-   stays below 0.4 V (no back-powering).
+   spin at low voltage limit. With `NSTDBY` (or the bench board's enable)
+   low and a PWM pin high, the outputs stay off (the motor turns freely) and
+   the driver draws < 0.1 mA.
 3. Closed-loop FOC; store calibration (lessons.md #4). Measure Kt. Store R
    per knob and scale duty by the measured VS. Read motor current at the
    supply.
@@ -259,7 +272,7 @@ driver or sensor. Untested.
   as on the haptic module ([wiring.md](wiring.md)).
 - D2 from `COL_k` to `ROW_IDB`: firmware reads the slot as lite at power-up
   and reports it ([protocol.md](protocol.md)).
-- VMOT, NSTDBY, PWM_W and the SSI pads: not connected.
+- VMOT, NSTDBY, PWM_W, nFAULT and the SSI pads: not connected.
 - Mounting tabs: soldered to GND pads.
 
 **Knob height.** The knob is the haptic knob's cap with a 9 mm stem down

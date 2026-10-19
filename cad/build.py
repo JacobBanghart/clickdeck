@@ -298,6 +298,8 @@ def main():
                 plate_t -= P.TOUCH_BAR_RECESS
             lines.append(f"- Touch band: {inf['touch_bar_h']:.1f} mm tall under the knob "
                          f"displays, sensing through {plate_t:g} mm of plate")
+        elif not P.TOUCH_BAR and name == "Full device":
+            lines.append("- Touch band: off (optional add-on, D24; CLICKDECK_TOUCH_BAR=1 builds it)")
         lines += [f"- WARNING: {w_}" for w_ in lay.warnings] or ["- Fit checks: OK"]
         lines.append("")
     # Knob slots (D23): every configuration's knobs must land where the haptic knob is, covers

@@ -10,17 +10,18 @@
 ## Boards in the full build
 
 The ESP32-S3 + 7" display is a bought board (Waveshare ESP32-S3-LCD-7B), so
-it isn't designed here. It only draws the screen. Everything else is on four
-base boards in one panel, plus one small board per knob module type (D23),
-all connectors fitted by JLC (cabling: [wiring.md](wiring.md)):
+it isn't designed here. It only draws the screen. Everything else is on three
+base boards in one panel (four with the optional touch band, D24), plus one
+small board per knob module type (D23), all connectors fitted by JLC
+(cabling: [wiring.md](wiring.md)):
 
 | Board | What's on it | Outline |
 |---|---|---|
-| **Backplane** | RP2350B and its support parts, the motor-rail eFuse and bulk cap, JST-GH (USB link), ZIF (keys), JST-SH (touch), HY2.0 footprint, BOOTSEL, CC sense, and a slot connector (18 pogo pins) under each of the 5 knob slots | `full_backplane_outline.dxf` |
+| **Backplane** | RP2350B and its support parts, the motor-rail eFuse and bulk cap, JST-GH (USB link), ZIF (keys), JST-SH (touch; footprint only without the band, D24), HY2.0 footprint, BOOTSEL, CC sense, and a slot connector (18 pogo pins) under each of the 5 knob slots | `full_backplane_outline.dxf` |
 | **Frame PCB** | 21× B3U key switches around the key windows, ZIF connector for the key cable. No chips | `full_frame_pcb_outline.dxf` |
-| **Touch band** | Capacitive touch electrodes + touch controller, glued under the top plate below the knob displays | strip, ~155 × 11 mm |
+| **Touch band** (optional add-on, off by default, D24) | Capacitive touch electrodes + touch controller, glued under the top plate below the knob displays | strip, ~155 × 11 mm: `full_touch_band_outline.dxf` |
 | **USB board** | CH334F USB 2.0 hub, external USB-C (mid-mount), USB-C to the display board, JST-GH to the backplane, current-offer sensing (CC), two reverse-blocking eFuses (TPS259470A), ESD (SRV05-4-P-T7) | L-shape, back-left corner: `full_usb_board_outline.dxf` |
-| **Haptic module** (per knob) | TMC6300, SN74LVC3G04 inverter, MT6701 on a hinged tongue, B3U press switch, motor header, ID diode; ENIG pads underneath for the slot connector | `module_haptic_pcb_outline.dxf`, 28.4 × 30.5 mm |
+| **Haptic module** (per knob) | DRV8311H driver (3x PWM, D24), MT6701 on a hinged tongue, B3U press switch, motor header, ID diode; ENIG pads underneath for the slot connector | `module_haptic_pcb_outline.dxf`, 28.4 × 30.5 mm |
 | **Lite module** (per knob) | Bourns PEC11R push encoder (THT), RC filter, ID diode; the same outline and pads, no tongue | `module_lite_pcb_outline.dxf` |
 
 ### Backplane
@@ -100,8 +101,8 @@ all connectors fitted by JLC (cabling: [wiring.md](wiring.md)):
 ### Knob modules (D23)
 - **Haptic module:** a 28.4 × 30.5 mm board per knob. The motor and the
   MT6701 sit on a 22 mm tongue, cut free at the front and sides and held by
-  two torsion necks near its back edge (the hinge, D10). The driver,
-  inverter, the driver's 2 × 22 µF, the B3U press switch, the upright 1×3
+  two torsion necks near its back edge (the hinge, D10). The DRV8311H
+  (D24) and its 2 × 22 µF, CP and AVDD caps, the B3U press switch, the upright 1×3
   motor header (C41417360) and the ENIG pads are on the fixed front border,
   so only the sensor's traces cross a neck (D16). The spacer's arm and its
   set-screw striker press the B3U. Netlist and notes:
@@ -115,8 +116,10 @@ all connectors fitted by JLC (cabling: [wiring.md](wiring.md)):
   the board stays one-sided (D6). Leads trimmed to ≤ 1.2 mm (the backplane
   is 2.5 mm below).
 - **Floorplan:** the front border (28.4 × 7.5 mm) is crowded: driver,
-  inverter, switch, header, passives, and the 18 pads underneath. Do it
-  with real footprints before ordering.
+  switch, header, passives, and the 18 pads underneath. Dropping the
+  inverter (D24) frees ~6 mm² there. Do it with real footprints before
+  ordering. **Driver fallback:** the TMC6300 (QFN-20, 6 inputs, the
+  inverter back) needs a module respin, not a new backplane.
 - **Motor mount:** holes fit more than one motor (2204 patterns plus a
   fallback), NPTH with a 1 mm copper keep-out; screw length rule in
   [knob-module.md](knob-module.md).
@@ -166,6 +169,8 @@ all connectors fitted by JLC (cabling: [wiring.md](wiring.md)):
   is 3.3 mm).
 
 ### Touch band
+Optional add-on, off by default (D24); these notes are for a build that
+fits it.
 - Thin PCB, ~160 × 11 mm, 10–12 interleaved chevron segments at 13–15 mm
   pitch with half-width end segments, 1–10 kΩ in series with each
   electrode next to the chip. It reaches past the last motor on the right,
@@ -186,27 +191,29 @@ all connectors fitted by JLC (cabling: [wiring.md](wiring.md)):
 
 ### Order everything from JLC at once
 All boards are 2-layer FR-4 with an **ENIG** finish (owner decision).
-ENIG pads are flat, which suits the 0.4 mm QFN-80 and QFN-20, and the
+ENIG pads are flat, which suits the 0.4 mm QFN-80 and WQFN-24, and the
 gold suits the modules' pogo contact pads. The module boards are their own
 designs in the same order (above).
 
-Put the frame PCB, backplane, touch band and USB board in **one panel**
-(JLC accepts multiple designs panelized with mouse bites), so there's one
-PCB order and one assembly setup fee. One panel means one thickness: the
-touch band was planned at 0.8 mm, so either make it 1.6 mm like the rest
-(check it still senses through the plate) or order it separately. Add the 3D prints (caps, knobs,
+Put the frame PCB, backplane and USB board (and the touch band, if fitted)
+in **one panel** (JLC accepts multiple designs panelized with mouse bites),
+so there's one PCB order and one assembly setup fee. One panel means one
+thickness: the touch band was planned at 0.8 mm, so either make it 1.6 mm
+like the rest (check it still senses through the plate) or order it
+separately. Add the 3D prints (caps, knobs,
 case if you don't print it yourself) to the same JLC order so it ships
 together.
 
 ## Prototype boards
 
-Plan changed 2026-10-18 (D3): the only custom PCB before the full build
-is the rev C frame PCB. The knob runs on bought breakouts (SparkFun
-TMC6300, an MT6701 board) on a printed test stand, and the controller and
+Plan changed 2026-10-18 (D3) and 2026-10-19 (D24): the custom PCBs before
+the full build are the rev C frame PCB and the driver bench board. The knob
+runs on bought breakouts (SparkFun TMC6300, an MT6701 board) on a printed
+test stand, then on the bench board's DRV8311H and SS6343M; the controller and
 hub on a WeAct RP2350B core board and a CH334F hub module
 ([parts.md](parts.md)). The Rev 0 knob module and the Rev 0.5 test board
-are dropped: Rev A is the first build of the backplane, the knob modules,
-the USB board and the touch band. Plan on one revision of whichever board fails, ordered alone
+are dropped: Rev A is the first build of the backplane, the knob modules
+and the USB board. Plan on one revision of whichever board fails, ordered alone
 ([cost.md](cost.md)). The knob channel's netlist stays in
 [knob-module.md](knob-module.md).
 
@@ -219,6 +226,13 @@ the glass; over the glass it uses two countersunk M2 screws. **Generated** from 
 
 It goes in one JLC order with the 2 + 2 caps and the knob test stand
 prints (one shipping and duty charge).
+
+### Driver bench board (D24)
+A DRV8311H channel and an SS6343M channel on one 56 × 40 mm 2-layer board,
+for the test kit, to compare both with the SparkFun TMC6300 on the same
+2204 + MT6701 test stand. **Generated** (placed and routed by a script,
+DRC clean, untested): see [hardware/README.md](../hardware/README.md).
+It goes in the same JLC order as rev C.
 
 ## Workflow per board
 1. Schematic in KiCad; run ERC.

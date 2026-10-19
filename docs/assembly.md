@@ -23,7 +23,7 @@ pass here means "the model is consistent", not "it will build".
 | Nothing floats: every part touches a chain of parts down to the tray | ✅ all supported |
 | On the stand: nothing hits the stand, every foot is on the desk | ✅ clear |
 | Every screw reachable with a straight screwdriver at its step | ✅ 59 of 59 screws reachable |
-| Every plug slides straight into its socket at its step (plug bodies modeled at full size: USB-C overmold 12.5×6.5 mm) | ✅ 13 of 13 plugs |
+| Every plug slides straight into its socket at its step (plug bodies modeled at full size: USB-C overmold 12.5×6.5 mm) | ✅ 11 of 11 plugs |
 | Cables clear every part (motor bells included); bends ≥ 10 mm on the USB-C cable; plate cables reach with the plate lifted 40 mm | ✅ all clear |
 | Service: each slot's module or blank lifts straight out with the case closed (D23); top plate, then display, then backplane lift straight out | ✅ all lift out |
 | Knob slots (D23): knob tops within 0.05 mm of the haptic knob's position, covers and blanks flush with the plate, pogo pins compressed 0.50 mm (stroke 1 mm) and each on a pad; also checked with every slot haptic and every slot lite | ✅ all match |
@@ -61,10 +61,6 @@ Minimum gaps (nominal, from the model):
 | key caps ↔ glass, at rest (D8) | 0.80 mm | 0.79 mm |
 | countersunk frame screws ↔ glass | 0.80 mm | 0.79 mm |
 | pan-head frame screws ↔ panel edge (off the glass) | 0.60 mm | 0.50 mm |
-| touch band ↔ frame PCB and its ZIF | 1.03 mm | 0.30 mm |
-| touch band ↔ motor bells | 2.53 mm | 0.50 mm |
-| touch band ↔ module covers (D11) | 0.72 mm | 0.30 mm |
-| touch band ↔ encoders and knob stems | > 3 mm | 0.50 mm |
 | display board ↔ USB board | > 3 mm | 0.50 mm |
 | display board ↔ backplane | 9.67 mm | 0.50 mm |
 
@@ -122,8 +118,7 @@ plate lifted. The display cable's loop is sized for 100 mm; 95-110 mm cables fit
 |---|---|---|---|---|
 | USB-C to USB-C, USB 2.0 (3 A), one 90° side-exit end + one straight end | display board USB port ↔ USB board | **100 mm** | 98 mm | 4. Mount the display; plug in its USB cable |
 | JST-GH 1.25 mm 8-pin, plugs both ends, pin 1 to pin 1 ("same direction"), 26 AWG | USB board ↔ backplane | **100 mm** | 73 mm | 3. Screw in the backplane; plug in the USB link |
-| FFC, 12-pin, 1.0 mm pitch, contacts on opposite sides (type B) | frame PCB ↔ backplane | **80 mm** | 28 mm; 74 mm with the plate lifted 40 mm | 5. Build the top plate (on the bench) |
-| JST-SH 1.0 mm 6-pin, plugs both ends, pin 1 to pin 1 | touch band ↔ backplane | **80 mm** | 37 mm; 75 mm with the plate lifted 40 mm | 5. Build the top plate (on the bench) |
+| FFC, 12-pin, 1.0 mm pitch, contacts on opposite sides (type B) | frame PCB ↔ backplane | **100 mm** | 28 mm; 74 mm with the plate lifted 40 mm | 5. Build the top plate (on the bench) |
 | HY2.0 (2.0 mm) 3-pin, plugs both ends, pin 1 to pin 1 (optional) | backplane ↔ display board J8 (GPIO6 link) | **50 mm** | 29 mm | 4. Mount the display; plug in its USB cable |
 | Motor leads (on the motors) | motor ↔ its module's header | 300 mm assumed | the spare coils flat in front of the bell, in a 7.4 × 3.8 × 13 mm space | 7. Build the knob modules (on the bench) |
 
@@ -137,7 +132,7 @@ without a host). Its header footprint is always on the backplane.
 
 ### 1. Print the case; fit magnets, feet and inserts
 
-Print the tray, top plate and stand (all fit a 256 mm bed) in PETG, 4 walls, ≥25% infill (100% over the touch band area of the top plate; no carbon- or metal-filled filament). PLA softens in the case's ~2.3 W of heat. Glue the four tray magnets into the pockets underneath. Stick the two rubber feet near the front edge (for flat use; on the stand they sit in pockets). With a soldering iron (insert tip, ~240 °C), press an M3 heat-set insert (4 mm hole, 5.7 mm long) into the bottom end of each of the top plate's four posts, flush with the end: the case screws go into these, so they survive being undone for every service. Press an M2 insert (3.2 mm hole, 4 mm long) into the top of each of the ten slot bosses along the front, flush: the knob modules' screws go into these.
+Print the tray, top plate and stand (all fit a 256 mm bed) in PETG, 4 walls, ≥25% infill (no carbon- or metal-filled filament). PLA softens in the case's ~2.3 W of heat. Glue the four tray magnets into the pockets underneath. Stick the two rubber feet near the front edge (for flat use; on the stand they sit in pockets). With a soldering iron (insert tip, ~240 °C), press an M3 heat-set insert (4 mm hole, 5.7 mm long) into the bottom end of each of the top plate's four posts, flush with the end: the case screws go into these, so they survive being undone for every service. Press an M2 insert (3.2 mm hole, 4 mm long) into the top of each of the ten slot bosses along the front, flush: the knob modules' screws go into these.
 
 ![Print the case; fit magnets, feet and inserts](../cad/out/assembly/step1_tray.png)
 
@@ -167,7 +162,7 @@ Stand the tray upright on two blocks (~50 mm high) under its left and right wall
 
 ### 5. Build the top plate (on the bench)
 
-With the top plate face up, drop the five clear knob-window covers into their pockets (they rest on a ledge) and fix each with a little clear UV glue or clear tape on the ledge. Lay the plate face down. Drop the clear caps into their holes, tabs toward the front edge; each should slide freely in its guide. Plug the key cable (FFC) into the frame PCB's ZIF connector (flip the latch up, slide the cable in, latch down), then fit the frame PCB over the plate's two locating pins (switches facing the caps) and screw it to the bosses: pan-head screws along the back and left edges (off the glass), countersunk ones everywhere else (flush underneath, so nothing touches the glass). Every key should click and none read pressed at rest: if one does, add a 0.1 mm shim washer between the nearest bosses and the PCB. Stick the touch band into its pocket under the plate, below the knob display windows, with full-coverage 3M 467MP/468MP transfer tape (no air gaps), and plug the touch cable into it.
+With the top plate face up, drop the five clear knob-window covers into their pockets (they rest on a ledge) and fix each with a little clear UV glue or clear tape on the ledge. Lay the plate face down. Drop the clear caps into their holes, tabs toward the front edge; each should slide freely in its guide. Plug the key cable (FFC) into the frame PCB's ZIF connector (flip the latch up, slide the cable in, latch down), then fit the frame PCB over the plate's two locating pins (switches facing the caps) and screw it to the bosses: pan-head screws along the back and left edges (off the glass), countersunk ones everywhere else (flush underneath, so nothing touches the glass). Every key should click and none read pressed at rest: if one does, add a 0.1 mm shim washer between the nearest bosses and the PCB.
 
 ![Build the top plate (on the bench)](../cad/out/assembly/step5_top_plate_sub.png)
 
@@ -175,7 +170,7 @@ With the top plate face up, drop the five clear knob-window covers into their po
 
 ### 6. Close the case
 
-With the PC unplugged: shake out any loose screws or debris. Rest the top plate on the two printed props (`print_plate_prop.stl`) on the tray's walls, which hold it ~40 mm up with its cables plugged in. Plug the key cable into the backplane's ZIF connector at its right end and the touch cable into the header beside it; the spare cable folds into the gap by the right wall, outside the fence next to slot 4. Take the props out and lower the top plate (its tabs and the dividers between the slot openings register it). With the tray still on its blocks, drive the four M3 screws up from underneath into the inserts in its posts. The slots are still empty: the knob modules go in from the top, with the case closed.
+With the PC unplugged: shake out any loose screws or debris. Rest the top plate on the two printed props (`print_plate_prop.stl`) on the tray's walls, which hold it ~40 mm up with the key cable plugged in. Plug the key cable into the backplane's ZIF connector at its right end; the spare cable folds into the gap by the right wall, outside the fence next to slot 4. Take the props out and lower the top plate (its tabs and the dividers between the slot openings register it). With the tray still on its blocks, drive the four M3 screws up from underneath into the inserts in its posts. The slots are still empty: the knob modules go in from the top, with the case closed.
 
 ![Close the case](../cad/out/assembly/step6_close.png)
 
@@ -222,11 +217,10 @@ Plug a USB-C cable from the computer into the port in the back wall. A C-to-C ca
 1. Pull the slab off the stand (magnets).
 2. Pull the knob caps straight up.
 3. Undo the four M3 screws under the tray (the top plate's posts).
-4. Lift the top plate straight up, with the caps, frame PCB and touch band on it. The
-   modules and blanks stay in their slots; the plate's openings lift over them.
-   Its two cables reach 40 mm; at that height unplug them at the
-   backplane's right end (flip the ZIF latch up to free the key cable; pull the touch
-   plug straight up).
+4. Lift the top plate straight up, with the caps and frame PCB on it. The modules
+   and blanks stay in their slots; the plate's openings lift over them. The key
+   cable reaches 40 mm; at that height flip the ZIF latch up at the
+   backplane's right end to free it.
 
 ![Top plate lifted off](../cad/out/assembly/service_open.png)
 

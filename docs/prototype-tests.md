@@ -5,13 +5,14 @@ full build) checks first. Plan changed 2026-10-18 (D3): the prototype is
 a test kit, not custom boards ([parts.md](parts.md)). The **Where** column
 says which:
 - **Kit:** the 2204 on the printed test stand over an MT6701 breakout,
-  driven by the SparkFun TMC6300 breakout from the WeAct RP2350B core
-  board; the 7B and the core board behind the CH334F hub module; the two
+  driven from the WeAct RP2350B core board by the SparkFun TMC6300
+  breakout and by the driver bench board's DRV8311H and SS6343M channels
+  (D24); the 7B and the core board behind the CH334F hub module; the two
   keys on the rev C frame PCB on the 7B. These decide go/no-go.
 - **Rev A:** needs our own boards: the base with the backplane, 2 haptic
   modules, 1 lite module and blanks (D23). The hinge and press, the slot
-  connector and module swaps, the backplane's CC sensing, the touch band,
-  the connectors and cables, the crystal, the pinholes. A failure here
+  connector and module swaps, the backplane's CC sensing, the connectors
+  and cables, the crystal, the pinholes. A failure here
   means one revision of that board (the backplane and each module type are
   separate designs), not a new prototype.
 - **Free:** the scrap-FR-4 hinge test, before the Rev A order.
@@ -36,7 +37,7 @@ force, a thermocouple or IR thermometer, and a logic analyzer (a cheap
 | Current while clicking | Kit, then Rev A | Spin through detents: kit, motor current at the 5 V supply; Rev A, on a 1.5 A C-to-C port | Peak motor current ≤ ~0.8 A; VBUS at the meter stays ≥ 4.75 V |
 | Default port | Rev A | Same on a 500 mA port and an A-to-C cable | Haptics nearly off (faint detents only), no resets, the configurator shows why |
 | Current at an end stop | Kit | Lean on the stop for 30 s | Driver case < 70 °C; the firmware time limit keeps current within the budget |
-| Standby back-power | Kit | `NSTDBY` low, one PWM pin high | VIO stays below 0.4 V |
+| Standby back-power | Kit | TMC6300 breakout: `NSTDBY` low, one PWM pin high. Bench board: enable low, one PWM pin high | TMC6300: VIO stays below 0.4 V. DRV8311H and SS6343M: outputs stay off (the motor turns freely), driver current < 0.1 mA |
 | Wake latency | Kit | Turn from rest | No dead zone or delay you can feel before the first click |
 | Hinge, before ordering | Free (scrap FR-4) | Saw the haptic module's tongue and its two torsion necks into scrap FR-4; load the tongue at the motor axis on the kitchen scale | Record the force for 0.15 mm of travel at the striker; size the necks (or a 1.0 mm module PCB) from it |
 | Press feel | Rev A | Kitchen scale under the knob; tune the set-screw striker | Clicks at roughly 150–400 g, one clear click, no rocking |
@@ -46,6 +47,27 @@ force, a thermocouple or IR thermometer, and a logic analyzer (a cheap
 | Sensor fault | Kit | Pull the sensor's DO line while the motor holds a detent | Firmware drops `NSTDBY` within one loop |
 | Loop timing | Kit | RP2350B running 1 real + 4 dummy FOC loops, 15 PWM outputs, 5 sensor reads | ≥ 2 kHz per motor (aim for 5 kHz) |
 | Noise | Kit | Listen up close in a quiet room | No audible whine or buzz at rest or while turning |
+
+### Driver comparison (D24)
+
+The haptic module's driver is the DRV8311H since D24, and nobody is known to
+run it with SimpleFOC yet. The driver bench board puts it and the cheaper
+SS6343M next to the SparkFun TMC6300 on the same 2204 + MT6701 test stand,
+same firmware (`BLDCDriver3PWM`, 3 PWM + enable; the TMC6300 with inverted
+low sides), same PWM frequency, 5 V through the USB power meter. Move the
+motor plug between them. The DRV8311H has to pass for Rev A; if it doesn't,
+the module goes back to the TMC6300 (a module respin). The SS6343M passing
+makes it a candidate for a later module revision.
+
+| Test | Where | How | Pass |
+|---|---|---|---|
+| Runs at all | Kit | Open loop, then closed loop with each driver | SimpleFOC runs closed loop on each; no nFAULT at power-up after the 3 ms wake |
+| Smooth-mode current | Kit | Smooth mode (driver asleep, outputs off), knob untouched, then turned by hand | ≤ 5 mA above the board's idle at the meter; no drag you can feel compared with the motor unplugged |
+| Detent feel | Kit | 24 and 48 detents, same gains on all three; turn slowly and fast, blind if you can | The DRV8311H feels the same as the TMC6300 (no extra buzz, no softer or uneven clicks) |
+| End-stop hold | Kit | Lean on an end stop for 30 s at the firmware's current limit; IR thermometer on the driver | Driver case < 70 °C, and within ~10 °C of the TMC6300 at the same current |
+| Brown-out | Kit | Bench supply at 4.75 V into the bench board; detents and end stops | No nFAULT (no undervoltage or overcurrent trip) and no resets |
+| Wake | Kit | Turn from rest with the driver asleep | No delay you can feel before the first click (DRV8311H wake: 1–3 ms) |
+| Fault line | Kit | Turn the bench supply down through the driver's undervoltage lockout (~2.6 V) and back up | nFAULT goes low and comes back high by itself; firmware logs it and drops the enable |
 
 ### Knob modules and slots (D23)
 
@@ -82,8 +104,9 @@ built on Rev A (2 haptic, 1 lite, blanks).
 
 ## Touch band
 
-Deferred to Rev A (the band is optional, D12): the real band under the
-printed top plate, read by its AT42QT2120 (all channels as keys, position
+The band is an optional add-on, off by default (D12, D24), so these run on
+the first build that fits one (Rev A doesn't by default): the real band
+under the printed top plate, read by its AT42QT2120 (all channels as keys, position
 interpolated in firmware), with the motors running next to it and the
 panel lit. Guard trace, hatched ground and the 300 ms lockout in place. If
 it fails, the band gets one revision with the knobs further forward (D11),

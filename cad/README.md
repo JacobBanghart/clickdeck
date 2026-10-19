@@ -26,7 +26,7 @@ the motor diameter.
 | `full_backplane_outline.dxf` | Backplane outline: slot-boss and key-pin holes (the pogo pins go under each slot's front) |
 | `module_haptic_pcb_outline.dxf`, `module_lite_pcb_outline.dxf` | Module PCB outlines (haptic: the tongue on two torsion necks; lite: solid) |
 | `full_usb_board_outline.dxf` | USB board (hub) outline |
-| `full_touch_band_outline.dxf` | Touch band outline (stops short of the frame PCB's ZIF) |
+| `full_touch_band_outline.dxf` | Touch band outline (stops short of the frame PCB's ZIF). The band is an optional add-on, off by default (D24); this file is only rewritten by a build with the band (`CLICKDECK_TOUCH_BAR=1`), and its geometry doesn't depend on the flag |
 | `cabling.png` | Top view of the internal cabling, display and top plate removed |
 | `print_case_tray.stl`, `print_top_plate.stl`, `print_stand.stl` | Case parts for a home printer (fit a 256 mm bed) or JLC3DP, in print orientation (plate face-down). PETG; M3 heat-set inserts in the plate's posts |
 | `print_plate_prop.stl` | Tool: two of these hold the top plate 40 mm up while its cables are plugged in |
@@ -62,6 +62,16 @@ modules: the shaft fills the knob's bore past its flat, and a full press
 clears the cover and the encoder's bushing. Module and slot dimensions are
 `MODULE_*`, `SLOT_*`, `POGO*`; the encoder's are `ENC_*` (from the Bourns
 drawing; measure the real part).
+
+## Touch band (D24)
+
+`TOUCH_BAR = False` in `params.py`: the band is an optional add-on, off by
+default. The model then has no band, no touch cable and no SH header on the
+backplane (its footprint stays on the real board), and the plate has no
+band pocket. The knobs sit in the same place either way. Set
+`CLICKDECK_TOUCH_BAR=1` in the environment (or `TOUCH_BAR = True`) to build
+the band; CI runs `assembly.py --check --default-only` that way in a second
+job.
 
 ## Files
 
@@ -127,6 +137,7 @@ GitHub Actions ([`.github/workflows/cad.yml`](../.github/workflows/cad.yml))
 rebuilds the models on every change to `cad/` with the pinned toolchain in
 `requirements.txt`, and fails if:
 - any fit check warns (`--strict`), or a case part doesn't fit the print bed
-- any assembly check fails (`assembly.py --check`), for the default slots, all haptic or all lite
+- any assembly check fails (`assembly.py --check`), for the default slots, all haptic or all lite,
+  or for the default slots with the touch band fitted (`CLICKDECK_TOUCH_BAR=1`, second job)
 - `out/summary.md` doesn't match the committed one (outputs weren't rebuilt
   and committed after a parameter change)

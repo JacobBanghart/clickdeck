@@ -7,8 +7,9 @@
 > check each one in JLC's parts library when ordering.
 
 Knobs are modules in slots (D23). This list has two parts: the **base device** (display,
-keys, case, backplane, USB board, touch band, cables: no knobs) and what **each knob
-module or blank** adds. Every slot takes a haptic module, a lite module or a blank.
+keys, case, backplane, USB board, cables: no knobs) and what **each knob module or
+blank** adds. Every slot takes a haptic module, a lite module or a blank. The touch band
+is an optional add-on, off by default (D24): its board, chip and cable aren't in this list (`TOUCH_BAR = True` in params.py adds them; the backplane keeps the SH header's footprint).
 The model's default build is the owner's first: haptic, haptic, blank, blank, blank.
 
 The builder solders and crimps nothing: JLC fits every board-mounted part, and every
@@ -23,7 +24,7 @@ match [assembly.md](assembly.md). Totals: [cost.md](cost.md).
 
 | Qty | Part | Spec | Source / LCSC # | ~Price | Used in |
 |---|---|---|---|---|---|
-| 1 panel | PCBs: backplane, frame PCB, touch band, USB board, panelized | 2-layer FR-4 1.6 mm, ENIG (owner decision: flat pads for the 0.4 mm QFNs and the pogo contacts); outlines from `cad/out/*.dxf`. Every part on one side of each board (D6), so JLC's Economic (single-side) assembly can take them. The frame PCB has countersunk M2 holes (JLC countersink option, V: fee) so its screws sit flush over the glass. JLC makes 5 panels and assembles at least 2 | JLCPCB | $45–70 for 5 panels (ENIG, 4-design fee); fees in cost.md | all boards |
+| 1 panel | PCBs: backplane, frame PCB, USB board, panelized | 2-layer FR-4 1.6 mm, ENIG (owner decision: flat pads for the 0.4 mm QFNs and the pogo contacts); outlines from `cad/out/*.dxf`. Every part on one side of each board (D6), so JLC's Economic (single-side) assembly can take them. The frame PCB has countersunk M2 holes (JLC countersink option, V: fee) so its screws sit flush over the glass. JLC makes 5 panels and assembles at least 2 | JLCPCB | $45–70 for 5 panels (ENIG, 3-design fee); fees in cost.md | all boards |
 
 #### Parts JLC fits (per device)
 
@@ -33,19 +34,16 @@ match [assembly.md](assembly.md). Totals: [cost.md](cost.md).
 | 1 | RP2350B support parts | 16 MB QSPI flash W25Q128JVSIQ [C97521](https://www.lcsc.com/product-detail/C97521.html); 12 MHz crystal X322512MSB4SI [C9002](https://www.lcsc.com/product-detail/C9002.html) (basic, 20 pF load, 80 Ω ESR) with 2 × 33 pF C0G [C1562](https://www.lcsc.com/product-detail/C1562.html) and the 1 kΩ series resistor. Raspberry Pi's reference is the ABM8-272-T3 [C20625731](https://www.lcsc.com/product-detail/C20625731.html) (10 pF, 50 Ω) with 2 × 15 pF; same 3225 footprint, so it's the fallback if Rev A's crystal start-up test fails. 3.3 µH SMPS inductor AOTA-B201610S3R3-101-T [C42411119](https://www.lcsc.com/product-detail/C42411119.html) (3 in JLC stock, pre-order minimum 32, 2026-10-17). No stocked substitute: Raspberry Pi requires a polarity-marked, shielded 3.3 µH ±20%, DCR ≤ 250 mΩ, Isat ≥ 1.5 A, and only this part is marked. 3.3 V regulator AMS1117-3.3 [C6186](https://www.lcsc.com/product-detail/C6186.html) (basic, 1 A) with 22 µF on its output. Flash, crystal, caps and regulator are basic parts | JLC (V: inductor stock on order day) | $3–4 | backplane |
 | 1 | GH 8-pin header, HCTL HC-GH-8PWT | 1.25 mm GH, side entry, latching (USB link). Clone of JST SM08B-GHS-TB: 13.25 mm wide with solder tabs, 4.25 mm tall, mates with JST GH plugs | [C3011950](https://www.lcsc.com/product-detail/C3011950.html) (1,726 in JLC stock, $0.18, 2026-10-17; the JST part [C265111](https://www.lcsc.com/product-detail/C265111.html) has 0) (V: pad drawing on layout day) | ~$0.2 | backplane |
 | 1 | FFC/FPC connector, 12-pin 1.0 mm, flip-lock ZIF, right angle | e.g. XUNPU FPC-1.0FX-12PWCR-H20 (V: contact side, height) | [C19269355](https://www.lcsc.com/product-detail/C19269355.html) | ~$0.2 | backplane |
-| 1 | JST BM06B-SRSS-TB | 6-pin SH header, top entry (touch cable; leave off without the band) | [C160392](https://www.lcsc.com/product-detail/C160392.html) | ~$0.4 | backplane |
+| — (footprint, DNP) | JST BM06B-SRSS-TB | 6-pin SH header, top entry (touch cable). Not fitted by default (D24): the footprint stays so a touch band can be added later (fit the header, or order the backplane with it) | [C160392](https://www.lcsc.com/product-detail/C160392.html) | — | backplane |
 | 1 (optional) | HY2.0 3-pin header, 2.0 mm, SMD side entry | GPIO6 link to the 7B's J8 (D5); the footprint is always on the board, fit it if you use the link | LCSC (V: part not chosen) | ~$0.1 | backplane |
 | 1 | BOOTSEL button | reverse-mount SMD tact switch (plunger through the board, pressed through the floor pinhole). If none is found: a plain SMD tact switch on the bottom side, the board's only bottom-side part | LCSC (V: part not chosen) | ~$0.1 | backplane |
-| 4 | SRV05-4-P-T7 ESD arrays | 4 lines each, SOT-23-6, pin 5 to 3V3. Three on the 10 key-matrix lines at the ZIF, one on SDA/SCL at the SH header; series resistors on every line | [C85364](https://www.lcsc.com/product-detail/C85364.html) (preferred extended: no loading fee; 36,942 in JLC stock, 2026-10-17) | ~$0.8 | backplane |
+| 3 | SRV05-4-P-T7 ESD arrays | 4 lines each, SOT-23-6, pin 5 to 3V3. Three on the 10 key-matrix lines at the ZIF, one on SDA/SCL at the SH header (DNP with the header); series resistors on every line | [C85364](https://www.lcsc.com/product-detail/C85364.html) (preferred extended: no loading fee; 36,942 in JLC stock, 2026-10-17) | ~$0.6 | backplane |
 | 90 | Pogo pin, SMD, BAT WIRELESS BWCD-L3W2.0H1.0 | slot connectors (D23): 18 per slot, upright on the top side (D6), 3 mm tall, 2 mm barrel, 1 mm stroke, ~1 N, 1.5 A, 10,000 cycles, gold-plated brass. They press the ENIG pads under each module; pinout in wiring.md | [C2988082](https://www.lcsc.com/product-detail/C2988082.html) (32,763 in JLC stock, $0.0596 at 50–149, 2026-10-19; extended) (V: drawing, force at 0.5 mm) | ~$5.4 | backplane |
-| 1 set | Backplane passives | ~470 µF bulk on the motor rail; decoupling; 1 kΩ BOOTSEL resistor at the MCU end; pull-downs on the five SSI data lines and the two ID rows; CC sense filters; I²C pull-ups for the touch band (the drivers' pull-downs sit on the haptic modules) | JLC basic parts | $2–4 | backplane |
+| 1 set | Backplane passives | ~470 µF bulk on the motor rail; decoupling; 1 kΩ BOOTSEL resistor at the MCU end; pull-downs on the five SSI data lines and the two ID rows; one 10 kΩ pull-up on the shared nFAULT line (the slots' contact C6, D24); CC sense filters; I²C pull-ups for the touch band (the drivers' pull-downs sit on the haptic modules) | JLC basic parts | $2–4 | backplane |
 | 1 | TPS259470ARPWR eFuse (motor rail) | soft-start switch for the motor rail only (to the slots' VMOT pins), enabled by firmware after reading CC and only with a haptic module fitted. Same part as the USB board's two VBUS switches: true reverse blocking, current limit set by RILM (0.5–6 A), slew rate set by a dVdt cap | [C3662799](https://www.lcsc.com/product-detail/C3662799.html) (4,468 in JLC stock, $1.29, 2026-10-17) | ~$1.3 | backplane |
 | 21 | B3U-1000P | key switches (buy spares and sort by feel) | [C231329](https://www.lcsc.com/product-detail/C231329.html) | ~$3 | frame PCB |
 | 21 | 1N4148W | SOD-123 matrix diodes (each module adds 2: press and ID) | JLC basic part | ~$0.5 | frame PCB |
 | 1 | FFC/FPC connector, 12-pin 1.0 mm, flip-lock ZIF | same as on the backplane | [C19269355](https://www.lcsc.com/product-detail/C19269355.html) | ~$0.2 | frame PCB |
-| 1 | Touch controller: AT42QT2120 (or none) | capacitive slider controller, I²C, on the band's parts side. Optional (D12): if it's expensive or out of stock, drop the band (`TOUCH_BAR = False` in params.py removes the band, its cable and the backplane's SH header) | [C614938](https://www.lcsc.com/product-detail/C614938.html) (V: stock; 69 on 2026-10-17) | ~$1.9 | touch band |
-| 1 | JST SM06B-SRSS-TB | 6-pin SH header, side entry | [C160405](https://www.lcsc.com/product-detail/C160405.html) | ~$0.9 | touch band |
-| 1 set | Touch band passives | 1–10 kΩ in series with each electrode; ferrite bead + 10 µF on 3V3 | JLC basic parts | ~$0.2 | touch band |
 | 1 | WCH CH334F | 4-port USB 2.0 hub, QFN-24; PSELF strapped low (bus-powered), 0 Ω option to flip | [C5187527](https://www.lcsc.com/product-detail/C5187527.html) (8,489 in stock, $0.63, 2026-10-17) | ~$0.6 | USB board |
 | 1 | 12 MHz crystal, 3225 | CH334F XI/XO (its load caps are built in); plus a 0 Ω link footprint that can ground XI for crystal-free mode. Same part as the RP2350B's crystal | [C9002](https://www.lcsc.com/product-detail/C9002.html) (basic) | ~$0.1 | USB board |
 | 1 | USB-C receptacle, 16-pin, mid-mount (sinks 1.6 mm into the board) | external port; HCTL HC-TYPE-C-16P-CB1.6 (V: get the drawing; slot and pad depth in the outline are from the model, shell legs unverified) | [C2894902](https://www.lcsc.com/product-detail/C2894902.html); fallback top-mount TYPE-C-31-M-12 [C165948](https://www.lcsc.com/product-detail/C165948.html) | ~$0.2 | USB board |
@@ -59,7 +57,7 @@ match [assembly.md](assembly.md). Totals: [cost.md](cost.md).
 
 JLC's assembly minimum is 2 boards, so you pay for the parts on a spare set too
 (see [cost.md](cost.md)). JLC charges a setup fee once for the panel, plus a fee per
-"extended" part type: 16 types with the parts above (list and fees in cost.md).
+"extended" part type: 13 types with the parts above (list and fees in cost.md).
 Prices are LCSC's at the quantity for 2 boards, 2026-10-17.
 
 #### 3D prints
@@ -88,11 +86,10 @@ Prices are LCSC's at the quantity for 2 boards, 2026-10-17.
 |---|---|---|---|---|---|
 | 1 | USB-C to USB-C | USB 2.0 (3 A), one 90° side-exit end + one straight end; **100 mm** (model route 98 mm) | AliExpress (search the spec) | $2–4 | Mount the display; plug in its USB cable |
 | 1 | JST-GH 1.25 mm 8-pin | plugs both ends, pin 1 to pin 1 ("same direction"), 26 AWG; **100 mm** (model route 73 mm) | AliExpress (search the spec) | $1–2 (26 AWG) | Screw in the backplane; plug in the USB link |
-| 1 | FFC | 12-pin, 1.0 mm pitch, contacts on opposite sides (type B); **80 mm** (model route 28 mm, 74 mm with the plate lifted) | AliExpress (search the spec) | $0.5–1 | Build the top plate (on the bench) |
-| 1 | JST-SH 1.0 mm 6-pin | plugs both ends, pin 1 to pin 1; **80 mm** (model route 37 mm, 75 mm with the plate lifted) | AliExpress (search the spec) | $0.5–1 | Build the top plate (on the bench) |
+| 1 | FFC | 12-pin, 1.0 mm pitch, contacts on opposite sides (type B); **100 mm** (model route 28 mm, 74 mm with the plate lifted) | AliExpress (search the spec) | $0.06 (LCSC [C80646](https://www.lcsc.com/product-detail/C80646.html), reverse) to $1 | Build the top plate (on the bench) |
 | 1 | HY2.0 (2.0 mm) 3-pin | plugs both ends, pin 1 to pin 1 (optional); **50 mm** (model route 29 mm) | AliExpress (search the spec) | ~$0.5 (optional) | Mount the display; plug in its USB cable |
 
-Search terms that find them: "USB C to USB C 90 degree 10cm" (pick a side-angle (left/right) plug for the display end, not up/down); "JST GH 1.25 8 pin double head cable 10cm" (same direction, 26 AWG); "FFC 12 pin 1.0mm 80mm" (reverse/opposite side); "JST SH 1.0 6 pin double head 8cm"; optional: "HY2.0 3 pin double head 5cm" (GPIO6 link).
+Search terms that find them: "USB C to USB C 90 degree 10cm" (pick a side-angle (left/right) plug for the display end, not up/down); "JST GH 1.25 8 pin double head cable 10cm" (same direction, 26 AWG); the FFC is LCSC C80646 (12-pin 1.0 mm, 100 mm, reverse/opposite side), or "FFC 12 pin 1.0mm 100mm" type B; optional: "HY2.0 3 pin double head 5cm" (GPIO6 link).
 
 #### Hardware
 
@@ -109,7 +106,6 @@ Search terms that find them: "USB C to USB C 90 degree 10cm" (pick a side-angle 
 | 4 | M3 heat-set inserts, 4 mm hole × 5.7 mm | top plate posts (e.g. Ruthex RX-M3x5.7 or CNC Kitchen M3 short) | AliExpress / Amazon | ~$1 | Print the case; fit magnets, feet and inserts |
 | 10 | M2 heat-set inserts, 3.2 mm hole × 4 mm | slot bosses: the modules' and blanks' screws go into these (D23; V: an M2 × 4 mm insert, ~3.5 mm outside) | AliExpress | ~$1 | Print the case; fit magnets, feet and inserts |
 | 1 set | M2 shim washers, 0.1 and 0.2 mm | between the frame PCB and its bosses, to tune the key stack | AliExpress | ~$1 | Build the top plate (on the bench) |
-| 1 | 3M 467MP or 468MP transfer tape | full coverage under the touch band (no air gaps) | AliExpress / DigiKey | ~$3 | Build the top plate (on the bench) |
 | — | Epoxy | magnets | any | ~$3 | Print the case; fit magnets, feet and inserts |
 | — (optional) | Thin foam or silicone ring | on each key cap's flange, against rattle | any | ~$1 | Build the top plate (on the bench) |
 
@@ -130,19 +126,18 @@ with order 2. Modules have no MCU: the backplane runs every slot (D23).
 | Qty | Part | Spec | Source / LCSC # | ~Price | Used in |
 |---|---|---|---|---|---|
 | 1 | Module PCB, haptic | 28.4 × 30.5 mm, 2-layer 1.6 mm, ENIG; `cad/out/module_haptic_pcb_outline.dxf`. The motor's tongue hangs on two torsion necks (the hinge, D10); 18 ENIG pads underneath meet the slot's pogo pins (pads aren't parts, so every part is on top, D6). Its own JLC design: 5 made, at least 2 assembled (cost.md) | JLCPCB | $4–8 of a $20–40 order | Build the knob modules |
-| 1 | TMC6300-LA-T | 3-phase motor driver, 2–11 V, on the fixed front border (D16) | [C5274455](https://www.lcsc.com/product-detail/C5274455.html) (201 in stock, 2026-10-17; DigiKey ~4,100) | ~$2.4 from DigiKey via Global Sourcing; ~$5 at LCSC | Build the knob modules |
+| 1 | DRV8311HRRWR (TI) | 3-phase motor driver, 3–20 V, 5 A peak, hardware variant, WQFN-24 3 × 3 mm 0.4 mm, on the fixed front border (D16). 3x PWM (MODE to AVDD); nSLEEP and INLA/B/C on NSTDBY (D24). Fallback: TMC6300-LA-T [C5274455](https://www.lcsc.com/product-detail/C5274455.html) (other footprint: a module respin) | [C5218862](https://www.lcsc.com/product-detail/C5218862.html) (7,399 in JLC stock, $0.95 at 500, 2026-10-19; extended) | ~$1.0–1.4 | Build the knob modules |
 | 1 | MT6701CT-STD | magnetic angle sensor, SSI, SOP-8 (not the QT: that's a 3×3 QFN-16), on the tongue under the magnet | [C3003196](https://www.lcsc.com/product-detail/C3003196.html) (V: JLC stock) | ~$1.6 | Build the knob modules |
-| 1 | SN74LVC3G04DCTR | triple inverter (3-PWM drive), SM8 (DCT) package | [C139324](https://www.lcsc.com/product-detail/C139324.html) | ~$0.2 | Build the knob modules |
 | 1 | B3U-1000P | knob press switch on the front border (the spacer's arm presses it) | [C231329](https://www.lcsc.com/product-detail/C231329.html) | ~$0.2 | Build the knob modules |
 | 2 | 1N4148W | press switch and module-ID diodes (key matrix; wiring.md) | JLC basic part | ~$0.02 | Build the knob modules |
 | 1 | Pin header 1×3, 2.54 mm, vertical SMD (HX PZ2.54-1x3P TP-YQ) | motor plug, upright on the front border; staggered SMD pins (D6) | [C41417360](https://www.lcsc.com/product-detail/C41417360.html) (47,856 in JLC stock, $0.039, 2026-10-19) (V: fits the motor's plug) | ~$0.04 | Build the knob modules |
-| 1 set | Module passives | 2 × 22 µF 0805 at the driver; 10 kΩ pull-downs on NSTDBY and the three PWM nets (RP2350 erratum E9: they live with the driver, so a lite module's lines stay free); ~1 kΩ series on the high-side inputs; BRUV/BRW to GND; 10 kΩ CSN pull-up; decoupling | JLC basic parts | ~$0.3 | Build the knob modules |
+| 1 set | Module passives | 2 × 22 µF 0805 25 V (C45783) and 100 nF on VM/VIN_AVDD; 100 nF CP to VM; 1 µF on AVDD; 100 nF on CSAREF (tied to AVDD); 10 kΩ pull-downs on NSTDBY and the three PWM nets (RP2350 erratum E9: they live with the driver, so a lite module's lines stay free); 10 kΩ CSN pull-up; decoupling. MODE and SLEW tied to AVDD, GAIN to GND, the current-sense outputs open | JLC basic parts | ~$0.3 | Build the knob modules |
 | 1 | Module base | `cad/out/module_base.stl`: under the PCB, sets the pogo pins' 2.5 mm working height; two key pins (2 and 1.4 mm) underneath. PETG | home printer or JLC3DP | <$1 | Build the knob modules |
 | 1 | Module cover | `cad/out/module_cover.stl`: bezel flush with the plate, four posts, front wall. PETG, black like the plate | home printer or JLC3DP | <$1 | Drop in the knob modules |
 | 1 | Motor spacer ring | `cad/out/motor_spacer.stl`: sets the sensor gap, centers the magnet; the arm carries the press striker. PETG | home printer or JLC3DP | <$1 | Build the knob modules |
 | 1 | Knob hub | `cad/out/knob_hub.stl`: D-flat column, flange screwed to the bell; PETG | home printer or JLC3DP | <$1 | Build the knob modules |
 | 1 | Knob cap | `cad/out/knob.stl` (D-bore with crush ribs); PETG | home printer or JLC3DP | <$1 | Press on the knob caps |
-| 1 | 2204 gimbal motor (Mitoot 2204 260KV or similar) | ~28 × 13 mm, hollow shaft; lead ~30 cm with a 3-pin 2.54 mm servo-style (Futaba/JR) plug per one listing (V: check plug and lead on arrival; measure base/bell hole patterns and thread depths against params.py) | AliExpress (two sellers) | $8–12 | Build the knob modules |
+| 1 | 2204 gimbal motor (Mitoot 2204 260KV or similar) | ~28 × 13 mm, hollow shaft; lead ~30 cm with a 3-pin 2.54 mm servo-style (Futaba/JR) plug per one listing (V: check plug and lead on arrival; measure base/bell hole patterns and thread depths against params.py) | AliExpress (two sellers); for a 100-unit run, factory-direct after samples (cost.md) | $8–12 ($5–9 landed at 100) | Build the knob modules |
 | 1 | Diametric magnet 6 × 2.5 mm | for the MT6701 | AliExpress | ~$1 | Build the knob modules |
 | 1 | M2×3 set screw | press striker, in the spacer's arm | hardware kit | ~$0.1 | Build the knob modules |
 | — | Epoxy | the magnet | any | — | Build the knob modules |
@@ -184,10 +179,10 @@ The rest of the prototype list is in [parts.md](parts.md).
 
 ## Totals
 
-Base device **~$345–540** with your own 3D printer, plus per module (US import duty
-included; one build, module boards ordered with the base): haptic ~$46–66 each for two
-(~$30–42 each for five), lite ~$26–33 each for two, blank ~$1. The owner's first build
-(2 haptic + 3 blank) comes to **~$440–675**. Prices above are per part; the totals also
+Base device **~$320–505** with your own 3D printer, plus per module (US import duty
+included; one build, module boards ordered with the base): haptic ~$42–57 each for two
+(~$28–38 each for five), lite ~$26–33 each for two, blank ~$1. The owner's first build
+(2 haptic + 3 blank) comes to **~$405–620**. Prices above are per part; the totals also
 include JLC's PCB, setup and extended-part fees, the parts on the spare boards, shipping and
 duty. Breakdown and the 5, 25 and 100 unit figures: [cost.md](cost.md).
 
